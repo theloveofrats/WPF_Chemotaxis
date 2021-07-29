@@ -292,6 +292,7 @@ namespace WPF_Chemotaxis
             double x = clickPoint.X * simulation.Environment.settings.DX * simulation.Environment.Width / clicked.ActualWidth;
             double y = clickPoint.Y * simulation.Environment.settings.DX * simulation.Environment.Width / clicked.ActualWidth;
 
+
             return new Point(x, y);
         }
 
