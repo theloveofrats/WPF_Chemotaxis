@@ -1,0 +1,65 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net5.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Resources\Backward Arrow.png" />
+    <None Remove="Resources\clear-all.png" />
+    <None Remove="Resources\Forward Arrow.png" />
+    <None Remove="Resources\Home.png" />
+    <None Remove="Resources\LoadIcon.png" />
+    <None Remove="Resources\LoadPlusIcon.png" />
+    <None Remove="Resources\Pause_Icon.png" />
+    <None Remove="Resources\Play_Icon.png" />
+    <None Remove="Resources\SaveIcon.png" />
+    <None Remove="UX\Effects\HeatColorizer.ps" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="docfx.console" Version="2.58.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Fody" Version="6.5.2">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="LiveCharts.Wpf" Version="0.9.7" />
+    <PackageReference Include="Microsoft.Toolkit.Uwp.UI.Controls" Version="7.0.2" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+    <PackageReference Include="Ookii.Dialogs.Wpf" Version="3.1.0" />
+    <PackageReference Include="PropertyChanged.Fody" Version="3.4.0" />
+    <PackageReference Include="WriteableBitmapEx" Version="1.6.7" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Resources\Backward Arrow.png" />
+    <Resource Include="Resources\clear-all.png" />
+    <Resource Include="Resources\Forward Arrow.png" />
+    <Resource Include="Resources\Home.png" />
+    <Resource Include="Resources\LoadIcon.png" />
+    <Resource Include="Resources\LoadPlusIcon.png" />
+    <Resource Include="Resources\Pause_Icon.png" />
+    <Resource Include="Resources\Play_Icon.png" />
+    <Resource Include="Resources\SaveIcon.png" />
+    <Resource Include="UX\Effects\HeatColorizer.ps" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Plugins\Core_Plugin.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Page Update="DisplayWindow.xaml">
+      <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+      <SubType>Designer</SubType>
+    </Page>
+  </ItemGroup>
+
+</Project>

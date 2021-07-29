@@ -1,0 +1,230 @@
+﻿<Window x:Class="WPF_Chemotaxis.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:opts="http://schemas.microsoft.com/netfx/2006/xaml/presentation/options"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:controls="using:Microsoft.Toolkit.Uwp.UI.Controls"
+        xmlns:local="clr-namespace:WPF_Chemotaxis"
+        xmlns:localux="clr-namespace:WPF_Chemotaxis.UX"
+        xmlns:effects="clr-namespace:WPF_Chemotaxis.UX.Effects"
+        mc:Ignorable="d"
+        Title="Luke's Excellent Cell Simulation" Height="650" Width="860" Loaded="Window_Loaded" Closing="Window_Closed">
+    <Window.Resources>
+        <!-- Array of heat map colors for coloring black and white heat maps -->
+
+        <localux:EnumerableNullReplaceConverter x:Key="EnumerableReplaceConverter"></localux:EnumerableNullReplaceConverter>
+        <localux:NullReplaceConverter x:Key="ReplaceConverter"></localux:NullReplaceConverter>
+        <localux:NullParamStringContainer Name="(empty)" x:Key="EmptyString"></localux:NullParamStringContainer>
+
+        <Image x:Key="Play" Source="Resources/Play_Icon.png" Height="50" Width="50" />
+        <Image x:Key="Pause" Source="Resources/Pause_Icon.png" Height="50" Width="50"/>
+    </Window.Resources>
+    <Grid>
+        <TabControl SelectionChanged="TabControl_SelectionChanged" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
+
+            <TabItem Header="Model" MinWidth="100">
+                <Grid Background="#FFE5E5E5">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="200*"/>
+                        <ColumnDefinition Width="200*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="100*"/>
+                        <RowDefinition Height="250*"/>
+                        <RowDefinition Height="250*"/>
+                    </Grid.RowDefinitions>
+                    <Label x:Name="selectedElementLabel" Content="Cell Types" HorizontalAlignment="Left" VerticalAlignment="Bottom" RenderTransformOrigin="-0.615,-0.202" Height="37" Width="323" Margin="10,20,10,0" FontSize="21" Grid.Column="0" Grid.Row="0"/>
+                    <DataGrid x:Name="currentParams" AutoGenerateColumns="False" Margin="10,10,10,10" MinColumnWidth="120" Grid.Column="1" Grid.Row="1">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Parameter" Binding="{Binding label}" IsReadOnly="True"  Width="1*"/>
+                            <DataGridTextColumn Header="Value" Binding="{Binding value, Mode=TwoWay}"  Width="1*"/>
+                            <DataGridTextColumn Header="Range" Binding="{Binding range, Mode=TwoWay}"  Width="1*"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <ContentControl Content="ContentControl" HorizontalAlignment="Left" Margin="-150,50,0,0" VerticalAlignment="Top"/>
+                    <DataGrid Grid.Row="1" Grid.Column="0" Grid.RowSpan="2" x:Name="currentElements" AutoGenerateColumns="False" Margin="10,10,10,140" MinColumnWidth="50">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Element Type" Binding="{Binding DisplayType}" IsReadOnly="True"  Width="*"/>
+                            <DataGridTextColumn Header="Name" Binding="{Binding Path=Name, Mode=TwoWay}"  Width="*"/>
+                            <DataGridTemplateColumn Header="Link">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button Click="On_Click_Link">...</Button>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <Button  Grid.Row="0" Grid.Column="0" x:Name="AddCell" Content="+" HorizontalAlignment="Right" Margin="10,10,10,2" VerticalAlignment="Bottom" Height="32" Width="32" Click="Add_Cell_Click" FontSize="20"/>
+                    <Button  Grid.Row="0" Grid.Column="0" x:Name="deleteItem" Content="-" HorizontalAlignment="Right" Margin="10,10,50,2" VerticalAlignment="Bottom" Height="32" Width="32" Click="deleteItem_Click" FontSize="20"/>
+                    <Button  Grid.Row="0" Grid.Column="0" x:Name="clearModel" HorizontalAlignment="Right" Margin="10,10,90,2" VerticalAlignment="Bottom" Height="32" Width="32" Click="Clear_Model" FontSize="20">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="" VerticalAlignment="Center" />
+                            <Image Source="Resources/clear-all.png" Width="32" Height="32" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+                        </StackPanel>
+                    </Button>
+                    <Popup Name="popAddElement" StaysOpen="True" PlacementTarget="{Binding ElementName=btnLearn}" Placement="MousePoint" HorizontalOffset="-2" VerticalOffset="-2" MouseLeave="OnMouseLeavePopAddElement" Grid.ColumnSpan="3">
+                        <Border BorderBrush="DarkBlue" BorderThickness="1" Background="AntiqueWhite">
+                            <ItemsControl Name="popUpAddElementItemsList" Width="100" Height="100" Background="Red">
+
+                            </ItemsControl>
+                        </Border>
+                    </Popup>
+
+                    <Button Grid.Row="0" Grid.Column="0" Height="36" Margin="12,10,0,0" Click="HomeButton_Click" HorizontalAlignment="Left" VerticalAlignment="Top">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="" VerticalAlignment="Center" />
+                            <Image Source="Resources/Home.png" Width="32" Height="32" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Grid.Row="0" Grid.Column="0" Width="36" Height="36" Margin="52,10,0,0" Click="BackButton_Click" HorizontalAlignment="Left" VerticalAlignment="Top">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="" VerticalAlignment="Center" />
+                            <Image Source="Resources/Backward Arrow.png" Width="32" Height="32" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Grid.Row="0" Grid.Column="0" Width="36" Height="36" Margin="92,10,0,0" Click="ForeButton_Click" HorizontalAlignment="Left" VerticalAlignment="Top">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="" VerticalAlignment="Center" />
+                            <Image Source="Resources/Forward Arrow.png" Width="32" Height="32" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Grid.Row="0" Grid.Column="0" Width="36" Height="36" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="140,10,0,0" Click="DeserializeModel_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="" VerticalAlignment="Center" />
+                            <Image Source="Resources/LoadIcon.png" Width="32" Height="32"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Grid.Row="0" Grid.Column="0" Width="36" Height="36" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="180,10,0,0" Click="DeserializePlusModel_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="" VerticalAlignment="Center" />
+                            <Image Source="Resources/LoadPlusIcon.png" Width="32" Height="32"/>
+                        </StackPanel>
+                    </Button>
+                    <Button  Grid.Row="0" Grid.Column="0" Width="36" Height="36" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="220,10,0,0" Click="SerializeModel_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="" VerticalAlignment="Center" />
+                            <Image Source="Resources/SaveIcon.png" Width="32" Height="32" RenderTransformOrigin="2.418,0.698"/>
+                        </StackPanel>
+                    </Button>
+                    <DataGrid Grid.Row="2" Grid.Column="1" x:Name="currentChoices"  AutoGenerateColumns="False" Margin="10,10,10,10" MinColumnWidth="190">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Component" Binding="{Binding Label}" IsReadOnly="True"  Width="*"/>
+                            <DataGridTemplateColumn Header="Choice" Width="*">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <ComboBox ItemsSource="{Binding Path=Options, Converter={StaticResource EnumerableReplaceConverter}, ConverterParameter={StaticResource EmptyString}}"  SelectedItem="{Binding Path=SelectedItem, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource ReplaceConverter}, ConverterParameter={StaticResource EmptyString}}" IsSynchronizedWithCurrentItem="True">
+                                            <ComboBox.ItemTemplate>
+                                                <DataTemplate>
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="{Binding Name}" />
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </ComboBox.ItemTemplate>
+                                        </ComboBox>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                   
+                </Grid>
+            </TabItem>
+            <TabItem Header="Environment" MinWidth="100">
+                <Grid Background="#FFE5E5E5">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="400*"/>
+                        <ColumnDefinition Width="427*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="350*"/>
+                        <RowDefinition Height="250*"/>
+                    </Grid.RowDefinitions>
+
+                    <Border Grid.Row="0" Grid.Column="0" x:Name="border" BorderBrush="Black"  Margin="15,50,15,-30" BorderThickness="2" Grid.ColumnSpan="1">
+                        <Grid Background="White"  Margin="0,0,0,0">
+                            <Image x:Name="mazeFileThumbnail" Stretch="Uniform" VerticalAlignment="Center" HorizontalAlignment="Center"></Image>
+                        </Grid>
+                    </Border>
+                    <Button Content="Browse" HorizontalAlignment="Right" Margin="0,0,15,-60" VerticalAlignment="Bottom" Click="Browse_Sim_File_Button_Click" Width="56" Grid.Column="0"/>
+                    <Label x:Name="mazeFileNameLabel" Grid.Row="0" Grid.Column="0" Content="No maze file chosen" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Height="35" Width="342" FontSize="21"/>
+
+                    <DataGrid x:Name="regionRules"  AutoGenerateColumns="False" Margin="10,50,10,10" MinColumnWidth="190" Grid.Row="0" Grid.Column="1">
+                        <DataGrid.Columns>
+                            <DataGridTemplateColumn Header="Rules"  Width="*">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <FlowDocumentScrollViewer VerticalScrollBarVisibility="Disabled" HorizontalScrollBarVisibility="Disabled" Document="{Binding Path=Document}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <DataGrid x:Name="envParameters"  AutoGenerateColumns="False" Margin="10,10,10,10" MinColumnWidth="190" Grid.Row="1" Grid.Column="1">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Parameter" Binding="{Binding label}" IsReadOnly="True"  Width="*"/>
+                            <DataGridTextColumn Header="Value" Binding="{Binding value, Mode=TwoWay}"  Width="*"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <TextBox x:Name="selectedRegionType" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Left" Margin="10,10,0,0" Height="32" Text="{Binding Path=Name, Mode=TwoWay}" TextWrapping="Wrap" VerticalAlignment="Top" Width="320" FontSize="20"/>
+                    <Button Name="addRuleButton"  Grid.Row="0" Grid.Column="1" Content="+" Width ="32" Height="32" HorizontalAlignment="Right" Click="Add_Rule_Click" Margin="0,10,60,0" VerticalAlignment="Top" RenderTransformOrigin="0.079,-0.288" FontSize="22"/>
+                    <Button  Grid.Row="0" Grid.Column="1" Content="-" Width ="32" Height="32" HorizontalAlignment="Right" Margin="0,10,20,0" VerticalAlignment="Top" RenderTransformOrigin="0.079,-0.288" FontSize="22" Click="Remove_Rule_Click"/>
+
+                    <Popup Name="popAddRule" StaysOpen="True" PlacementTarget="{Binding ElementName=addRuleButton}" Placement="MousePoint" HorizontalOffset="-2" VerticalOffset="-2" MouseLeave="OnMouseLeavePopAddRule" Grid.ColumnSpan="3">
+                        <Border BorderBrush="DarkBlue" BorderThickness="1" Background="AntiqueWhite">
+                            <ItemsControl Name="popUpRuleList" Width="100" Height="100" Background="Red">
+
+                            </ItemsControl>
+                        </Border>
+                    </Popup>
+
+
+                </Grid>
+            </TabItem>
+            <TabItem Header="Display" MinWidth="100">
+                <Grid Background="#FFE5E5E5">
+                    <UniformGrid Columns="1" Margin="5,5,5,140" Background="White" Name="chartStack"/>
+                </Grid>
+            </TabItem>
+        </TabControl>
+
+        <Grid Width="400" Height="120" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="12,12,12,12">
+
+
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="80*"/>
+                <ColumnDefinition Width="120*"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="95*"/>
+                <RowDefinition Height="25*"/>
+            </Grid.RowDefinitions>
+            <Border BorderBrush="Black" BorderThickness="1" Grid.RowSpan="2" Grid.ColumnSpan="2">
+
+            </Border>
+            <Label Name="timeLabel" Grid.Row="0" Grid.Column="0" Content="00:00:00" HorizontalAlignment="Center" VerticalAlignment="Bottom" FontSize="16" Margin="0,0,0,0"/>
+            <Label Content="h      m      s"  Grid.Row="0" Grid.Column="0" HorizontalAlignment="Center" VerticalAlignment="Bottom" FontSize="9" Margin="16,16,16,16"/>
+            <Button Name="btn_NewSim" Grid.Column="0" Content="New Sim" HorizontalAlignment="Left" Margin="12,12,0,0" VerticalAlignment="Top" MinWidth="56" Click="Run_Sim_Button_Click"/>
+            <Button Name="btn_PlayPause" Grid.Column="0" Margin="90,11,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" MinWidth="50" MinHeight="50" Click="PlayPause_Button_Click">
+                <DynamicResource ResourceKey="Play"/>
+            </Button>
+
+            <DataGrid Grid.Column="1" x:Name="simParameters"  AutoGenerateColumns="False" Margin="2,2,2,2" MinColumnWidth="100">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Parameter" Binding="{Binding label}" IsReadOnly="True"  Width="120*"/>
+                    <DataGridTextColumn Header="Value" Binding="{Binding value, Mode=TwoWay}"  Width="50*"/>
+                </DataGrid.Columns>
+            </DataGrid>
+            <StackPanel Orientation="Horizontal" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2">
+                <Label Name="saveDirLabel" Content="Save Directory: "  HorizontalAlignment="Left" Margin="0,0,0,0" MaxWidth="320"/>
+                <Button HorizontalAlignment="Left" Content="..." FontSize="12" Margin="10,2,2,2" VerticalAlignment="Bottom" Width="30" Height="20" Click="SetSaveDirClick"/>
+            </StackPanel>
+            
+        </Grid>
+
+    </Grid>
+</Window>

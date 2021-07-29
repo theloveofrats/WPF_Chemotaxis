@@ -1,0 +1,50 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31205.134
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WPF_Chemotaxis", "WPF_Chemotaxis\WPF_Chemotaxis.csproj", "{30680F37-5B4D-4388-9017-A4A699F5CEB8}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{98647557-AE5F-46C1-9AE3-EEAC7F5CFF22}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Core_Plugin", "Core_Plugin\Core_Plugin.csproj", "{769966CA-CFDF-45D4-B134-8E0FB8554E70}"
+EndProject
+Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "Setup", "Setup\Setup.vdproj", "{A1D719CA-AE4C-4045-AACD-6CFFAED0540D}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ReceptorDynamicsPlugin", "ReceptorDyanmicsPlugin\ReceptorDynamicsPlugin.csproj", "{B8AF1F79-DC74-4D13-83E3-FE96A60E9F21}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MitogensPlugin", "MitogensPlugin\MitogensPlugin.csproj", "{192178CB-D32F-452E-86D5-642AC2FB2788}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{30680F37-5B4D-4388-9017-A4A699F5CEB8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{30680F37-5B4D-4388-9017-A4A699F5CEB8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{30680F37-5B4D-4388-9017-A4A699F5CEB8}.Release|Any CPU.ActiveCfg = Debug|Any CPU
+		{30680F37-5B4D-4388-9017-A4A699F5CEB8}.Release|Any CPU.Build.0 = Debug|Any CPU
+		{769966CA-CFDF-45D4-B134-8E0FB8554E70}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{769966CA-CFDF-45D4-B134-8E0FB8554E70}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{769966CA-CFDF-45D4-B134-8E0FB8554E70}.Release|Any CPU.ActiveCfg = Debug|Any CPU
+		{769966CA-CFDF-45D4-B134-8E0FB8554E70}.Release|Any CPU.Build.0 = Debug|Any CPU
+		{A1D719CA-AE4C-4045-AACD-6CFFAED0540D}.Debug|Any CPU.ActiveCfg = Debug
+		{A1D719CA-AE4C-4045-AACD-6CFFAED0540D}.Release|Any CPU.ActiveCfg = Debug
+		{A1D719CA-AE4C-4045-AACD-6CFFAED0540D}.Release|Any CPU.Build.0 = Debug
+		{B8AF1F79-DC74-4D13-83E3-FE96A60E9F21}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B8AF1F79-DC74-4D13-83E3-FE96A60E9F21}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B8AF1F79-DC74-4D13-83E3-FE96A60E9F21}.Release|Any CPU.ActiveCfg = Debug|Any CPU
+		{B8AF1F79-DC74-4D13-83E3-FE96A60E9F21}.Release|Any CPU.Build.0 = Debug|Any CPU
+		{192178CB-D32F-452E-86D5-642AC2FB2788}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{192178CB-D32F-452E-86D5-642AC2FB2788}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{192178CB-D32F-452E-86D5-642AC2FB2788}.Release|Any CPU.ActiveCfg = Debug|Any CPU
+		{192178CB-D32F-452E-86D5-642AC2FB2788}.Release|Any CPU.Build.0 = Debug|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {CBF4DEBC-D363-4E9E-B926-7D68F51587D8}
+	EndGlobalSection
+EndGlobal
