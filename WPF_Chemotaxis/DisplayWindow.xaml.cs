@@ -32,6 +32,7 @@ namespace WPF_Chemotaxis
     /// </summary>
     public partial class DisplayWindow : Window, INotifyPropertyChanged
     {
+        private static int numDisplays = 0;
         private Simulation simulation;
         private WriteableBitmap bmp;
         private WriteableBitmap bmp_overlay;
@@ -55,7 +56,7 @@ namespace WPF_Chemotaxis
             cbColors.SelectedIndex = 0;
             this.interpreter = new IntensityInterpreter(this.cbColors);
 
-            timer.Interval = new TimeSpan(4000);
+            timer.Interval = new TimeSpan(1000000);
             timer.Tick += (d, e) => {
                 RedrawImage();
                 RedrawOverlay();
@@ -64,7 +65,7 @@ namespace WPF_Chemotaxis
 
         public void Window_Closed(object sender, CancelEventArgs e)
         {
-            simulation.Dispose();
+            if(simulation!=null) simulation.Cancel();
         }
 
 
@@ -80,18 +81,27 @@ namespace WPF_Chemotaxis
             this.simulation = simulation;
             this.InitialiseIntensities();
             this.simulation.Redraw += (s, e, c) => this.UpdateSourceData(e, c);
+            this.simulation.Close += (s,e,c) => this.FinishSimulation();
             this.InitialiseImages();
             this.selector = new OverlaySelector(simulation);
+            int displayNum = ++numDisplays;
 
             //This connects the target panel in the main window to the selector. It's ugly as hell like this, though.
             ChartManager manager = new ChartManager(chartTarget, selector);
-            simulation.LateUpdate += (s, e, m) => this.Dispatcher.Invoke(() => manager.DoChart());
-            simulation.WriteToFile += (s, e, m) => this.Dispatcher.Invoke(() => this.SavePNGFile(s.TargetDirectory));
+            simulation.LateUpdate  += (s, e, m) => this.Dispatcher.Invoke(() => manager.DoChart());
+            simulation.WriteToFile += (s, e, m) => this.Dispatcher.Invoke(() => this.SavePNGFile(s.TargetDirectory, displayNum));
         }
 
-        private void SavePNGFile(string baseDirectory)
+        private void FinishSimulation()
         {
-            string targetDir = baseDirectory + "\\Images\\";
+            this.timer.Stop(); 
+            this.simulation = null;
+            Dispatcher.Invoke(()=> this.Close());
+        }
+
+        private void SavePNGFile(string baseDirectory, int displayNum)
+        {
+            string targetDir = baseDirectory + string.Format("\\Images\\Display {0}\\", displayNum);
             if (!Directory.Exists(targetDir))
             {
                 Directory.CreateDirectory(targetDir);

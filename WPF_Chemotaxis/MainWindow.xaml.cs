@@ -204,9 +204,22 @@ namespace WPF_Chemotaxis
 
             newSave.ModelElements = Model.Model.MasterElementList.ToList();
             newSave.Regions = new();
-            foreach(var entry in RegionType.GetRegionTypes)
-            {
-                newSave.Regions.Add(entry.Key, entry.Value);
+
+            if (mazeFileThumbnail.Source != null) {
+
+                WriteableBitmap bmp = new WriteableBitmap(mazeFileThumbnail.Source as BitmapSource);
+
+                foreach (var entry in RegionType.GetRegionTypes)
+                {
+                    if (entry.Value.Rules.Count() > 0)
+                    {
+                        if (ContainsColor(bmp, entry.Key))
+                        {
+                            System.Diagnostics.Debug.Print(string.Format("Found color {0} for regiontype {1}.", entry.Key, entry.Value.Name));
+                            newSave.Regions.Add(entry.Key, entry.Value);
+                        }
+                    }
+                }
             }
             newSave.miscParams = new MiscParamTable(env.DX, sim.duration, sim.dt, sim.out_freq);
 
@@ -223,8 +236,24 @@ namespace WPF_Chemotaxis
             File.WriteAllText(autosavePath, saveString);
         }
 
+        private bool ContainsColor(WriteableBitmap checkbmp, Color clr)
+        {
+            for (int i = 0; i < checkbmp.PixelWidth; i++)
+            {
+                for (int j = 0; j < checkbmp.PixelHeight; j++)
+                {
+                    if (checkbmp.GetPixel(i, j).Equals(clr)) return true;
+                }
+            }
+            return false;
+        }
+
         private void Window_Closed(object sender, CancelEventArgs e)
         {
+            if (Simulation.Current != null)
+            {
+                Simulation.Current.Cancel();
+            }
             string basePath = System.IO.Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
             SerialiseAutosave(basePath + workingModelFile);
 
@@ -514,18 +543,19 @@ namespace WPF_Chemotaxis
             //Needs to be changed to link simulation, and unlink when sim finishes, not create it. One at a time is fine! We can put repeats in a UI.
             string newTargetDirectory;
             sim.MakeNewSimDirectory(out newTargetDirectory);
-            
-            Simulation newSimulation = new Simulation(sim, env, newTargetDirectory);
-
             if (newTargetDirectory != null)
             {
                 string modelPath = newTargetDirectory + "\\StartingSetup.json";
                 SerialiseAutosave(modelPath);
             }
 
-            AddDisplayView(newSimulation);
-            newSimulation.Redraw += (s,e,m) => UpdateTime(newSimulation.Time);
-            newSimulation.Start();
+            if (Simulation.Current == null)
+            {
+                Simulation newSim = Simulation.StartSimulation(sim, env, newTargetDirectory);
+                newSim.Redraw += (s, e, m) => UpdateTime(newSim.Time);
+                newSim.Start();
+            }
+            AddDisplayView(Simulation.Current);
         }
 
         private void UpdateTime(double time)
@@ -545,8 +575,7 @@ namespace WPF_Chemotaxis
             {
                 btn_PlayPause.Content = FindResource("Play");
                 sim.OnPause(sender, e);
-            }
-           
+            } 
         }
 
         ///<summary>
@@ -560,7 +589,6 @@ namespace WPF_Chemotaxis
                     displayWindow.LinkSimulation(newSim, chartStack);
                     displayWindow.Show();
                     displayWindow.Start();
-                    
             }), 
             CancellationToken.None, TaskCreationOptions.None, TaskScheduler.FromCurrentSynchronizationContext());
         }

@@ -104,6 +104,11 @@ namespace WPF_Chemotaxis.Model
             currentTypes.Clear();
         }
 
+        private static void TrimRegions()
+        {
+
+        }
+
         public static void AddRegionType(Color clr, RegionType rt)
         {
             if (clr == Colors.Black) return;

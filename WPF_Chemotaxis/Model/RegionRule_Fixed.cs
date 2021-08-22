@@ -20,7 +20,7 @@ namespace WPF_Chemotaxis.Model
 
         public override void Tick(Simulation sim, ICollection<Vector2Int> points)
         {
-            throw new NotImplementedException();
+            
         }
 
         public override void Init(Simulation sim, ICollection<Vector2Int> points)
@@ -28,6 +28,7 @@ namespace WPF_Chemotaxis.Model
             foreach(Vector2Int point in points){
                 sim.Environment.SetFlag(point.X, point.Y, Simulations.Environment.PointType.FIXED, true);
             }
+            System.Diagnostics.Debug.Print("Init setting flags on fixed region");
         }
 
         public override void OnLoaded()

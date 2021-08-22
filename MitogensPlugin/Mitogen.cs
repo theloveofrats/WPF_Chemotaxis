@@ -6,7 +6,7 @@ using Newtonsoft.Json;
 using System.Collections.Generic;
 using WPF_Chemotaxis;
 
-namespace MitogensPlugin
+namespace Core
 {
     public class Mitogen : LabelledLinkable, ICellComponent // Labelled linkable already does the heavy
                                                             // lifting to put this in the GUI. ICellComponent means

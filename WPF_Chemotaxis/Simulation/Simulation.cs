@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using WPF_Chemotaxis.Model;
 using WPF_Chemotaxis.UX;
 using System.IO;
+using System.Diagnostics;
 
 namespace WPF_Chemotaxis.Simulations {
     /// <summary>
@@ -24,6 +25,8 @@ namespace WPF_Chemotaxis.Simulations {
                 return settings;
             }
         }
+
+        public static Simulation Current { get; private set; }
 
         private int nextCellNum = 0;
 
@@ -70,11 +73,14 @@ namespace WPF_Chemotaxis.Simulations {
         public event SimulationNotification EarlyUpdate;
         public event SimulationNotification LateUpdate;
         public event SimulationNotification WriteToFile;
-        public event SimulationNotification WriteFinal;
+        public event SimulationNotification Close;
 
         private HashSet<Cell> cells = new();
         private Dictionary<Cell, CellDeathType> removedcells = new();
         private Environment environment;
+
+        private Stopwatch draw_watch = new();
+
 
         private IFluidModel fluid;
         private bool disposedValue;
@@ -92,7 +98,15 @@ namespace WPF_Chemotaxis.Simulations {
             }
         }
 
-        public Simulation(SimulationSettings settings, EnvironmentSettings envSettings, string targetDirectory)
+        public static Simulation StartSimulation(SimulationSettings settings, EnvironmentSettings envSettings, string targetDirectory)
+        {
+            if (Current == null || Current.disposedValue)
+            {
+                Current = new Simulation(settings, envSettings, targetDirectory);
+            }
+            return Current;
+        }
+        private Simulation(SimulationSettings settings, EnvironmentSettings envSettings, string targetDirectory)
         {
             this.settings = settings;
 
@@ -114,9 +128,14 @@ namespace WPF_Chemotaxis.Simulations {
             Thread thread = new Thread(new ThreadStart(this.Run)); 
             thread.Start();
         }
+        public void Cancel()
+        {
+            this.cancelled = true;
+        }
         private void Run()
         {
-
+            draw_watch.Start();
+            var watch = System.Diagnostics.Stopwatch.StartNew();
             while (time<settings.duration && !cancelled)
             {
                 if (this.paused)
@@ -129,10 +148,12 @@ namespace WPF_Chemotaxis.Simulations {
                     this.Iterate();
                 }
             }
-            if (this.WriteFinal != null)
+            if (this.Close != null)
             {
-                this.WriteFinal(this,environment,cells);
+                this.Close(this,environment,cells);
             }
+            watch.Stop();
+            System.Diagnostics.Debug.Print(string.Format("Duration: {0}", watch.Elapsed.ToString(@"mm\:ss\:ff")));
             this.Dispose();
         }
 
@@ -183,8 +204,12 @@ namespace WPF_Chemotaxis.Simulations {
             {
                 TryMoveCell(c);
             }
-            if (Redraw != null) { 
-                Redraw(this, this.environment, this.cells);
+            if (Redraw != null) {
+                if (draw_watch.ElapsedTicks > 300000)
+                {
+                    Redraw(this, this.environment, this.cells);
+                    draw_watch.Restart();
+                }
             }
 
             foreach(Cell cell in removedcells.Keys)
@@ -295,6 +320,10 @@ namespace WPF_Chemotaxis.Simulations {
                     {
                         c.Dispose();
                     }
+                    if (environment != null)
+                    {
+                        environment.Dispose();
+                    }
                 }
                 if (this.writer != null)
                 {
@@ -304,14 +333,16 @@ namespace WPF_Chemotaxis.Simulations {
                 this.settings.Pause -= this.pauseSub;
                 this.settings.Resume -= this.resumeSub;
                 CellAdded = null;
+                CellRemoved = null;
+                this.Close = null;
                 this.Redraw = null;
                 this.EarlyUpdate = null;
                 this.LateUpdate = null;
                 this.cells.Clear();
-
+                this.environment = null;
                 // TODO: free unmanaged resources (unmanaged objects) and override finalizer
-                // TODO: set large fields to null
                 disposedValue = true;
+                Simulation.Current = null;
             }
         }
 

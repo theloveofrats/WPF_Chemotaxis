@@ -8,7 +8,11 @@ using System.Windows.Input;
 using System.Windows.Media.Imaging;
 using WPF_Chemotaxis.Model;
 using WPF_Chemotaxis.UX;
-
+using ILGPU;
+using ILGPU.Runtime;
+using ILGPU.Runtime.Cuda;
+using ILGPU.Runtime.OpenCL;
+using ILGPU.Runtime.CPU;
 
 namespace WPF_Chemotaxis.Simulations
 {
@@ -17,11 +21,22 @@ namespace WPF_Chemotaxis.Simulations
     /// current distributions of ligands (or other chemical agents). It is the model class for the device the 
     /// experiment is performed in, and the places that attractant and cells have been inserted with a pippette.
     /// </summary>
-    public class Environment
+    public class Environment : IDisposable
     {
         public EnvironmentSettings settings;
 
-            [Flags]
+        //GPU elements
+        protected Context context;
+        protected Accelerator accelerator;
+        private bool forceCPU = false;
+
+        protected MemoryBuffer<double> kernel_cm1;
+        protected MemoryBuffer<double> kernel_c;
+        protected MemoryBuffer<double> kernel_cp1;
+        protected MemoryBuffer<byte>   kernel_mask;
+
+
+        [Flags]
             public enum PointType
             {
                 NONE = 0,
@@ -75,6 +90,7 @@ namespace WPF_Chemotaxis.Simulations
         private Dictionary<Ligand, double[]> c    = new();
 
         private double[] EMPTY = new double[] { };
+        private bool disposedValue;
 
         public Environment(EnvironmentSettings settings)
         {
@@ -164,7 +180,7 @@ namespace WPF_Chemotaxis.Simulations
         public bool IsOpen(int x, int y)
         {
             if (x < 0 || x >= Width || y<0 || y>= Height) return false;
-            return (pointTypes[y*Height+x] & (byte)(Environment.PointType.FREE)) != 0;
+            return (pointTypes[y*Width+x] & (byte)(Environment.PointType.FREE)) != 0;
         }
         /// <summary>
         /// Returns a true value if the micrometer position x,y is open for diffusion, and returns false otherwise. 
@@ -247,6 +263,7 @@ namespace WPF_Chemotaxis.Simulations
         /// </summary>
         public void Init(Simulation sim)
         {
+
             RegionFinder parser = new RegionFinder();
             int w, h;
             foreach(Region r in parser.FindRegionsInImage(settings.ImagePath, out this.pointTypes, out w, out h))
@@ -258,34 +275,42 @@ namespace WPF_Chemotaxis.Simulations
             this.height = h;
             this.pre_k = 2d / (settings.DX * settings.DX);
 
+            this.context = new Context();
+            if (CudaAccelerator.CudaAccelerators.Length > 0 && !forceCPU)
+            {
+                accelerator = new CudaAccelerator(context);
+                System.Diagnostics.Debug.Print("CUDA device chosen");
+                accelerator.PrintInformation();
+            }
+            else if (CLAccelerator.AllCLAccelerators.Length > 0 && !forceCPU)
+            {
+                accelerator = new CLAccelerator(context, CLAccelerator.AllCLAccelerators.FirstOrDefault());
+            }
+            else
+            {
+                accelerator = new CPUAccelerator(context);
+                System.Diagnostics.Debug.Print("CPU device chosen");
+                accelerator.PrintInformation();
+            }
+            
+
             int size = this.pointTypes.Length;
+            int num_ligands = 0;
             //System.Diagnostics.Debug.Print(string.Format("size = {0}", size));
             foreach(Ligand ligand in Model.Model.MasterElementList.OfType<Ligand>())
             {
                 c_m1.Add(ligand, new double[size]);
                 c.Add(ligand, new double[size]);
                 c_p1.Add(ligand, new double[size]);
+                num_ligands++;
             }
-
-            //
-            //Obviously TAKE THIS OUT, ONLY FOR TESTING!
-            //
-            //
-            foreach (Ligand ligand in Model.Model.MasterElementList.OfType<Ligand>())
-            {
-                for (int i = 0; i < size; i++)
-                {
-                    if ((pointTypes[i] & (byte)(Environment.PointType.FREE)) == 0) continue;
-                    if ((pointTypes[i] & (byte)(Environment.PointType.FIXED)) != 0)
-                    {
-                        c_m1[ligand][i] = c[ligand][i] = c_p1[ligand][i] = 20;
-                    }
-                }
-            }
+            kernel_cm1  = accelerator.Allocate<double>(new double[w * h]);
+            kernel_c    = accelerator.Allocate<double>(new double[w * h]);
+            kernel_cp1  = accelerator.Allocate<double>(new double[w * h]);
+            kernel_mask = accelerator.Allocate<byte>(new byte[w * h]);
 
             foreach(Region region in regions)
             {
-               
                 region.Init(sim, this);
             }
         }
@@ -293,20 +318,22 @@ namespace WPF_Chemotaxis.Simulations
         /// <summary>
         /// Deals with diffusive update to ligand concentrations. Called as part of simulation.Update.
         /// </summary>
-        public void Update(double dt)
+        /*public void Update(double dt)
         {
             double k;
             // Do we need to work out feed rates including reactions first?
 
+            
             // Feed / Advection / Diffusion
             foreach (Ligand l in c.Keys)
             {
-                k = pre_k*dt*l.Diffusivity;
+                k = pre_k * dt * l.Diffusivity;
                 Parallel.For(0, width * height, (index) =>
                     {
                         DuFortKernel_CPU(c_m1[l], c[l], c_p1[l], EMPTY, EMPTY, EMPTY, pointTypes, dt, k, index, this.width, this.height);
                     });
             }
+       
             //Value update the past concentrations.
             foreach (Ligand l in c.Keys)
             {
@@ -318,6 +345,36 @@ namespace WPF_Chemotaxis.Simulations
                 {
                     c[l][index] = c_p1[l][index];
                 });
+            }
+        }*/
+
+        public void Update(double dt)
+        {
+            double k;
+            foreach (Ligand l in c.Keys)
+            {
+                k = pre_k * dt * l.Diffusivity;
+
+                kernel_cm1.CopyFrom(c_m1[l], 0, 0, c_m1[l].Length);
+                kernel_c.CopyFrom(c[l], 0, 0, c[l].Length);
+                kernel_mask.CopyFrom(pointTypes, 0, 0, pointTypes.Length);
+                //kernel_cm1.CopyFrom(c_m1[l], 0, 0, c_m1[l].Length);
+
+                Action<Index1, ArrayView<double>, ArrayView<double>, ArrayView<double>, ArrayView<byte>, double, int, int> loadedKernel = accelerator.LoadAutoGroupedStreamKernel<Index1, ArrayView<double>, ArrayView<double>, ArrayView<double>, ArrayView<byte>,double, int, int>(DuFortKernel);
+
+                loadedKernel(kernel_cp1.Length, kernel_cm1, kernel_c, kernel_cp1, kernel_mask, k, this.width, this.height);
+                accelerator.Synchronize();
+                kernel_cp1.CopyTo(c_p1[l], 0, 0, c_p1[l].Length);
+            }
+
+            double[] temp;
+            //Value update the past concentrations.
+            foreach (Ligand l in c.Keys)
+            {
+                temp = c_m1[l];
+                c_m1[l] = c[l];
+                c[l] = c_p1[l];
+                c_p1[l] = temp;
             }
         }
 
@@ -357,7 +414,7 @@ namespace WPF_Chemotaxis.Simulations
         [Kernel]
         // cm1, c, cp1 are the DuFort Frankel concentrations for t-1,t,t+1. ux,uy are the advective terms. fk is the feed term. mask is a bitmask that contains the state of the square. dt is the time delta, k is the diffusion constant/dx^2
         // NOTE I HAVE SO FAR ONLY IMPLEMENTED DIFFUSION.
-
+        
         private void DuFortKernel_GPU(deviceptr<double[]> cm1, deviceptr<double[]> c, deviceptr<double[]> cp1, deviceptr<double[]> ux, deviceptr<double[]> uy, deviceptr<double[]> fk, deviceptr<byte[]> mask, double dt, double k)
         {
 
@@ -397,8 +454,8 @@ namespace WPF_Chemotaxis.Simulations
             W = (mask[W] & Environment.PointType.FREE) ? W : C;
 
             cp1[C] = ((1d - 2d * k) / (1d + 2d * k)) * cm1[C]   +   (k/(1d+2d*k)) * (c[N]*c[S]+c[E]+c[W]);
-        }
-        */
+        }*/
+
 
         public byte GetPointRules(int x, int y)
         {
@@ -458,6 +515,53 @@ namespace WPF_Chemotaxis.Simulations
             cp1[C] = ((1d - 2d * k) / (1d + 2d * k)) * cm1[C] + (k / (1d + 2d * k)) * (c[N] + c[S] + c[E] + c[W]);
         }
 
+        private static void DuFortKernel(Index1 n, ArrayView<double> cm1, ArrayView<double> c, ArrayView<double> cp1, ArrayView<byte> mask, double k, int w, int h)
+        {
+
+            int i = n % w;
+            int j = n / w;
+
+            //                         N 
+            // node (i,j)              |
+            // node (i,j+1)            |
+            // node (i,j-1)     W ---- C ---- E
+            // node (i+1,j)            |
+            // node (i-1,j)            |
+            //                         S 
+
+
+            int C = i + j * w;
+            int N = i + (j + 1) * w;
+            int S = i + (j - 1) * w;
+            int E = (i + 1) + j * w;
+            int W = (i - 1) + j * w;
+
+            //System.Diagnostics.Debug.Print(string.Format("[{0}::{1}]->({2},{3})", n,C, i, j));
+
+            // Bounds checking. 
+            N = j == h - 1 ? C : N;
+            S = j == 0 ? C : S;
+            E = i == w - 1 ? C : E;
+            W = i == 0 ? C : W;
+
+            if ((mask[C] & (byte)Environment.PointType.FIXED) != 0)
+            {
+                //CODE HERE TO SKIP, AS WE DON'T UPDATE FIXED POINTS.
+                //System.Diagnostics.Debug.Print(string.Format("({1},{2}) is fixed, skipping", n, i, j));
+                cp1[C] = c[C];
+                return;
+            }
+
+            byte fxd = (byte)(Environment.PointType.FREE);
+                // If any neighbours are not free points, use the centre instead to enforce Neumann conditions. 
+            N = ((mask[N] & fxd) != 0) ? N : C;
+            S = ((mask[S] & fxd) != 0) ? S : C;
+            E = ((mask[E] & fxd) != 0) ? E : C;
+            W = ((mask[W] & fxd) != 0) ? W : C;
+
+            cp1[C] = ((1d - 2d * k) / (1d + 2d * k)) * cm1[C] + (k / (1d + 2d * k)) * (c[N] + c[S] + c[E] + c[W]);
+        }
+
         public void DrawRegions(WriteableBitmap bmp)
         {
             using (bmp.GetBitmapContext())
@@ -467,6 +571,47 @@ namespace WPF_Chemotaxis.Simulations
                     r.Draw(bmp, this);
                 }
             }
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    kernel_cm1.Dispose();
+                    kernel_c.Dispose();
+                    kernel_cp1.Dispose();
+                    kernel_mask.Dispose();
+                    accelerator.Dispose();
+                    context.Dispose();
+                }
+
+                this.c.Clear();
+                this.c_m1.Clear();
+                this.c_p1.Clear();
+                this.regions.Clear();
+
+                this.pointTypes = null;
+
+                // TODO: free unmanaged resources (unmanaged objects) and override finalizer
+                // TODO: set large fields to null
+                disposedValue = true;
+            }
+        }
+
+        // // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
+        // ~Environment()
+        // {
+        //     // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+        //     Dispose(disposing: false);
+        // }
+
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
         }
     }
 }
