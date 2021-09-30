@@ -30,6 +30,7 @@ namespace WPF_Chemotaxis.Simulations
         protected Accelerator accelerator;
         private bool forceCPU = false;
 
+        protected MemoryBuffer<double> kernel_rxn; 
         protected MemoryBuffer<double> kernel_cm1;
         protected MemoryBuffer<double> kernel_c;
         protected MemoryBuffer<double> kernel_cp1;
@@ -85,6 +86,7 @@ namespace WPF_Chemotaxis.Simulations
 
         private byte[] pointTypes;
 
+        private Dictionary<Ligand, double[]> reactions = new();
         private Dictionary<Ligand, double[]> c_m1 = new();
         private Dictionary<Ligand, double[]> c_p1 = new();
         private Dictionary<Ligand, double[]> c    = new();
@@ -169,7 +171,8 @@ namespace WPF_Chemotaxis.Simulations
         /// </summary>
         public void SetConcentration(int x, int y, Ligand l, double val)
         {
-            int psn = width * y + x;
+            int psn = y * width + x;
+            if (psn < 0 || psn >= width * height) return;
             c[l][psn] = c_p1[l][psn] = c_m1[l][psn] = val;
         }
 
@@ -299,11 +302,13 @@ namespace WPF_Chemotaxis.Simulations
             //System.Diagnostics.Debug.Print(string.Format("size = {0}", size));
             foreach(Ligand ligand in Model.Model.MasterElementList.OfType<Ligand>())
             {
+                reactions.Add(ligand, new double[size]);
                 c_m1.Add(ligand, new double[size]);
                 c.Add(ligand, new double[size]);
                 c_p1.Add(ligand, new double[size]);
                 num_ligands++;
             }
+            kernel_rxn = accelerator.Allocate<double>(new double[w * h]);
             kernel_cm1  = accelerator.Allocate<double>(new double[w * h]);
             kernel_c    = accelerator.Allocate<double>(new double[w * h]);
             kernel_cp1  = accelerator.Allocate<double>(new double[w * h]);
@@ -355,14 +360,15 @@ namespace WPF_Chemotaxis.Simulations
             {
                 k = pre_k * dt * l.Diffusivity;
 
+                kernel_rxn.CopyFrom(reactions[l], 0, 0, reactions[l].Length);
                 kernel_cm1.CopyFrom(c_m1[l], 0, 0, c_m1[l].Length);
                 kernel_c.CopyFrom(c[l], 0, 0, c[l].Length);
                 kernel_mask.CopyFrom(pointTypes, 0, 0, pointTypes.Length);
                 //kernel_cm1.CopyFrom(c_m1[l], 0, 0, c_m1[l].Length);
 
-                Action<Index1, ArrayView<double>, ArrayView<double>, ArrayView<double>, ArrayView<byte>, double, int, int> loadedKernel = accelerator.LoadAutoGroupedStreamKernel<Index1, ArrayView<double>, ArrayView<double>, ArrayView<double>, ArrayView<byte>,double, int, int>(DuFortKernel);
+                Action<Index1, ArrayView<double>, ArrayView<double>, ArrayView<double>, ArrayView<byte>,ArrayView<double>, double,double, int, int> loadedKernel = accelerator.LoadAutoGroupedStreamKernel<Index1, ArrayView<double>, ArrayView<double>, ArrayView<double>, ArrayView<byte>, ArrayView<double>, double,double, int, int>(DuFortKernel);
 
-                loadedKernel(kernel_cp1.Length, kernel_cm1, kernel_c, kernel_cp1, kernel_mask, k, this.width, this.height);
+                loadedKernel(kernel_cp1.Length, kernel_cm1, kernel_c, kernel_cp1, kernel_mask,kernel_rxn, k, dt, this.width, this.height);
                 accelerator.Synchronize();
                 kernel_cp1.CopyTo(c_p1[l], 0, 0, c_p1[l].Length);
             }
@@ -371,6 +377,7 @@ namespace WPF_Chemotaxis.Simulations
             //Value update the past concentrations.
             foreach (Ligand l in c.Keys)
             {
+                Array.Fill<double>(reactions[l], 0);
                 temp = c_m1[l];
                 c_m1[l] = c[l];
                 c[l] = c_p1[l];
@@ -390,22 +397,21 @@ namespace WPF_Chemotaxis.Simulations
         /// <param name="y">y position in microns</param>
         /// <param name="rate">rate of change of concentration</param>
         /// <param name="dt">Timestep (mins)</param>
-        public void DegradeAtRate(Ligand input, Ligand output, double x, double y, double rate, double dt)
+        public void DegradeAtRate(Ligand input, Ligand output, double x, double y, double rate, double io_ratio, double dt)
         {
             int pos = (int)Math.Floor(x / settings.DX) + Width * (int)Math.Floor(y / settings.DX);
 
             double change = rate * dt;
             if (input != null)
             {
-                change = Math.Min(c[input][pos], rate * dt);
+                change = Math.Min(c[input][pos] + reactions[input][pos], rate * dt);
 
-                c[input][pos] -= change;
-                c_m1[input][pos] -= 0.6 * change;
+                reactions[input][pos] -= change;
+                //if (change > 0.02) System.Diagnostics.Debug.Print(string.Format("{0} concentration change of {1:0.00}", input.Name, change));
             }
             if (output != null)
             {
-                c[output][pos] += change;
-                c_m1[output][pos] += 0.6 * change;
+                reactions[output][pos] += io_ratio*change;
             }
         }
         
@@ -463,7 +469,8 @@ namespace WPF_Chemotaxis.Simulations
             return this.pointTypes[y*Width+x];
         }
 
-        //This is more honestly my level. CUDA melts my brain. 
+        //This is more honestly my level. CUDA melts my brain. EDIT- Leaving in temporarily, but the new kernel seems to work better for all applications. 
+        [Obsolete("DuFortKernel_CPU is deprecated, please use DuFortKernel, which works on any hardware.")]
         private void DuFortKernel_CPU(double[] cm1, double[] c, double[] cp1, double[] ux, double[] uy, double[] fk, byte[] mask, double dt, double k, int n, int w, int h)
         {
 
@@ -515,7 +522,7 @@ namespace WPF_Chemotaxis.Simulations
             cp1[C] = ((1d - 2d * k) / (1d + 2d * k)) * cm1[C] + (k / (1d + 2d * k)) * (c[N] + c[S] + c[E] + c[W]);
         }
 
-        private static void DuFortKernel(Index1 n, ArrayView<double> cm1, ArrayView<double> c, ArrayView<double> cp1, ArrayView<byte> mask, double k, int w, int h)
+        private static void DuFortKernel(Index1 n, ArrayView<double> cm1, ArrayView<double> c, ArrayView<double> cp1, ArrayView<byte> mask, ArrayView<double> react, double k, double dt, int w, int h)
         {
 
             int i = n % w;
@@ -559,7 +566,8 @@ namespace WPF_Chemotaxis.Simulations
             E = ((mask[E] & fxd) != 0) ? E : C;
             W = ((mask[W] & fxd) != 0) ? W : C;
 
-            cp1[C] = ((1d - 2d * k) / (1d + 2d * k)) * cm1[C] + (k / (1d + 2d * k)) * (c[N] + c[S] + c[E] + c[W]);
+            cp1[C] = ((1d - 2d * k) / (1d + 2d * k)) * cm1[C] + (k / (1d + 2d * k)) * (c[N] + c[S] + c[E] + c[W]) + react[C]/(1+2*k);
+            if (cp1[C] < 0) cp1[C] = 0;
         }
 
         public void DrawRegions(WriteableBitmap bmp)

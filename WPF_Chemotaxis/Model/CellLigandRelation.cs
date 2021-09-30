@@ -108,7 +108,7 @@ namespace WPF_Chemotaxis.Model
                     }
                 }
 
-                env.DegradeAtRate(input_ligand, output_ligand, p.X, p.Y, rate, dt);
+                env.DegradeAtRate(input_ligand, output_ligand, p.X, p.Y, rate, multiplier, dt);
            
             }
         }

@@ -9,7 +9,7 @@ namespace WPF_Chemotaxis.Simulations
     /// <summary>
     /// Class supplying an empty fluid model (returns zero movement for everything).
     /// </summary>
-    class FluidModel_None : IFluidModel
+    /*class FluidModel_None : IFluidModel
     {
         double IFluidModel.GetDivergence(double x, double y)
         {
@@ -25,5 +25,5 @@ namespace WPF_Chemotaxis.Simulations
         {
             return new double[] { 0, 0, 0 };
         }
-    }
+    }*/
 }
