@@ -126,7 +126,7 @@ namespace WPF_Chemotaxis.Model
             n = environment.GetConcentration(this, x, y+1);
             e = environment.GetConcentration(this, x+1, y);
 
-            c = Math.Clamp(0.5 * (2 * c - (n + e)), Min, Max);
+            c = Math.Clamp(0.5 * (2 * c - (n + e))/environment.settings.DX, min, max);
 
             c = 255 * (c - min) / (max - min);
 

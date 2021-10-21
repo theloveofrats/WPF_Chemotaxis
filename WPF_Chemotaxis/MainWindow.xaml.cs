@@ -345,9 +345,13 @@ namespace WPF_Chemotaxis
         {
             foreach (ILinkable obj in Model.Model.MasterElementList)
             {
+                
                 // Could do with an obj.Clean() function to mop up in case of mutual references causing memory leak.
             }
             Model.Model.MasterElementList.Clear();
+
+            RegionType.ClearRegions();
+            OnMazeFileChosen("");
         }
 
         // Generates buttons for all current elements of the type elementListFilterType, and links them to the MethodInfo method. These methods MUST take a single argument of the correct type! 
@@ -503,10 +507,11 @@ namespace WPF_Chemotaxis
         private void OnMazeFileChosen(string path)
         {
             BitmapImage thumb = new BitmapImage();
-            thumb.BeginInit();
-            thumb.UriSource = new Uri(path);
-            thumb.EndInit();
-
+            if (File.Exists(path)) { 
+                thumb.BeginInit();
+                thumb.UriSource = new Uri(path);
+                thumb.EndInit();
+            }
             env.ImagePath = path;
             mazeFileThumbnail.Source = thumb;
 

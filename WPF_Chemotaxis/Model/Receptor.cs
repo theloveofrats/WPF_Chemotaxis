@@ -135,7 +135,7 @@ namespace WPF_Chemotaxis.Model
         public byte OccupancyToIntensity(Simulations.Environment environment, int x, int y)
         {     
             double c = Math.Clamp(GetOccupancy(environment, x, y), min, max);
-            c = 127 * (c - min) / (max - min);
+            c = 255 * (c - min) / (max - min);
             return (byte) Math.Round(c);
         }
 
@@ -143,7 +143,7 @@ namespace WPF_Chemotaxis.Model
         public byte EfficacyToIntensity(Simulations.Environment environment, int x, int y)
         {
             double c = Math.Clamp(GetEfficacy(environment, x, y), min, max);
-            c = 127 * (c - min) / (max - min);
+            c = 255 * (c - min) / (max - min);
             return (byte)Math.Round(c);
         }
 
@@ -155,8 +155,8 @@ namespace WPF_Chemotaxis.Model
             n = GetOccupancy(environment, x, y + 1);
             e = GetOccupancy(environment, x + 1, y);
 
-            c = Math.Clamp(0.5 * (2 * c - (n + e)), Min, Max);
-            c = 127 * (c - min) / (max - min);
+            c = Math.Clamp(0.5 * (2 * c - (n + e)), min, max);
+            c = 255 * (c - min) / (max - min);
             return (byte)Math.Round(c);
         }
 
@@ -168,8 +168,8 @@ namespace WPF_Chemotaxis.Model
             n = GetEfficacy(environment, x, y + 1);
             e = GetEfficacy(environment, x + 1, y);
 
-            c = Math.Clamp(0.5 * (2 * c - (n + e)), Min, Max);
-            c = 127 * (c - min) / (max - min);
+            c = Math.Clamp(0.5 * (2 * c - (n + e)), min, max);
+            c = 255 * (c - min) / (max - min);
             return (byte)Math.Round(c);
         }
 

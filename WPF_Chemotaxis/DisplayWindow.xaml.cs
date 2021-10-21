@@ -99,6 +99,7 @@ namespace WPF_Chemotaxis
             Dispatcher.Invoke(()=> this.Close());
         }
 
+        //CURRENT HOT & HEAVY METHOD!
         private void SavePNGFile(string baseDirectory, int displayNum)
         {
             string targetDir = baseDirectory + string.Format("\\Images\\Display {0}\\", displayNum);
@@ -247,7 +248,7 @@ namespace WPF_Chemotaxis
                 {
                     foreach (HeatPoint hp in this.intensities)
                     {
-                        if ((simulation.Environment.GetPointRules(hp.X, hp.Y) & (byte)(Simulations.Environment.PointType.FREE)) != 0)
+                        if ((simulation != null) && (simulation.Environment.GetPointRules(hp.X, hp.Y) & (byte)(Simulations.Environment.PointType.FREE)) != 0)
                         {
                             clr = this.interpreter.IntensityToColor(hp.Intensity);
                         }

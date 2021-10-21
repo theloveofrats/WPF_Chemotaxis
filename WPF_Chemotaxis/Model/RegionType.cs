@@ -102,6 +102,7 @@ namespace WPF_Chemotaxis.Model
         public static void ClearRegions()
         {
             currentTypes.Clear();
+            CurrentlySelected = null;
         }
 
         private static void TrimRegions()
