@@ -34,7 +34,7 @@ namespace WPF_Chemotaxis.Simulations
         protected MemoryBuffer<double> kernel_cm1;
         protected MemoryBuffer<double> kernel_c;
         protected MemoryBuffer<double> kernel_cp1;
-        protected MemoryBuffer<double> kernel_tmp;
+        //protected MemoryBuffer<double> kernel_tmp;
         protected MemoryBuffer<byte>   kernel_mask;
 
 
@@ -320,7 +320,8 @@ namespace WPF_Chemotaxis.Simulations
             }
             else if (CLAccelerator.AllCLAccelerators.Length > 0 && !forceCPU)
             {
-                accelerator = new CLAccelerator(context, CLAccelerator.AllCLAccelerators.FirstOrDefault());
+                accelerator = new CLAccelerator(context, CLAccelerator.AllCLAccelerators.FirstOrDefault()); 
+                System.Diagnostics.Debug.Print("CL device chosen");
             }
             else
             {
@@ -595,7 +596,7 @@ namespace WPF_Chemotaxis.Simulations
             W = ((mask[W] & fxd) != 0) ? W : C;
 
             double fk = dt * react[C] / (1 + 2 * k);
-            fk = fk <= c[C] ? fk : c[C];
+            fk = c[C] + fk >= 0 ? fk : c[C];
 
             cp1[C] = ((1d - 2d * k) / (1d + 2d * k)) * cm1[C] + (k / (1d + 2d * k)) * (c[N] + c[S] + c[E] + c[W]) + fk;
             if (cp1[C] < 0) cp1[C] = 0;
@@ -605,6 +606,7 @@ namespace WPF_Chemotaxis.Simulations
         {
             cm1[n] = c[n];
             c[n] = cp1[n];
+            cp1[n] = 0;
         }
 
 
@@ -629,9 +631,11 @@ namespace WPF_Chemotaxis.Simulations
                     kernel_c.Dispose();
                     kernel_cp1.Dispose();
                     kernel_mask.Dispose();
+                    kernel_rxn.Dispose();
                     accelerator.Dispose();
                     context.Dispose();
                 }
+
 
                 this.c.Clear();
                 this.c_m1.Clear();
