@@ -90,7 +90,9 @@ namespace WPF_Chemotaxis
                 string basePath = System.IO.Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
                 foreach (string dll in System.IO.Directory.GetFiles(basePath + pluginPath, "*.dll"))
                 {
+                    System.Diagnostics.Debug.Print(" "); 
                     System.Diagnostics.Debug.Print("PLUGIN LOADED: Assembly named " + dll);
+                    System.Diagnostics.Debug.Print(" ");
                     assemblyList.Add(Assembly.LoadFrom(dll));
                 }
                 //foreach (Assembly dll in assemblyList)
@@ -159,7 +161,8 @@ namespace WPF_Chemotaxis
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             Model.Model crown = new Model.Model();
-            string basePath = System.IO.Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            string basePath = System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData) + "\\Dynad Simulations";
+                //System.IO.Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
 
             if (File.Exists(basePath + workingModelFile))
             {
@@ -254,7 +257,8 @@ namespace WPF_Chemotaxis
             {
                 Simulation.Current.Cancel();
             }
-            string basePath = System.IO.Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            string basePath = System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData) + "\\Dynad Simulations";
+            //string basePath = System.IO.Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
             SerialiseAutosave(basePath + workingModelFile);
 
             //Model.Model.Current.SerializeModelToPath(basePath + workingModelFile);
@@ -420,10 +424,14 @@ namespace WPF_Chemotaxis
             if (regionRuleTypes == null)
             {
                 regionRuleTypes = new();
-
-                regionRuleTypes.AddRange(AppDomain.CurrentDomain.GetAssemblies().SelectMany((a) => a.GetTypes()).Where((type) => type.IsSubclassOf(typeof(RegionRule)) && !type.IsAbstract));
+                regionRuleTypes.AddRange(AppDomain.CurrentDomain.GetAssemblies().SelectMany(a => a.GetTypes()).Where((type) => type.IsSubclassOf(typeof(RegionRule)) && !type.IsAbstract));
 
             }
+
+            //working example that imports from other assemblies?
+            //
+            //var types = AppDomain.CurrentDomain.GetAssemblies().SelectMany(x => x.GetTypes())
+            //      .Where(p => elementListFilterType.IsAssignableFrom(p) && !p.IsAbstract && !p.IsInterface);
 
 
             foreach (Type rule in regionRuleTypes)
@@ -450,6 +458,7 @@ namespace WPF_Chemotaxis
         {
             List<Button> buttons = new();
 
+            // Here we list all the methods that explicitly allow you to add elements!
             IEnumerable<MethodInfo> methods = Model.Model.CurrentFocus.GetType().GetMethods().Where(method => method.GetCustomAttributes<ElementAdder>().Any());
             System.Diagnostics.Debug.WriteLine(string.Format("in type {0}. ElementAdder fields.Count = {1}", Model.Model.CurrentFocus.GetType(), methods.Count()));
             foreach (MethodInfo method in methods)
@@ -460,6 +469,42 @@ namespace WPF_Chemotaxis
                 buttons.Add(button);
                 button.Click += (sender, e) => ElementAdderButtonClick(sender, Model.Model.CurrentFocus, method, adder.type);
             }
+
+            //Here we add buttons for creating basic versions of other ILinkables from plugins that only make sense in the bottom of the heirarchy. This only applies to the master
+            //element list, not other model levels!
+
+            if (Model.Model.CurrentFocus == Model.Model.Current)
+            {
+                foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
+                {
+
+                    System.Diagnostics.Debug.WriteLine(string.Format("Scanning assembly {0}", assembly));
+
+
+                    foreach (Type type in assembly.GetTypes().Where(type => type.GetCustomAttributes<CustomBaseElementAttribute>().Any()))
+                    {
+                        System.Diagnostics.Debug.WriteLine(" ");
+                        System.Diagnostics.Debug.WriteLine(string.Format("ASSEMBLY {0} CONTAINS TYPE {1}", assembly, type));
+                        System.Diagnostics.Debug.WriteLine(" ");
+
+
+                        CustomBaseElementAttribute atr = type.GetCustomAttribute<CustomBaseElementAttribute>();
+                        Button button = new Button();
+                        button.Content = atr.newElementButtonLabel;
+                        buttons.Add(button);
+                        button.Click += (sender, e) =>
+                        {
+                            ILinkable newObj = Activator.CreateInstance(type) as ILinkable;
+                            newObj.Name = "New " + newObj.DisplayType;
+                            //method.Invoke(originator, new object[] { newObj });
+                            popAddElement.IsOpen = false;
+                            DisplayLink();
+                        };
+                    }
+                }
+            }
+
+
             return buttons;
         }
 

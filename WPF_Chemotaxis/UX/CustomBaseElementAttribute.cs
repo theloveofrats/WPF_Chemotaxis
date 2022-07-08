@@ -6,8 +6,8 @@ using System.Threading.Tasks;
 
 namespace WPF_Chemotaxis.UX
 {
-    public class LinkAttribute : Attribute
+    public class CustomBaseElementAttribute : Attribute
     {
-        public string overrideName;
+        public string newElementButtonLabel;
     }
 }

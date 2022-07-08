@@ -176,7 +176,7 @@
 
                     <Popup Name="popAddRule" StaysOpen="True" PlacementTarget="{Binding ElementName=addRuleButton}" Placement="MousePoint" HorizontalOffset="-2" VerticalOffset="-2" MouseLeave="OnMouseLeavePopAddRule" Grid.ColumnSpan="3">
                         <Border BorderBrush="DarkBlue" BorderThickness="1" Background="AntiqueWhite">
-                            <ItemsControl Name="popUpRuleList" Width="100" Height="100" Background="Red">
+                            <ItemsControl Name="popUpRuleList" Width="100" Height="500" Background="Red">
 
                             </ItemsControl>
                         </Border>

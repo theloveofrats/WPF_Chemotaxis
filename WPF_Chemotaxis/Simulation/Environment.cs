@@ -30,12 +30,12 @@ namespace WPF_Chemotaxis.Simulations
         protected Accelerator accelerator;
         private bool forceCPU = false;
 
-        protected MemoryBuffer<double> kernel_rxn; 
-        protected MemoryBuffer<double> kernel_cm1;
-        protected MemoryBuffer<double> kernel_c;
-        protected MemoryBuffer<double> kernel_cp1;
-        protected MemoryBuffer<double> kernel_tmp;
-        protected MemoryBuffer<byte>   kernel_mask;
+        protected MemoryBuffer1D<double, Stride1D.Dense> kernel_rxn; 
+        protected MemoryBuffer1D<double, Stride1D.Dense> kernel_cm1;
+        protected MemoryBuffer1D<double, Stride1D.Dense> kernel_c;
+        protected MemoryBuffer1D<double, Stride1D.Dense> kernel_cp1;
+        protected MemoryBuffer1D<double, Stride1D.Dense> kernel_tmp;
+        protected MemoryBuffer1D<byte, Stride1D.Dense> kernel_mask;
 
 
         [Flags]
@@ -203,7 +203,7 @@ namespace WPF_Chemotaxis.Simulations
         public bool Blocked(int x, int y)
         {
             if (x < 0 || x >= Width || y < 0 || y >= Height) return true;
-            return (pointTypes[y * Height + x] & (byte)(Environment.PointType.BLOCK)) != 0;
+            return (pointTypes[y * Width + x] & (byte)(Environment.PointType.BLOCK)) != 0;
         }
 
         /// <summary>
@@ -311,20 +311,22 @@ namespace WPF_Chemotaxis.Simulations
             this.height = h;
             this.pre_k = 2d / (settings.DX * settings.DX);
 
-            this.context = new Context();
-            if (CudaAccelerator.CudaAccelerators.Length > 0 && !forceCPU)
+            this.context = Context.Create(builder => builder.AllAccelerators());
+            if (context.GetCudaDevices().Count > 0 && !forceCPU)
             {
-                accelerator = new CudaAccelerator(context);
+                accelerator = context.GetCudaDevice(0).CreateAccelerator(context);
                 System.Diagnostics.Debug.Print("CUDA device chosen");
                 accelerator.PrintInformation();
             }
-            else if (CLAccelerator.AllCLAccelerators.Length > 0 && !forceCPU)
+            else if (context.GetCLDevices().Count > 0 && !forceCPU)
             {
-                accelerator = new CLAccelerator(context, CLAccelerator.AllCLAccelerators.FirstOrDefault());
+                accelerator = context.GetCLDevice(0).CreateAccelerator(context);
+                System.Diagnostics.Debug.Print("CL device chosen");
+                accelerator.PrintInformation();
             }
             else
             {
-                accelerator = new CPUAccelerator(context);
+                accelerator = context.GetCPUDevice(0).CreateAccelerator(context);
                 System.Diagnostics.Debug.Print("CPU device chosen");
                 accelerator.PrintInformation();
             }
@@ -341,12 +343,12 @@ namespace WPF_Chemotaxis.Simulations
                 c_p1.Add(ligand, new double[size]);
                 num_ligands++;
             }
-            kernel_rxn = accelerator.Allocate<double>(new double[w * h]);
-            kernel_cm1  = accelerator.Allocate<double>(new double[w * h]);
-            kernel_c    = accelerator.Allocate<double>(new double[w * h]);
-            kernel_cp1  = accelerator.Allocate<double>(new double[w * h]);
+            kernel_rxn = accelerator.Allocate1D<double>(new double[w * h]);
+            kernel_cm1  = accelerator.Allocate1D<double>(new double[w * h]);
+            kernel_c    = accelerator.Allocate1D<double>(new double[w * h]);
+            kernel_cp1  = accelerator.Allocate1D<double>(new double[w * h]);
             //kernel_tmp = accelerator.Allocate<double>(new double[w * h]);
-            kernel_mask = accelerator.Allocate<byte>(new byte[w * h]);
+            kernel_mask = accelerator.Allocate1D<byte>(new byte[w * h]);
 
             foreach(Region region in regions)
             {
@@ -364,8 +366,8 @@ namespace WPF_Chemotaxis.Simulations
             double dts;
             int substeps;
 
-            Action<Index1, ArrayView<double>, ArrayView<double>, ArrayView<double>, ArrayView<byte>, ArrayView<double>, double, double, int, int> loadedKernel = accelerator.LoadAutoGroupedStreamKernel<Index1, ArrayView<double>, ArrayView<double>, ArrayView<double>, ArrayView<byte>, ArrayView<double>, double, double, int, int>(DuFortKernel);
-            Action<Index1, ArrayView<double>, ArrayView<double>, ArrayView<double>> swapKernel = accelerator.LoadAutoGroupedStreamKernel<Index1, ArrayView<double>, ArrayView<double>, ArrayView<double>>(SwapKernel);
+            Action<Index1D, ArrayView<double>, ArrayView<double>, ArrayView<double>, ArrayView<byte>, ArrayView<double>, double, double, int, int> loadedKernel = accelerator.LoadAutoGroupedStreamKernel<Index1D, ArrayView<double>, ArrayView<double>, ArrayView<double>, ArrayView<byte>, ArrayView<double>, double, double, int, int>(DuFortKernel);
+            Action<Index1D, ArrayView<double>, ArrayView<double>, ArrayView<double>> swapKernel = accelerator.LoadAutoGroupedStreamKernel<Index1D, ArrayView<double>, ArrayView<double>, ArrayView<double>>(SwapKernel);
 
 
             foreach (Ligand l in c.Keys)
@@ -377,25 +379,24 @@ namespace WPF_Chemotaxis.Simulations
                 ks = (k / (1d * substeps));
                 dts = (dt / (1d * substeps));
 
-                kernel_rxn.CopyFrom(reactions[l], 0, 0, reactions[l].Length);
-                kernel_cm1.CopyFrom(c_m1[l], 0, 0, c_m1[l].Length);
-                kernel_c.CopyFrom(c[l], 0, 0, c[l].Length);
-                kernel_mask.CopyFrom(pointTypes, 0, 0, pointTypes.Length);
+                kernel_rxn.CopyFromCPU(reactions[l]);
+                kernel_cm1.CopyFromCPU(c_m1[l]);
+                kernel_c.CopyFromCPU(c[l]);
+                kernel_mask.CopyFromCPU(pointTypes);
 
                 //System.Diagnostics.Debug.Print(string.Format("{0} steps for {1}", substeps, l.Name));
 
                 for (int idx=0; idx<substeps; idx++)
                 {
-                    loadedKernel(kernel_cp1.Length, kernel_cm1, kernel_c, kernel_cp1, kernel_mask, kernel_rxn, ks, dts, this.width, this.height);
-                    swapKernel(kernel_cp1.Length, kernel_cm1, kernel_c, kernel_cp1);
+                    loadedKernel((int) kernel_cp1.Length, kernel_cm1.View, kernel_c.View, kernel_cp1.View, kernel_mask.View, kernel_rxn.View, ks, dts, this.width, this.height);
+                    swapKernel((int) kernel_cp1.Length,   kernel_cm1.View, kernel_c.View, kernel_cp1.View);
                 }
                 
-                accelerator.Synchronize();
-
+                //accelerator.Synchronize();
                 //kernel_cp1.CopyTo(c_p1[l], 0, 0, c_p1[l].Length);
 
-                kernel_c.CopyTo(c[l], 0, 0, c[l].Length);
-                kernel_cm1.CopyTo(c_m1[l], 0, 0, c_m1[l].Length);
+                c[l]    = kernel_c.GetAsArray1D();
+                c_m1[l] = kernel_cm1.GetAsArray1D();
             }
 
             
@@ -550,7 +551,7 @@ namespace WPF_Chemotaxis.Simulations
             cp1[C] = ((1d - 2d * k) / (1d + 2d * k)) * cm1[C] + (k / (1d + 2d * k)) * (c[N] + c[S] + c[E] + c[W]);
         }
 
-        private static void DuFortKernel(Index1 n, ArrayView<double> cm1, ArrayView<double> c, ArrayView<double> cp1, ArrayView<byte> mask, ArrayView<double> react, double k, double dt, int w, int h)
+        private static void DuFortKernel(Index1D n, ArrayView<double> cm1, ArrayView<double> c, ArrayView<double> cp1, ArrayView<byte> mask, ArrayView<double> react, double k, double dt, int w, int h)
         {
 
             int i = n % w;
@@ -601,7 +602,7 @@ namespace WPF_Chemotaxis.Simulations
             if (cp1[C] < 0) cp1[C] = 0;
         }
 
-        private static void SwapKernel(Index1 n, ArrayView<double> cm1, ArrayView<double> c, ArrayView<double> cp1)
+        private static void SwapKernel(Index1D n, ArrayView<double> cm1, ArrayView<double> c, ArrayView<double> cp1)
         {
             cm1[n] = c[n];
             c[n] = cp1[n];

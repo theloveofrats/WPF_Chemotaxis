@@ -2,8 +2,16 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net5.0-windows</TargetFramework>
+    <TargetFramework>net6.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <Optimize>True</Optimize>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <Optimize>False</Optimize>
   </PropertyGroup>
 
   <ItemGroup>
@@ -20,21 +28,21 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="docfx.console" Version="2.58.0">
+    <PackageReference Include="docfx.console" Version="2.59.2">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Fody" Version="6.5.2">
+    <PackageReference Include="Fody" Version="6.6.3">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="ILGPU" Version="0.10.1" />
+    <PackageReference Include="ILGPU" Version="1.2.0" />
     <PackageReference Include="LiveCharts.Wpf" Version="0.9.7" />
-    <PackageReference Include="Microsoft.Toolkit.Uwp.UI.Controls" Version="7.0.2" />
+    <PackageReference Include="Microsoft.Toolkit.Uwp.UI.Controls" Version="7.1.2" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
-    <PackageReference Include="Ookii.Dialogs.Wpf" Version="3.1.0" />
-    <PackageReference Include="PropertyChanged.Fody" Version="3.4.0" />
-    <PackageReference Include="WriteableBitmapEx" Version="1.6.7" />
+    <PackageReference Include="Ookii.Dialogs.Wpf" Version="5.0.1" />
+    <PackageReference Include="PropertyChanged.Fody" Version="3.4.1" />
+    <PackageReference Include="WriteableBitmapEx" Version="1.6.8" />
   </ItemGroup>
 
   <ItemGroup>
@@ -48,12 +56,6 @@
     <Resource Include="Resources\Play_Icon.png" />
     <Resource Include="Resources\SaveIcon.png" />
     <Resource Include="UX\Effects\HeatColorizer.ps" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Update="Plugins\Core_Plugin.dll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
 
   <ItemGroup>

@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.31205.134
+# Visual Studio Version 17
+VisualStudioVersion = 17.2.32616.157
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WPF_Chemotaxis", "WPF_Chemotaxis\WPF_Chemotaxis.csproj", "{30680F37-5B4D-4388-9017-A4A699F5CEB8}"
 EndProject
@@ -9,11 +9,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Core_Plugin", "Core_Plugin\Core_Plugin.csproj", "{769966CA-CFDF-45D4-B134-8E0FB8554E70}"
 EndProject
-Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "Setup", "Setup\Setup.vdproj", "{A1D719CA-AE4C-4045-AACD-6CFFAED0540D}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ReceptorDynamicsPlugin", "ReceptorDyanmicsPlugin\ReceptorDynamicsPlugin.csproj", "{B8AF1F79-DC74-4D13-83E3-FE96A60E9F21}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MitogensPlugin", "MitogensPlugin\MitogensPlugin.csproj", "{192178CB-D32F-452E-86D5-642AC2FB2788}"
+EndProject
+Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "Setup", "Setup\Setup.vdproj", "{A5DC4DC4-A2D5-4AB0-9A81-44F685F07DC6}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ECM_Plugin", "ECM_Plugin\ECM_Plugin.csproj", "{F6E0DB7F-4D17-43C3-8DAC-CBB547B1E395}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -29,17 +29,17 @@ Global
 		{769966CA-CFDF-45D4-B134-8E0FB8554E70}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{769966CA-CFDF-45D4-B134-8E0FB8554E70}.Release|Any CPU.ActiveCfg = Debug|Any CPU
 		{769966CA-CFDF-45D4-B134-8E0FB8554E70}.Release|Any CPU.Build.0 = Debug|Any CPU
-		{A1D719CA-AE4C-4045-AACD-6CFFAED0540D}.Debug|Any CPU.ActiveCfg = Debug
-		{A1D719CA-AE4C-4045-AACD-6CFFAED0540D}.Release|Any CPU.ActiveCfg = Debug
-		{A1D719CA-AE4C-4045-AACD-6CFFAED0540D}.Release|Any CPU.Build.0 = Debug
-		{B8AF1F79-DC74-4D13-83E3-FE96A60E9F21}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B8AF1F79-DC74-4D13-83E3-FE96A60E9F21}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B8AF1F79-DC74-4D13-83E3-FE96A60E9F21}.Release|Any CPU.ActiveCfg = Debug|Any CPU
-		{B8AF1F79-DC74-4D13-83E3-FE96A60E9F21}.Release|Any CPU.Build.0 = Debug|Any CPU
 		{192178CB-D32F-452E-86D5-642AC2FB2788}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{192178CB-D32F-452E-86D5-642AC2FB2788}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{192178CB-D32F-452E-86D5-642AC2FB2788}.Release|Any CPU.ActiveCfg = Debug|Any CPU
 		{192178CB-D32F-452E-86D5-642AC2FB2788}.Release|Any CPU.Build.0 = Debug|Any CPU
+		{A5DC4DC4-A2D5-4AB0-9A81-44F685F07DC6}.Debug|Any CPU.ActiveCfg = Debug
+		{A5DC4DC4-A2D5-4AB0-9A81-44F685F07DC6}.Release|Any CPU.ActiveCfg = Debug
+		{A5DC4DC4-A2D5-4AB0-9A81-44F685F07DC6}.Release|Any CPU.Build.0 = Debug
+		{F6E0DB7F-4D17-43C3-8DAC-CBB547B1E395}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F6E0DB7F-4D17-43C3-8DAC-CBB547B1E395}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F6E0DB7F-4D17-43C3-8DAC-CBB547B1E395}.Release|Any CPU.ActiveCfg = Debug|Any CPU
+		{F6E0DB7F-4D17-43C3-8DAC-CBB547B1E395}.Release|Any CPU.Build.0 = Debug|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

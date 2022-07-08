@@ -12,7 +12,7 @@ namespace WPF_Chemotaxis.UX
     // The label specifies the text to display on the button added to the UI, e.g. "Add receptor".
 
     [AttributeUsage(AttributeTargets.Method)]
-    class ElementAdder : Attribute
+    public class ElementAdder : Attribute
     {
         public string label { get; set; }
         public Type type { get; set; }
