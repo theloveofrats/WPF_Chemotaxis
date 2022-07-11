@@ -245,13 +245,29 @@ namespace WPF_Chemotaxis.Simulations
             double c10 = GetConcentration(l, iMax, jMin);
             double c11 = GetConcentration(l, iMax, jMax);
 
-            double c_interp = (1d / ((xMax - xMin) * (yMax - yMin))) * (
-                        c00 * (xMax - x) * (yMax - y)
-                        + c01 * (xMax - x) * (y - yMin)
-                        + c10 * (x - xMin) * (yMax - y)
-                        + c11 * (x - xMin) * (y - yMin));
-            
-            return c_interp;
+            if (xMax == xMin)
+            {
+                if (yMax == yMin) return c00;
+                else
+                {
+                    return 1d / (yMax - yMin) * (c00 * (yMax - y) + c01 * (y - yMin));
+                }
+            }
+            else if (yMax == yMin)
+            {
+                return 1d / (xMax - xMin) * (c00 * (xMax - x) + c10 * (x - xMin));
+            }
+            else
+            {
+
+                double c_interp = (1d / ((xMax - xMin) * (yMax - yMin))) * (
+                            c00 * (xMax - x) * (yMax - y)
+                            + c01 * (xMax - x) * (y - yMin)
+                            + c10 * (x - xMin) * (yMax - y)
+                            + c11 * (x - xMin) * (y - yMin));
+
+                return c_interp;
+            }
         }
         public double GetConcentrationOld(Ligand l, double x, double y)
         {
@@ -432,7 +448,7 @@ namespace WPF_Chemotaxis.Simulations
         /// <param name="dt">Timestep (mins)</param>
         public void DegradeAtRate(Ligand input, Ligand output, double x, double y, double rate, double io_ratio, double dt)
         {
-            int pos = (int)Math.Floor(x / settings.DX) + Width * (int)Math.Floor(y / settings.DX);
+            int pos = (int) Math.Floor(x / settings.DX) + Width * (int)Math.Floor(y / settings.DX);
 
             if (input != null)
             {
@@ -596,7 +612,7 @@ namespace WPF_Chemotaxis.Simulations
             W = ((mask[W] & fxd) != 0) ? W : C;
 
             double fk = dt * react[C] / (1 + 2 * k);
-            fk = fk <= c[C] ? fk : c[C];
+            fk = fk > c[C] ? c[C] : fk;
 
             cp1[C] = ((1d - 2d * k) / (1d + 2d * k)) * cm1[C] + (k / (1d + 2d * k)) * (c[N] + c[S] + c[E] + c[W]) + fk;
             if (cp1[C] < 0) cp1[C] = 0;
