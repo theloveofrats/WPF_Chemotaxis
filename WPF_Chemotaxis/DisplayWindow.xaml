@@ -123,6 +123,27 @@
                 <GradientStop Color="#ffffffff" Offset="0"/>
                 <GradientStop Color="#ff00ff00" Offset="1"/>
             </LinearGradientBrush>
+            <!-- Blue Transparent -->
+            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0" local:PropertyExtensions.Title="Green White">
+                <GradientStop Color="#ffffffff" Offset="0"/>
+                <GradientStop Color="#ff0000ff" Offset="1"/>
+            </LinearGradientBrush>
+
+            <!-- Cyan Transparent -->
+            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0" local:PropertyExtensions.Title="Red White">
+                <GradientStop Color="#ffffffff" Offset="0"/>
+                <GradientStop Color="#ff00ffff" Offset="1"/>
+            </LinearGradientBrush>
+            <!-- Magenta Transparent -->
+            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0" local:PropertyExtensions.Title="Green White">
+                <GradientStop Color="#ffffffff" Offset="0"/>
+                <GradientStop Color="#ffff00ff" Offset="1"/>
+            </LinearGradientBrush>
+            <!-- Yellow Transparent -->
+            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0" local:PropertyExtensions.Title="Green White">
+                <GradientStop Color="#ffffffff" Offset="0"/>
+                <GradientStop Color="#ffffff00" Offset="1"/>
+            </LinearGradientBrush>
 
             <!-- Stepped Colors -->
             <LinearGradientBrush StartPoint="0,0" EndPoint="1,0" local:PropertyExtensions.Title="Contours">
