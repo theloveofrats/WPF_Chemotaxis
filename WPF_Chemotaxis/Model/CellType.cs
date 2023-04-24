@@ -64,21 +64,42 @@ namespace WPF_Chemotaxis.Model
             if (!ligandInteractions.Contains(relation)) ligandInteractions.Add(relation);
         }
         
-        public override void RemoveElement(ILinkable element)
+        public override void RemoveElement(ILinkable element, ILinkable replacement = null)
         {
             //System.Diagnostics.Debug.Print(string.Format("Trying to remove element {0} from {1}", element.Name, this.Name));
             if (element == null) return;
             if (element is CellLigandRelation)
             {
-                this.ligandInteractions.Remove((CellLigandRelation) element);
+                if (this.ligandInteractions.Contains(element))
+                {
+                    this.ligandInteractions.Remove((CellLigandRelation)element);
+                    if (replacement != null && replacement.GetType().IsAssignableTo(typeof(CellLigandRelation)))
+                    {
+                        this.ligandInteractions.Add((CellLigandRelation)replacement);
+                    }
+                }
             }
             else if(element is CellReceptorRelation)
             {
-                this.receptorTypes.Remove((CellReceptorRelation) element);
+                if (this.receptorTypes.Contains(element))
+                {
+                    this.receptorTypes.Remove((CellReceptorRelation)element);
+                    if (replacement != null && replacement.GetType().IsAssignableTo(typeof(CellReceptorRelation)))
+                    {
+                        this.receptorTypes.Add((CellReceptorRelation)replacement);
+                    }
+                }
             }
             else if (element.GetType().IsAssignableTo(typeof(ICellComponent)))
             {
-                this.components.Remove((ICellComponent)element);
+                if (this.components.Contains((ICellComponent) element))
+                {
+                    this.components.Remove((ICellComponent)element);
+                    if (replacement != null && replacement.GetType().IsAssignableTo(typeof(ICellComponent)))
+                    {
+                        this.components.Add((ICellComponent)replacement);
+                    }
+                }
             }
         }
 

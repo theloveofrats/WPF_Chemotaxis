@@ -52,22 +52,22 @@ namespace WPF_Chemotaxis.Model
             this.input_ligand = ligand;
         }
 
-        public override void RemoveElement(ILinkable element)
+        public override void RemoveElement(ILinkable element, ILinkable replacement=null)
         {
             if (element is Ligand)
             {
                 Ligand l = (Ligand)element;
                 if (this.input_ligand == l)
                 {
-                    this.input_ligand = null;
+                    this.input_ligand = (Ligand) replacement;
                 }
                 if(this.output_ligand == l)
                 {
-                    this.output_ligand = null;
+                    this.output_ligand = (Ligand) replacement;
                 }
                 if (this.extra_ligand == l)
                 {
-                    this.extra_ligand = null;
+                    this.extra_ligand = (Ligand) replacement;
                 }
                 if(this.input_ligand==null && this.output_ligand == null)
                 {
@@ -79,8 +79,9 @@ namespace WPF_Chemotaxis.Model
                 CellType ct = (CellType)element;
                 if (this.cellType == ct)
                 {
-                    this.cellType = null;
-                    Model.Current.RemoveElement(this);
+                    this.cellType = (CellType) replacement;
+
+                    if(this.cellType==null) Model.Current.RemoveElement(this);
                 }
             }
         }

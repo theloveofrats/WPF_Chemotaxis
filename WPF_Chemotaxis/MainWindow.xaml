@@ -68,7 +68,7 @@
                     </Button>
                     <Popup Name="popAddElement" StaysOpen="True" PlacementTarget="{Binding ElementName=btnLearn}" Placement="MousePoint" HorizontalOffset="-2" VerticalOffset="-2" MouseLeave="OnMouseLeavePopAddElement" Grid.ColumnSpan="3">
                         <Border BorderBrush="DarkBlue" BorderThickness="1" Background="AntiqueWhite">
-                            <ItemsControl Name="popUpAddElementItemsList" Width="100" Height="100" Background="Red">
+                            <ItemsControl Name="popUpAddElementItemsList" Width="200" Height="200" Background="Red">
 
                             </ItemsControl>
                         </Border>

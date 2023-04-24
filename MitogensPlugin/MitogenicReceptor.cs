@@ -6,9 +6,9 @@ using Newtonsoft.Json;
 using System.Collections.Generic;
 using WPF_Chemotaxis;
 
-namespace Core
+namespace WPF_Chemotaxis.MitogensPlugin
 {
-    public class Mitogen : LabelledLinkable, ICellComponent // Labelled linkable already does the heavy
+    public class MitogenicReceptor : LabelledLinkable, ICellComponent // Labelled linkable already does the heavy
                                                             // lifting to put this in the GUI. ICellComponent means
                                                             // it can be added to a cell to do extra logic.
     {
@@ -76,7 +76,11 @@ namespace Core
 
         private void RegisterNewCell(Simulation sim, Cell cell)
         {
-            if (!lastMitosis.ContainsKey(cell)) lastMitosis.Add(cell, 0);
+            if (cell.CellType.components.Contains(this))
+            {
+                if (!lastMitosis.ContainsKey(cell)) lastMitosis.Add(cell, 0);
+
+            }
         }
     }
 }

@@ -131,7 +131,7 @@ namespace WPF_Chemotaxis.Simulations
         /// </summary>
         public double ReceptorActivity(Receptor r)
         {
-            if (receptorActivities.ContainsKey(r))
+            if (r!=null && receptorActivities.ContainsKey(r))
             {
                 double baseval = receptorActivities[r];
                 double modified = baseval;

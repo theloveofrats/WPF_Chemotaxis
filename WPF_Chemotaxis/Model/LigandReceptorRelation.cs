@@ -70,15 +70,15 @@ namespace WPF_Chemotaxis.Model
 
         }
 
-        public override void RemoveElement(ILinkable element)
+        public override void RemoveElement(ILinkable element, ILinkable replacement=null)
         {
             if(element is Receptor)
             {
                 Receptor r = (Receptor)element;
                 if (this.receptor == r)
                 {
-                    this.receptor = null;
-                    Model.Current.RemoveElement(this);
+                    this.receptor = (Receptor) replacement;
+                    if(this.receptor==null) Model.Current.RemoveElement(this);
                 }
             }
             else if (element is Ligand)
@@ -86,8 +86,8 @@ namespace WPF_Chemotaxis.Model
                 Ligand l = (Ligand)element;
                 if (this.ligand == l)
                 {
-                    this.ligand = null;
-                    Model.Current.RemoveElement(this);
+                    this.ligand = (Ligand)replacement;
+                    if(this.ligand==null) Model.Current.RemoveElement(this);
                 }
             }
         }

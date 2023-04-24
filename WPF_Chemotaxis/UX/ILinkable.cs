@@ -23,6 +23,6 @@ namespace WPF_Chemotaxis.UX
         [JsonIgnore]
         public ObservableCollection<UIOptionLink> OptsList { get; }
 
-        public void RemoveElement(ILinkable element);
+        public void RemoveElement(ILinkable element, ILinkable replacement = null);
     }
 }

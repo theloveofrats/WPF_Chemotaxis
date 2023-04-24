@@ -328,19 +328,31 @@ namespace WPF_Chemotaxis.Simulations
             this.pre_k = 2d / (settings.DX * settings.DX);
 
             this.context = Context.Create(builder => builder.AllAccelerators());
+
+            bool selected = false;
+
             if (context.GetCudaDevices().Count > 0 && !forceCPU)
             {
                 accelerator = context.GetCudaDevice(0).CreateAccelerator(context);
                 System.Diagnostics.Debug.Print("CUDA device chosen");
                 accelerator.PrintInformation();
+                selected = true;
             }
-            else if (context.GetCLDevices().Count > 0 && !forceCPU)
+            if (!selected && context.GetCLDevices().Count > 0 && !forceCPU)
             {
-                accelerator = context.GetCLDevice(0).CreateAccelerator(context);
-                System.Diagnostics.Debug.Print("CL device chosen");
-                accelerator.PrintInformation();
+                if (context.GetCLDevice(0).Extensions.Contains("cl_khr_fp64"))
+                {
+                    accelerator = context.GetCLDevice(0).CreateAccelerator(context);
+                    System.Diagnostics.Debug.Print("CL device chosen");
+                    accelerator.PrintInformation();
+                    selected = true;
+                }
+                else
+                {
+                    System.Diagnostics.Debug.Print("CL device does not support fp64 (i.e. double precision!)");
+                }
             }
-            else
+            if(!selected)
             {
                 accelerator = context.GetCPUDevice(0).CreateAccelerator(context);
                 System.Diagnostics.Debug.Print("CPU device chosen");

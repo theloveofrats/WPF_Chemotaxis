@@ -38,7 +38,7 @@ namespace WPF_Chemotaxis.Model
             new LigandReceptorRelation(ligand, this);
         }
 
-        public override void RemoveElement(ILinkable element)
+        public override void RemoveElement(ILinkable element, ILinkable replacement=null)
         {
             if(element is Ligand)
             {
@@ -54,13 +54,27 @@ namespace WPF_Chemotaxis.Model
                 }
                 if (found != null)
                 {
-                    this.ligandInteractions.Remove(found);
+                    if(replacement != null && replacement.GetType().IsAssignableTo(typeof(Ligand)))
+                    {
+                        found.SetLigand((Ligand) replacement);
+                    }
+                    else
+                    {
+                        this.ligandInteractions.Remove(found);
+                    }
                 }
             }
             else if (element is LigandReceptorRelation)
             {
                 LigandReceptorRelation lrr = (LigandReceptorRelation)element;
-                if (this.ligandInteractions.Contains(lrr)) this.ligandInteractions.Remove(lrr);
+                if (this.ligandInteractions.Contains(lrr))
+                {
+                    this.ligandInteractions.Remove(lrr);
+                    if(replacement!=null && replacement.GetType().IsAssignableTo(typeof(LigandReceptorRelation)))
+                    {
+                        this.ligandInteractions.Add((LigandReceptorRelation) replacement);
+                    }
+                }
             }
         }
 

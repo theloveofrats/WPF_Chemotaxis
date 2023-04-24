@@ -256,7 +256,7 @@ namespace WPF_Chemotaxis
                     }
                 }
             }
-            simulation.Environment.DrawRegions(bmp);
+            if(simulation!=null) simulation.Environment.DrawRegions(bmp);
         }
         private void RedrawOverlay()
         { 

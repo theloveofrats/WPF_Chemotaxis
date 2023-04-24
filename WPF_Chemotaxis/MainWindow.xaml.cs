@@ -38,7 +38,6 @@ namespace WPF_Chemotaxis
 
         private const string pluginPath = "\\Plugins";
         private const string workingModelFile = "\\SettingsAutosave.json";
-        //private const string workingRegionFile = "\\DumpCurrentRegions.json";
 
         private static readonly object locker = new object();
 
@@ -178,26 +177,81 @@ namespace WPF_Chemotaxis
             btn_NewSim.IsEnabled = (File.Exists(env.ImagePath));
         }
 
-        private void DeserialiseAutosave(string autosavePath)
+        private void DeserialiseAutosave(string autosavePath, bool clean=true)
         {
+            if (clean)
+            {
+                Clear_Model(new object(), new RoutedEventArgs());
+                Model.Model.FreezeAdditions = false;
+            }
+            else
+            {
+                Model.Model.FreezeAdditions = true;
+            }
+
+            string dirPath = System.IO.Path.GetDirectoryName(autosavePath);
+
+            if (!Directory.Exists(dirPath))
+            {
+                Directory.CreateDirectory(dirPath);
+            }
+
             using (Autosave autosave = Autosave.ReadFromFile(autosavePath))
             {
-                foreach (ILinkable link in autosave.ModelElements)
+                if (clean)
                 {
-                    if (!Model.Model.MasterElementList.Contains(link)) Model.Model.MasterElementList.Add(link);
+                    foreach (Color clr in autosave.Regions.Keys)
+                    {
+                        RegionType.AddRegionType(clr, autosave.Regions[clr]);
+                    }
+                    this.sim.LoadParameterValues(autosave.miscParams);
+                    this.env.DX = autosave.miscParams.dx;
+                    if (autosave.saveDirPath != null) this.SaveDirectoryDisplay = autosave.saveDirPath;
+                    if (autosave.mazePath != null)
+                    {
+                        dia.FileName = autosave.mazePath;
+                        OnMazeFileChosen(autosave.mazePath);
+                    }
                 }
-                foreach (Color clr in autosave.Regions.Keys)
+                else
                 {
-                    RegionType.AddRegionType(clr, autosave.Regions[clr]);
+                    foreach (ILinkable link in autosave.ModelElements)
+                    {
+                        //Delete this whole bundle!
+                        System.Diagnostics.Debug.Print("Checking added ILinkable named "+link.Name);
+
+                        bool admit = true;
+                        foreach(var currentLink in Model.Model.MasterElementList)
+                        {
+                            if (currentLink.Name != null)
+                            {
+                                System.Diagnostics.Debug.Print(String.Format("Comparing {0} {1} and {2} {3}::{4}", link.DisplayType, link.Name, currentLink.DisplayType, currentLink.Name, ((currentLink.Name == link.Name) && (currentLink.DisplayType == link.DisplayType)).ToString()));
+                            }
+                            if ((currentLink.Name == link.Name) && (currentLink.DisplayType == link.DisplayType))
+                            {
+                                admit = false;
+                                break;
+                            }
+                        }
+                        if (admit)
+                        {
+                            Model.Model.MasterElementList.Add(link);
+                            // Do we need a trigger here that connects missing links to names with the correct names in the new setup? #
+                            // Perhaps a Re-link function that points all your current referees to a new ILinkable? 
+                            foreach (ILinkable connection in link.LinkList)
+                            {
+                                foreach (var alternativeConnection in Model.Model.MasterElementList)
+                                {
+                                    if (alternativeConnection.DisplayType == connection.DisplayType && alternativeConnection.Name == connection.Name)
+                                    {
+                                        link.RemoveElement(connection, alternativeConnection);
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
-                this.sim.LoadParameterValues(autosave.miscParams);
-                this.env.DX = autosave.miscParams.dx;
-                if(autosave.saveDirPath!=null) this.SaveDirectoryDisplay = autosave.saveDirPath;
-                if (autosave.mazePath != null)
-                {
-                    dia.FileName = autosave.mazePath;
-                    OnMazeFileChosen(autosave.mazePath);
-                }
+                Model.Model.FreezeAdditions = false;
             }
         }
 
@@ -205,25 +259,39 @@ namespace WPF_Chemotaxis
         {
             Autosave newSave = new Autosave();
 
+            string dirPath = System.IO.Path.GetDirectoryName(autosavePath);
+
+            if (!Directory.Exists(dirPath))
+            {
+                Directory.CreateDirectory(dirPath);
+            }
+
             newSave.ModelElements = Model.Model.MasterElementList.ToList();
             newSave.Regions = new();
 
-            if (mazeFileThumbnail.Source != null) {
+            if (mazeFileThumbnail.Source != null && env.ImagePath!=null && env.ImagePath!="") {
 
                 WriteableBitmap bmp = new WriteableBitmap(mazeFileThumbnail.Source as BitmapSource);
-
-                foreach (var entry in RegionType.GetRegionTypes)
-                {
-                    if (entry.Value.Rules.Count() > 0)
+                if (bmp != null)
+                { 
+                    foreach (var entry in RegionType.GetRegionTypes)
                     {
-                        if (ContainsColor(bmp, entry.Key))
+                        if (entry.Value.Rules.Count() > 0)
                         {
-                            System.Diagnostics.Debug.Print(string.Format("Found color {0} for regiontype {1}.", entry.Key, entry.Value.Name));
-                            newSave.Regions.Add(entry.Key, entry.Value);
+                            if (ContainsColor(bmp, entry.Key))
+                            {
+                                System.Diagnostics.Debug.Print(string.Format("Found color {0} for regiontype {1}.", entry.Key, entry.Value.Name));
+                                newSave.Regions.Add(entry.Key, entry.Value);
+                            }
                         }
                     }
+
                 }
             }
+
+
+
+
             newSave.miscParams = new MiscParamTable(env.DX, sim.duration, sim.dt, sim.out_freq);
 
             if (Directory.Exists(sim.SaveDirectory)) newSave.saveDirPath = sim.SaveDirectory;
@@ -577,15 +645,47 @@ namespace WPF_Chemotaxis
 
         private void SerializeModel_Click(object sender, RoutedEventArgs e)
         {
-            Model.Model.Current.SerializeModel();
+            //Not working- this was used to separately save the model but this is no longer right, as in general we want to save or load the experiment, not just the model.
+            //Model.Model.Current.SerializeModel();
+
+            //Make a save dialog
+            SaveFileDialog saveFileDialog = new SaveFileDialog();
+            saveFileDialog.DefaultExt = "json";
+            saveFileDialog.AddExtension = true;
+            saveFileDialog.Filter = "JSON | *.json";
+            if (saveFileDialog.ShowDialog() == true)
+            {
+                SerialiseAutosave(saveFileDialog.FileName);
+            }
         }
         private void DeserializeModel_Click(object sender, RoutedEventArgs e)
         {
-            Model.Model.Current.DeserializeModel(true);
+
+            //Model.Model.Current.DeserializeModel(true);
+            OpenFileDialog dialog = new OpenFileDialog();
+            dialog.DefaultExt = "json";
+            dialog.AddExtension = true;
+            dialog.Filter = "JSON | *.json";
+            if (dialog.ShowDialog() == true)
+            {
+                if (!File.Exists(dialog.FileName)) return;
+                DeserialiseAutosave(dialog.FileName);
+            }
         }
+
+
+
         private void DeserializePlusModel_Click(object sender, RoutedEventArgs e)
         {
-            Model.Model.Current.DeserializeModel(false);
+            OpenFileDialog dialog = new OpenFileDialog();
+            dialog.DefaultExt = "json";
+            dialog.AddExtension = true;
+            dialog.Filter = "JSON | *.json";
+            if (dialog.ShowDialog() == true)
+            {
+                if (!File.Exists(dialog.FileName)) return;
+                DeserialiseAutosave(dialog.FileName, false);
+            }
         }
 
         private void Run_Sim_Button_Click(object sender, RoutedEventArgs e)

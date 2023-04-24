@@ -94,13 +94,16 @@ namespace WPF_Chemotaxis.CorePlugin
                 }
                 if (do_pulse)
                 {
-                    double current;
-                    foreach (Point p in cell.localPoints)
+                    if (Output != null)
                     {
-                        current = (Output!=null) ? env.GetConcentration(Output, p.X, p.Y) : 0;
-                        env.SetConcentration((int)Math.Round(p.X * mult), (int)Math.Round(p.Y * mult), Output, current+amplitude);
+                        double current;
+                        foreach (Point p in cell.localPoints)
+                        {
+                            current = env.GetConcentration(Output, p.X, p.Y);
+                            env.SetConcentration((int)Math.Round(p.X * mult), (int)Math.Round(p.Y * mult), Output, current + amplitude);
+                        }
+                        lastPulse[cell] = 0;
                     }
-                    lastPulse[cell] = 0;
                 }
             }
         }

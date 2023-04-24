@@ -134,9 +134,9 @@
                     "{9EF0B969-E518-4E46-987F-47570745A589}:_5B5DAC57732044A5BEE833325DF3BA28"
                     {
                     "Name" = "8:Dynad Simulations"
-                    "AlwaysCreate" = "11:FALSE"
+                    "AlwaysCreate" = "11:TRUE"
                     "Condition" = "8:"
-                    "Transitive" = "11:FALSE"
+                    "Transitive" = "11:TRUE"
                     "Property" = "8:_690F2716C9C54220BD29B2058A2CD1FB"
                         "Folders"
                         {
@@ -179,9 +179,9 @@
                     "{9EF0B969-E518-4E46-987F-47570745A589}:_2FF5AB3C9CA24F328E774732E1F54AC5"
                     {
                     "Name" = "8:Plugins"
-                    "AlwaysCreate" = "11:FALSE"
+                    "AlwaysCreate" = "11:TRUE"
                     "Condition" = "8:"
-                    "Transitive" = "11:FALSE"
+                    "Transitive" = "11:TRUE"
                     "Property" = "8:_55E9AC97A7CC4929A0ED8E5749681571"
                         "Folders"
                         {
@@ -206,7 +206,7 @@
         "Name" = "8:Microsoft Visual Studio"
         "ProductName" = "8:Cell Migration Simulator"
         "ProductCode" = "8:{554460DB-22AD-4E3F-A6BE-4D92206416A5}"
-        "PackageCode" = "8:{143B0685-4A65-41AD-A3F1-B58759064E2D}"
+        "PackageCode" = "8:{1E765CA9-23BC-4664-BECC-B841DB3436DA}"
         "UpgradeCode" = "8:{C393E7EF-11DC-45EA-B4B4-A3A35CF6A090}"
         "AspNetVersion" = "8:2.0.50727.0"
         "RestartWWWService" = "11:FALSE"
@@ -326,6 +326,20 @@
         }
         "Shortcut"
         {
+            "{970C0BB2-C7D0-45D7-ABFA-7EC378858BC0}:_30D2A7DCF0324A06B09B22D36DF6496B"
+            {
+            "Name" = "8:Cell Migration Simulator"
+            "Arguments" = "8:"
+            "Description" = "8:"
+            "ShowCmd" = "3:1"
+            "IconIndex" = "3:0"
+            "Transitive" = "11:FALSE"
+            "Target" = "8:_B36974353C5949F68898C20AA5FBCAF8"
+            "Folder" = "8:_1CF7609D1D5B4E24A4C9243976BF3230"
+            "WorkingFolder" = "8:_814C17F4221E4329A11B6FBC2F6476F7"
+            "Icon" = "8:"
+            "Feature" = "8:"
+            }
         }
         "UserInterface"
         {

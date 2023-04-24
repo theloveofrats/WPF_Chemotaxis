@@ -9,7 +9,7 @@ using WPF_Chemotaxis.UX;
 using WPF_Chemotaxis.Model;
 using Newtonsoft.Json;
 
-namespace MitogensPlugin
+namespace WPF_Chemotaxis.MitogensPlugin
 {
     class SurvivalFactor
     {

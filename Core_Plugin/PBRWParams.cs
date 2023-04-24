@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace WPF_Chemotaxis.CorePlugin
 {
-    class PBRWParams
+    public class PBRWParams
     {
         public double sigma { get; set; }
         public double chemokinesis { get; set; }

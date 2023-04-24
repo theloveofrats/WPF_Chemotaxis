@@ -15,7 +15,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\WPF_Chemotaxis\WPF_Chemotaxis.csproj" />
+    <ProjectReference Include="..\WPF_Chemotaxis\WPF_Chemotaxis.csproj">
+      <Private>False</Private>
+      <CopyLocalSatelliteAssemblies>False</CopyLocalSatelliteAssemblies>
+    </ProjectReference>
   </ItemGroup>
 
 </Project>

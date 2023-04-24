@@ -31,6 +31,19 @@ namespace WPF_Chemotaxis.Model
             }
         }
         private ObservableCollection<ILinkable> masterElementList = new();
+
+        private bool freezeAdditions;
+        public static bool FreezeAdditions
+        {
+            get
+            {
+                return current.freezeAdditions;
+            }
+            internal set
+            {
+                current.freezeAdditions = value;
+            }
+        }
         public static ObservableCollection<ILinkable> MasterElementList
         {
             get
@@ -54,7 +67,7 @@ namespace WPF_Chemotaxis.Model
 
         }
 
-        public void RemoveElement(ILinkable element)
+        public void RemoveElement(ILinkable element, ILinkable replacement=null)
         {
             if(this.masterElementList.Contains(element)) this.masterElementList.Remove(element);
 
@@ -62,7 +75,7 @@ namespace WPF_Chemotaxis.Model
 
             foreach(ILinkable link in temp)
             {
-                link.RemoveElement(element);
+                link.RemoveElement(element, replacement);
             }
         }
 
@@ -214,7 +227,7 @@ namespace WPF_Chemotaxis.Model
             }
         }
 
-        public void DeserializeModel(bool clean)
+        /*public void DeserializeModel(bool clean)
         {
             if (clean) masterElementList.Clear();
 
@@ -228,6 +241,6 @@ namespace WPF_Chemotaxis.Model
                 if (!File.Exists(dialog.FileName)) return;
                 DeserializeModelAtPath(dialog.FileName, clean);
             }
-        }
+        }*/
     }
 }

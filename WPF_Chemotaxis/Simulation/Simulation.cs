@@ -76,6 +76,7 @@ namespace WPF_Chemotaxis.Simulations {
         public event SimulationNotification Close;
 
         private HashSet<Cell> cells = new();
+        private HashSet<Cell> newCells = new();
         private Dictionary<Cell, CellDeathType> removedcells = new();
         private Environment environment;
 
@@ -237,6 +238,11 @@ namespace WPF_Chemotaxis.Simulations {
                     }
                 }
             }
+            foreach (Cell cell in newCells)
+            {
+                Cells.Add(cell);
+            }
+            newCells.Clear();
         }
 
         private void WriteCellPositionData()
@@ -255,11 +261,14 @@ namespace WPF_Chemotaxis.Simulations {
         /// <param name="y">The micrometer y position of the new cell</param>
         public void AddCell(CellType ct, double x, double y)
         {
-            Cell cell = new Cell(ct, nextCellNum++, x, y, this);
-            cells.Add(cell);
-            if (CellAdded != null)
+            lock (newCells)
             {
-                CellAdded(this, cell, new CellNotificationEventArgs());
+                Cell cell = new Cell(ct, nextCellNum++, x, y, this);
+                newCells.Add(cell);
+                if (CellAdded != null)
+                {
+                    CellAdded(this, cell, new CellNotificationEventArgs());
+                }
             }
         }
 
@@ -339,6 +348,7 @@ namespace WPF_Chemotaxis.Simulations {
                 this.EarlyUpdate = null;
                 this.LateUpdate = null;
                 this.cells.Clear();
+                this.newCells.Clear();
                 this.environment = null;
                 // TODO: free unmanaged resources (unmanaged objects) and override finalizer
                 disposedValue = true;

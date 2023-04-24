@@ -47,24 +47,24 @@ namespace WPF_Chemotaxis.Model
             if (!this.cell.receptorTypes.Contains(this)) this.cell.receptorTypes.Add(this);
         }
 
-        public override void RemoveElement(ILinkable element)
+        public override void RemoveElement(ILinkable element, ILinkable replacement=null)
         {
             if (element is Receptor)
             {
                 Receptor r = (Receptor)element;
                 if (this.receptor == r)
                 {
-                    this.receptor = null;
-                    Model.Current.RemoveElement(this);
+                    this.receptor = (Receptor) replacement;
+                    if(this.receptor==null) Model.Current.RemoveElement(this);
                 }
             }
             else if (element is CellType)
             {
-                CellType ct = (CellType)element;
+                CellType ct = (CellType) element;
                 if (this.cell == ct)
                 {
-                    this.cell = null;
-                    Model.Current.RemoveElement(this);
+                    this.cell = (CellType) replacement;
+                    if(this.cell==null) Model.Current.RemoveElement(this);
                 }
             }
         }

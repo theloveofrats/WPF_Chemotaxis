@@ -64,12 +64,19 @@ namespace WPF_Chemotaxis.Model
             }
         }
 
-        public override void RemoveElement(ILinkable element)
+        public override void RemoveElement(ILinkable element, ILinkable replacement=null)
         {
             if(element is LigandReceptorRelation)
             {
                 LigandReceptorRelation lrr = (LigandReceptorRelation) element;
-                if (this.receptorInteractions.Contains(lrr)) this.receptorInteractions.Remove(lrr);
+                if (this.receptorInteractions.Contains(lrr))
+                {
+                    this.receptorInteractions.Remove(lrr);
+                    if (replacement != null && replacement.GetType().IsAssignableTo(typeof(LigandReceptorRelation)))
+                    {
+                        this.receptorInteractions.Add((LigandReceptorRelation)replacement);
+                    }
+                }
             }
         }
 

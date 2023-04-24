@@ -20,11 +20,14 @@ namespace WPF_Chemotaxis.UX
         public event PropertyChangedEventHandler PropertyChanged;
 
         public virtual string Name { get; set; }
-        
+
         //So that any derivated class auomatically adds itself to the masterelementlist.
         public LabelledLinkable()
         {
-            Model.Model.MasterElementList.Add(this);
+            if (!Model.Model.FreezeAdditions)
+            {
+                Model.Model.MasterElementList.Add(this);
+            }
         }
 
         public LabelledLinkable(string name) : this()
@@ -41,7 +44,7 @@ namespace WPF_Chemotaxis.UX
             }
         }
 
-        public virtual void RemoveElement(ILinkable element)
+        public virtual void RemoveElement(ILinkable element, ILinkable replacement=null)
         {
 
         }
