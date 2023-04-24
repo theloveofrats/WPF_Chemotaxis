@@ -185,6 +185,23 @@
 
                 </Grid>
             </TabItem>
+            <TabItem Header="Visual Model maker" MinWidth="100">
+                <Grid Background="#FFE5E5E5">
+                    <Border BorderBrush="Black" BorderThickness="1" Margin="10,10,269,140">
+                        <Canvas Background="White"/>
+
+                    </Border>
+                    <Border BorderBrush="Black" BorderThickness="1" Margin="590,10,10,140">
+                        <ListView x:Name="visualElementList" d:ItemsSource="{d:SampleData ItemCount=5}">
+                            <ListView.View>
+                                <GridView>
+                                    <GridViewColumn/>
+                                </GridView>
+                            </ListView.View>
+                        </ListView>
+                    </Border>
+                </Grid>
+            </TabItem>
             <TabItem Header="Display" MinWidth="100">
                 <Grid Background="#FFE5E5E5">
                     <UniformGrid Columns="1" Margin="5,5,5,140" Background="White" Name="chartStack"/>
