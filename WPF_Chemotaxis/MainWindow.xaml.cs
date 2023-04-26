@@ -22,6 +22,7 @@ using System.Threading;
 using System.IO;
 using System.ComponentModel;
 using Newtonsoft.Json;
+using WPF_Chemotaxis.VisualScripting;
 
 namespace WPF_Chemotaxis
 {
@@ -78,6 +79,7 @@ namespace WPF_Chemotaxis
             env = new EnvironmentSettings();
             LinkSimulation(sim);
             LinkEnvironment(env);
+            SetUpVisualScriptingWindow();
         }
 
 
@@ -747,5 +749,54 @@ namespace WPF_Chemotaxis
         {
             
         }
+
+
+        /* Visual Scripting View Model Section
+         * 
+         * 
+         * 
+         */
+
+        private void SetUpVisualScriptingWindow()
+        {
+
+        }
+
+        private void SetVSElementsDisplaySource()
+        {
+            visualElementList.ItemsSource = VSElementList;
+        }
+
+        private ObservableCollection<VSViewModelElement> vsElementsList;
+        public ObservableCollection<VSViewModelElement> VSElementList 
+        {
+            get
+            {
+                if (vsElementsList == null) vsElementsList = FindAllVSElements();
+                return vsElementsList;
+            }
+            private set
+            {
+
+            }
+        }
+        
+        private ObservableCollection<VSViewModelElement> FindAllVSElements()
+        {
+            Type targetType = typeof(VSFriendlyLinkable);
+            ObservableCollection<VSViewModelElement> viewList = new();
+
+            var typeList = AppDomain.CurrentDomain.GetAssemblies().SelectMany(x => x.GetTypes()).Where(y => y.IsAssignableFrom(targetType) && !y.IsAbstract);
+
+            foreach (var iterType in typeList)
+            {
+                string name = InvokeMethod<string>(iterType, "GetUITypeName");
+                string path = InvokeMethod<string>(iterType, "GetSymbolResourcePath");
+
+                viewList.Add(new VSViewModelElement(name, path, iterType));
+            }
+            return viewList;
+        }
+        private static T InvokeMethod<T>(Type type, string methodName, object obj = null, params object[] parameters) => (T)type.GetMethod(methodName)?.Invoke(obj, parameters);
     }
 }

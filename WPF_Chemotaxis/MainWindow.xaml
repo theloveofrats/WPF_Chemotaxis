@@ -144,7 +144,7 @@
                         <RowDefinition Height="250*"/>
                     </Grid.RowDefinitions>
 
-                    <Border Grid.Row="0" Grid.Column="0" x:Name="border" BorderBrush="Black"  Margin="15,50,15,-30" BorderThickness="2" Grid.ColumnSpan="1">
+                    <Border Grid.Row="0" Grid.Column="2" x:Name="border" BorderBrush="Black"  Margin="15,50,15,-30" BorderThickness="2" Grid.ColumnSpan="1">
                         <Grid Background="White"  Margin="0,0,0,0">
                             <Image x:Name="mazeFileThumbnail" Stretch="Uniform" VerticalAlignment="Center" HorizontalAlignment="Center"></Image>
                         </Grid>
@@ -187,18 +187,32 @@
             </TabItem>
             <TabItem Header="Visual Model maker" MinWidth="100">
                 <Grid Background="#FFE5E5E5">
-                    <Border BorderBrush="Black" BorderThickness="1" Margin="10,10,269,140">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="610*"/>
+                        <ColumnDefinition Width="300*"/>
+                        <ColumnDefinition Width="350*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="440*"/>
+                        <RowDefinition Height="120*"/>
+                    </Grid.RowDefinitions>
+                    
+                    <Border Grid.Row="0" Grid.ColumnSpan="2" BorderBrush="Black" BorderThickness="1" Margin="10,10,10,10">
                         <Canvas Background="White"/>
-
                     </Border>
-                    <Border BorderBrush="Black" BorderThickness="1" Margin="590,10,10,140">
-                        <ListView x:Name="visualElementList" d:ItemsSource="{d:SampleData ItemCount=5}">
-                            <ListView.View>
-                                <GridView>
-                                    <GridViewColumn/>
-                                </GridView>
-                            </ListView.View>
-                        </ListView>
+                    <Border Grid.Row="0" Grid.Column="2" BorderBrush="Black" BorderThickness="1" Margin="10,10,10,10">
+                        <DataGrid x:Name="visualElementList" AutoGenerateColumns="False" Margin="0,0,0,0" MinRowHeight="80" MinColumnWidth="80" Grid.Row="0" Grid.Column="2" SelectionChanged="visualElementList_SelectionChanged">
+                            <DataGrid.Columns>
+                                <DataGridTemplateColumn Header="Icon" Width="20*" IsReadOnly="True">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Image Source="{Binding IconResourcePath}" />
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn Header="Label" IsReadOnly="True" Binding="{Binding TypeLabel, Mode=TwoWay}"  Width="40*"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
                     </Border>
                 </Grid>
             </TabItem>

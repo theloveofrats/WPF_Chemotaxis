@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using WPF_Chemotaxis.UX;
 using Newtonsoft.Json.Serialization;
+using WPF_Chemotaxis.VisualScripting;
 
 namespace WPF_Chemotaxis.Model
 {
@@ -12,6 +13,8 @@ namespace WPF_Chemotaxis.Model
     /// Class for storing paramaters for a cell type that can be shared by many cells
     /// and exposed to the UI for modification.
     /// </summary>
+
+    [VSElementAttribute(ui_TypeLabel="Cell", symbolResourcePath = "~/Resources/Circle256.png", symbolSize = 10.0)]
     public class CellType : LabelledLinkable
     {
         public string label = "New Cell Type"; 
