@@ -115,7 +115,7 @@
                             <DataGridTextColumn Header="Component" Binding="{Binding Label}" IsReadOnly="True"  Width="*"/>
                             <DataGridTemplateColumn Header="Choice" Width="*">
                                 <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
+                                    <DataTemplate x:Name="Christ">
                                         <ComboBox ItemsSource="{Binding Path=Options, Converter={StaticResource EnumerableReplaceConverter}, ConverterParameter={StaticResource EmptyString}}"  SelectedItem="{Binding Path=SelectedItem, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource ReplaceConverter}, ConverterParameter={StaticResource EmptyString}}" IsSynchronizedWithCurrentItem="True">
                                             <ComboBox.ItemTemplate>
                                                 <DataTemplate>
@@ -197,20 +197,22 @@
                         <RowDefinition Height="120*"/>
                     </Grid.RowDefinitions>
                     
-                    <Border Grid.Row="0" Grid.ColumnSpan="2" BorderBrush="Black" BorderThickness="1" Margin="10,10,10,10">
-                        <Canvas Background="White"/>
+                    <Border Grid.Row="0" Grid.ColumnSpan="2" BorderBrush="Black" BorderThickness="1" Margin="10,10,10,10" ClipToBounds="True">
+                        <Canvas x:Name="VSCanvas" MouseMove="VSCanvas_LeftMouseDrag" MouseLeftButtonDown="VSCanvas_LeftMouseDown" MouseLeftButtonUp="VSCanvas_LeftMouseUp" Background="White"/>
                     </Border>
                     <Border Grid.Row="0" Grid.Column="2" BorderBrush="Black" BorderThickness="1" Margin="10,10,10,10">
-                        <DataGrid x:Name="visualElementList" AutoGenerateColumns="False" Margin="0,0,0,0" MinRowHeight="80" MinColumnWidth="80" Grid.Row="0" Grid.Column="2" SelectionChanged="visualElementList_SelectionChanged">
+                        <DataGrid x:Name="visualElementList" AutoGenerateColumns="False" Margin="0,0,0,0" MinRowHeight="80" MinColumnWidth="80" Grid.Row="0" Grid.Column="2">
                             <DataGrid.Columns>
                                 <DataGridTemplateColumn Header="Icon" Width="20*" IsReadOnly="True">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
-                                            <Image Source="{Binding IconResourcePath}" />
+                                            <Border Background="Gray">
+                                                <Image Name="VSElementImage"  Source="{Binding IconResourcePath}" MouseLeftButtonDown="VSElementImage_LeftMouseDown" />
+                                            </Border>
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
-                                <DataGridTextColumn Header="Label" IsReadOnly="True" Binding="{Binding TypeLabel, Mode=TwoWay}"  Width="40*"/>
+                                <DataGridTextColumn Header="Label" IsReadOnly="True" Binding="{Binding UIDisplayLabel}"  Width="40*"/>
                             </DataGrid.Columns>
                         </DataGrid>
                     </Border>

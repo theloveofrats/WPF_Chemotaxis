@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using WPF_Chemotaxis.UX;
 using Newtonsoft.Json.Serialization;
 using WPF_Chemotaxis.VisualScripting;
+using System.Windows.Media;
 
 namespace WPF_Chemotaxis.Model
 {
@@ -14,7 +15,7 @@ namespace WPF_Chemotaxis.Model
     /// and exposed to the UI for modification.
     /// </summary>
 
-    [VSElementAttribute(ui_TypeLabel="Cell", symbolResourcePath = "~/Resources/Circle256.png", symbolSize = 10.0)]
+    [VSElementAttribute(ui_TypeLabel="Cell", symbolResourcePath = "Resources/CircleIcon.png", symbolSize = 25.0)]
     public class CellType : LabelledLinkable
     {
         public string label = "New Cell Type"; 

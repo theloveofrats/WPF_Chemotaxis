@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Media;
 using WPF_Chemotaxis.UX;
 
 namespace WPF_Chemotaxis.VisualScripting

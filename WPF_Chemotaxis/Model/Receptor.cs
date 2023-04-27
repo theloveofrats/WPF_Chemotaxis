@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using WPF_Chemotaxis.UX;
+using WPF_Chemotaxis.VisualScripting;
 
 namespace WPF_Chemotaxis.Model
 {
@@ -11,6 +12,7 @@ namespace WPF_Chemotaxis.Model
     /// Representation of a receptor type in the theoretical model. Links to some number of ligands. During a simulation, 
     /// each receptor will take input ligand concentations from a cell and respond with levels of occupancy and activity.
     /// </summary>
+    [VSElementAttribute(ui_TypeLabel = "Receptor", symbolResourcePath = "Resources/ReceptorIcon.png", symbolSize = 6.0)]
     public class Receptor : LabelledLinkable, IHeatMapSource
     {
         public string label = "Receptor";

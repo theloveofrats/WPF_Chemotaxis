@@ -16,13 +16,19 @@
 
   <ItemGroup>
     <None Remove="Resources\Backward Arrow.png" />
+    <None Remove="Resources\ChannelIcon.png" />
+    <None Remove="Resources\CircleIcon.png" />
     <None Remove="Resources\clear-all.png" />
+    <None Remove="Resources\DirectionModuleIcon.png" />
+    <None Remove="Resources\EnzymeIcon.png" />
     <None Remove="Resources\Forward Arrow.png" />
     <None Remove="Resources\Home.png" />
+    <None Remove="Resources\LigandIcon.png" />
     <None Remove="Resources\LoadIcon.png" />
     <None Remove="Resources\LoadPlusIcon.png" />
     <None Remove="Resources\Pause_Icon.png" />
     <None Remove="Resources\Play_Icon.png" />
+    <None Remove="Resources\ReceptorIcon.png" />
     <None Remove="Resources\SaveIcon.png" />
     <None Remove="UX\Effects\HeatColorizer.ps" />
   </ItemGroup>
@@ -47,13 +53,19 @@
 
   <ItemGroup>
     <Resource Include="Resources\Backward Arrow.png" />
+    <Resource Include="Resources\ChannelIcon.png" />
+    <Resource Include="Resources\CircleIcon.png" />
     <Resource Include="Resources\clear-all.png" />
+    <Resource Include="Resources\DirectionModuleIcon.png" />
+    <Resource Include="Resources\EnzymeIcon.png" />
     <Resource Include="Resources\Forward Arrow.png" />
     <Resource Include="Resources\Home.png" />
+    <Resource Include="Resources\LigandIcon.png" />
     <Resource Include="Resources\LoadIcon.png" />
     <Resource Include="Resources\LoadPlusIcon.png" />
     <Resource Include="Resources\Pause_Icon.png" />
     <Resource Include="Resources\Play_Icon.png" />
+    <Resource Include="Resources\ReceptorIcon.png" />
     <Resource Include="Resources\SaveIcon.png" />
     <Resource Include="UX\Effects\HeatColorizer.ps" />
   </ItemGroup>

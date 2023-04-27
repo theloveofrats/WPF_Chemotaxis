@@ -1,28 +1,25 @@
-﻿using System;
-using System.Reflection;
+﻿using Microsoft.Win32;
+using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.IO;
 using System.Linq;
-using System.Text;
+using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
-using System.Collections.ObjectModel;
-using Microsoft.Win32;
-using WPF_Chemotaxis.UX;
 using WPF_Chemotaxis.Model;
 using WPF_Chemotaxis.Simulations;
-using System.Threading;
-using System.IO;
-using System.ComponentModel;
-using Newtonsoft.Json;
+using WPF_Chemotaxis.UX;
 using WPF_Chemotaxis.VisualScripting;
+using System.Windows.Media.Effects;
 
 namespace WPF_Chemotaxis
 {
@@ -755,11 +752,12 @@ namespace WPF_Chemotaxis
          * 
          * 
          * 
+         * 
          */
 
         private void SetUpVisualScriptingWindow()
         {
-
+            SetVSElementsDisplaySource();
         }
 
         private void SetVSElementsDisplaySource()
@@ -783,20 +781,230 @@ namespace WPF_Chemotaxis
         
         private ObservableCollection<VSViewModelElement> FindAllVSElements()
         {
-            Type targetType = typeof(VSFriendlyLinkable);
             ObservableCollection<VSViewModelElement> viewList = new();
 
-            var typeList = AppDomain.CurrentDomain.GetAssemblies().SelectMany(x => x.GetTypes()).Where(y => y.IsAssignableFrom(targetType) && !y.IsAbstract);
+            var typeList = AppDomain.CurrentDomain.GetAssemblies().SelectMany(x => x.GetTypes()).Where(y => y.GetCustomAttribute<VSElementAttribute>()!=null);
 
             foreach (var iterType in typeList)
             {
-                string name = InvokeMethod<string>(iterType, "GetUITypeName");
-                string path = InvokeMethod<string>(iterType, "GetSymbolResourcePath");
+                var vsInfo = iterType.GetCustomAttribute<VSElementAttribute>();
 
-                viewList.Add(new VSViewModelElement(name, path, iterType));
+                viewList.Add(new VSViewModelElement(vsInfo.ui_TypeLabel, vsInfo.symbolResourcePath, vsInfo.symbolSize, iterType));
             }
             return viewList;
         }
         private static T InvokeMethod<T>(Type type, string methodName, object obj = null, params object[] parameters) => (T)type.GetMethod(methodName)?.Invoke(obj, parameters);
+
+
+        // Handing drag'n'drop for these 
+        private bool is_MenuDragging;
+        private bool is_canvasDragging;
+        private Point dragStart;
+        Image selectedElement = null;
+        private void SelectImage(Image image)
+        {
+            if (image == null) return;
+            selectedElement = image;
+            System.Diagnostics.Debug.Print(string.Format("Selected image! Now highlighting!"));
+            selectedElement.Effect = new DropShadowEffect()
+            {
+                BlurRadius = 20,
+                Color = Color.FromRgb(180, 180, 0),
+                ShadowDepth = 0
+            };
+        }
+        private void ClearSelection()
+        {
+            System.Diagnostics.Debug.Print(string.Format("CLEAR SELECTION"));
+            if (selectedElement != null) {
+                selectedElement.Effect = null;
+                selectedElement = null;
+                System.Diagnostics.Debug.Print(string.Format("Clearing selection effect"));
+                VSCanvas.UpdateLayout();
+            }
+            else
+            {
+                System.Diagnostics.Debug.Print(string.Format("Selected item is apprently null?"));
+            }
+        }
+
+        /*
+         * MOUSE DOWN HANDLERS. CAVAS CAPURES MENU CLICKS FOR DRAG ITEM ONTO CANVAS FUNCTION
+         * 
+         */
+
+
+        // This handles clicking on the MENU. 
+        private void VSElementImage_LeftMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            ClearSelection();
+
+            System.Diagnostics.Debug.Print(string.Format("MENU CLICK: CAPTURING!"));
+            is_MenuDragging = true;
+            is_canvasDragging = false;
+            Mouse.Capture(VSCanvas, CaptureMode.SubTree);
+        }
+        // Click on canvas. Cancels selection
+        private void VSCanvas_LeftMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.Handled) return;
+
+            System.Diagnostics.Debug.Print(string.Format("CANVAS CLICK: CAPTURING"));
+            ClearSelection();
+
+            is_MenuDragging = false;
+            is_canvasDragging = false;
+            dragStart = e.GetPosition(VSCanvas);
+            Mouse.Capture(VSCanvas, CaptureMode.SubTree);
+        }
+
+        private void VSCurrentModelElement_LeftMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            is_MenuDragging = false;
+            is_canvasDragging = false;
+
+            System.Diagnostics.Debug.Print(string.Format("IMAGE ELEMENT CLICK"));
+            if (sender != selectedElement)
+            {
+                ClearSelection();
+                SelectImage(sender as Image);
+            }
+            dragStart = e.GetPosition(VSCanvas);
+            if(selectedElement != null)
+            {
+                e.Handled = true;
+            }
+        }
+
+
+        /*
+         * MOUSE DRAG- CURRENTLY HANDLED BY THE CAVAS
+         * 
+         */
+
+        private void VSCanvas_LeftMouseDrag(object sender, MouseEventArgs e)
+        {
+            Point clickPsn = e.GetPosition(VSCanvas);
+
+            if (!is_canvasDragging && dragStart != default && (Math.Abs(clickPsn.X - dragStart.X) > 10
+            || Math.Abs(clickPsn.Y - dragStart.Y) > 10))
+            {
+                System.Diagnostics.Debug.Print(string.Format("Dragging from point {0}:{1}: CAPTURING", dragStart.X, dragStart.Y));
+                is_canvasDragging = true;
+                Mouse.Capture(VSCanvas, CaptureMode.SubTree);
+            }
+
+            if (is_canvasDragging && selectedElement != null && InBounds(clickPsn, VSCanvas))
+            {
+                Canvas.SetTop(selectedElement, clickPsn.Y - 0.5 * selectedElement.Height);
+                Canvas.SetLeft(selectedElement, clickPsn.X - 0.5 * selectedElement.Width);
+            }
+        }
+
+        /*
+         * MOUSE UP HANDLERS- IF AN EVENT IS HANDLED BY A LAYER IT SHOULD CANCEL LATER ONES
+         * 
+         */
+
+        private void VSCurrentModelElement_LeftMouseUp(object sender, MouseButtonEventArgs e)
+        {
+            if (e.Handled) return;
+
+            System.Diagnostics.Debug.Print(string.Format("IMG handling mouse up"));
+
+            //If a menu item has been dragged onto this item
+            if (is_MenuDragging)
+            {
+                VSViewModelElement selectedSidebarItem = (visualElementList.SelectedItem as VSViewModelElement);
+                if (selectedSidebarItem != null)
+                {
+                    System.Diagnostics.Debug.Print(string.Format("Attempt to connect menu item with IMG"));
+                    // That should be a bool- if it returns false we need to drop the item outside the bounds of this object!
+                    e.Handled = true;
+                }
+                ResetMouseState();
+            }
+            // If it's a click but not a drag on a selected item
+            if ((sender as Image)==selectedElement && !is_canvasDragging)
+            {
+                System.Diagnostics.Debug.Print(string.Format("IMG RELEASE!"));
+                ResetMouseState();
+                e.Handled = true;
+            }
+
+            //If the event is not coming from the dargged element
+            else if((sender as Image)!=selectedElement && is_canvasDragging)
+            {
+                System.Diagnostics.Debug.Print(string.Format("Attempt to connect one IMG with another IMG"));
+                ResetMouseState();
+                e.Handled = true;
+            }
+        }
+
+        private void VSCanvas_LeftMouseUp(object sender, MouseButtonEventArgs e)
+        {
+            if (e.Handled) return;
+
+            System.Diagnostics.Debug.Print(string.Format("CANVAS handling mouse up"));
+            VSViewModelElement selectedSidebarItem = (visualElementList.SelectedItem as VSViewModelElement);
+
+            Point clickPsn = e.GetPosition(VSCanvas);
+
+            Image img;
+
+            if (InBounds(clickPsn, VSCanvas))
+            {
+                // If we clicked in bounds and there is a selected menu item, create a new object on the canvas
+                if (selectedSidebarItem != null)
+                {
+                    System.Diagnostics.Debug.Print(string.Format("Selected item is a {0}", selectedSidebarItem.UIDisplayLabel));
+                    img = CreateModelElementImage(selectedSidebarItem, clickPsn);
+                    
+                }
+                // Otherwise, if we are in bounds and we were dragging a selected element
+                // well- currently nothing, but we need to see where we dropped it if we want to connect things!
+                else if (selectedElement != null)
+                {
+                    //img = selectedElement;
+                    //DragElement(img, clickPsn);
+                }
+                //Otherwise, we clicked on the canvas and the canvas, not an existing image, handled it, so probably nothing?
+            }
+            ResetMouseState();
+            e.Handled = true;
+        }
+
+        private void ResetMouseState()
+        {
+            is_MenuDragging = false;
+            is_canvasDragging = false;
+            System.Diagnostics.Debug.Print(string.Format("RELEASE!"));
+            dragStart = default;
+            VSCanvas.ReleaseMouseCapture();
+        }
+
+        private Image CreateModelElementImage(VSViewModelElement fromMenuElement, Point clickPsn)
+        {
+            Image img = fromMenuElement.CreateModelElementControl();
+            Canvas.SetTop(img, clickPsn.Y - 0.5 * img.Height);
+            Canvas.SetLeft(img, clickPsn.X - 0.5 * img.Width);
+            VSCanvas.Children.Add(img);
+            img.MouseLeftButtonDown += VSCurrentModelElement_LeftMouseDown;
+            img.MouseLeftButtonUp += VSCurrentModelElement_LeftMouseUp;
+            visualElementList.UnselectAll();
+            return img;
+        }
+
+        private void DragElement(FrameworkElement element, Point dragTo)
+        {
+            Canvas.SetTop(element, dragTo.Y - 0.5 * element.Height);
+            Canvas.SetLeft(element, dragTo.X - 0.5 * element.Width);
+        }
+
+        private static bool InBounds(Point point, FrameworkElement boundingElement)
+        {
+            if (point.X < 0 || point.X > boundingElement.ActualWidth || point.Y < 0 || point.Y > boundingElement.ActualHeight) return false;
+            return true;
+        }
     }
 }

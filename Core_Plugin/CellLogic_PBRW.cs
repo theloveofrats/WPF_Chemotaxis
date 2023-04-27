@@ -5,9 +5,11 @@ using System.Windows;
 using WPF_Chemotaxis.Model;
 using WPF_Chemotaxis.Simulations;
 using WPF_Chemotaxis.UX;
+using WPF_Chemotaxis.VisualScripting;
 
 namespace WPF_Chemotaxis.CorePlugin
 {
+    [VSElement(symbolResourcePath = "Resources/DirectionModuleIcon.png", symbolSize = 4.0, ui_TypeLabel = "Cell Direction Logic")]
     public class CellLogic_PBRW: LabelledLinkable, ICellComponent
     {
         private string name = "Persistent Biased Walker";                                           // This is the field where the display name is stored

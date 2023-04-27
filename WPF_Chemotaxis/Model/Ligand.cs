@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Reflection;
 using WPF_Chemotaxis.UX;
+using WPF_Chemotaxis.VisualScripting;
 
 namespace WPF_Chemotaxis.Model
 {
@@ -12,7 +13,8 @@ namespace WPF_Chemotaxis.Model
     /// The class that defines the parameters of a given ligand type in
     /// the model. Parameters are exposed to the UI for modification.
     /// </summary>
-
+    
+    [VSElementAttribute(ui_TypeLabel = "Ligand", symbolResourcePath = "Resources/LigandIcon.png", symbolSize = 6.0)]
     public class Ligand : LabelledLinkable, IHeatMapSource
     {
         public string label = "Ligand";
