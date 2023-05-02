@@ -15,7 +15,7 @@ namespace WPF_Chemotaxis.Model
     /// and exposed to the UI for modification.
     /// </summary>
 
-    [VSElementAttribute(ui_TypeLabel="Cell", symbolResourcePath = "Resources/CircleIcon.png", symbolSize = 25.0)]
+    [VSElementAttribute(ui_TypeLabel="Cell", symbolResourcePath = "Resources/CircleIcon.png", symbolSize = 25.0, tagX =-40, tagY = -50, tagCentre = true)] 
     public class CellType : LabelledLinkable
     {
         public string label = "New Cell Type"; 

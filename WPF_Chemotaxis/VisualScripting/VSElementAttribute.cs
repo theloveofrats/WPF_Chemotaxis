@@ -14,6 +14,9 @@ namespace WPF_Chemotaxis.VisualScripting
         public string ui_TypeLabel;
         public string symbolResourcePath;
         public double symbolSize;
+        public double tagX;
+        public double tagY;
+        public bool   tagCentre;
 
     }
 }

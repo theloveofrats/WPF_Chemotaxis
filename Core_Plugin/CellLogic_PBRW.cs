@@ -9,7 +9,7 @@ using WPF_Chemotaxis.VisualScripting;
 
 namespace WPF_Chemotaxis.CorePlugin
 {
-    [VSElement(symbolResourcePath = "Resources/DirectionModuleIcon.png", symbolSize = 4.0, ui_TypeLabel = "Cell Direction Logic")]
+    [VSElement(symbolResourcePath = "Resources/DirectionModuleIcon.png", symbolSize = 7.0, ui_TypeLabel = "Cell Direction Logic", tagX = 25, tagY = 0, tagCentre = false)]
     public class CellLogic_PBRW: LabelledLinkable, ICellComponent
     {
         private string name = "Persistent Biased Walker";                                           // This is the field where the display name is stored
@@ -90,7 +90,6 @@ namespace WPF_Chemotaxis.CorePlugin
                 newDir += PersistenceDirection(cell, checkrefs);                                                                          // mean_activity (or whatever double you pass as an out variable in the third argument) 
                                                                                                                                           //System.Diagnostics.Debug.Print(string.Format("PB dir:: ({0:0.00},{1:0.00})", newDir.X, newDir.Y));               // now contains the mean activity value of all receptors, between 0 and 1
                                                                                                                                           // We also add the persistence direction here.
-
                 double chemokinesis = checkrefs == null ? 0 : checkrefs.chemokinesis;
 
                 newDir.Normalize();                                                                                                // We then normalise...

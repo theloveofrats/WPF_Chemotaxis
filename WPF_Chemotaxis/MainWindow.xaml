@@ -198,7 +198,7 @@
                     </Grid.RowDefinitions>
                     
                     <Border Grid.Row="0" Grid.ColumnSpan="2" BorderBrush="Black" BorderThickness="1" Margin="10,10,10,10" ClipToBounds="True">
-                        <Canvas x:Name="VSCanvas" MouseMove="VSCanvas_LeftMouseDrag" MouseLeftButtonDown="VSCanvas_LeftMouseDown" MouseLeftButtonUp="VSCanvas_LeftMouseUp" Background="White"/>
+                        <Canvas x:Name="VSCanvas" MouseWheel="VSCanvas_MouseWheel" MouseMove="VSCanvas_LeftMouseDrag" MouseLeftButtonDown="VSCanvas_LeftMouseDown" MouseLeftButtonUp="VSCanvas_LeftMouseUp" Background="White"/>
                     </Border>
                     <Border Grid.Row="0" Grid.Column="2" BorderBrush="Black" BorderThickness="1" Margin="10,10,10,10">
                         <DataGrid x:Name="visualElementList" AutoGenerateColumns="False" Margin="0,0,0,0" MinRowHeight="80" MinColumnWidth="80" Grid.Row="0" Grid.Column="2">
@@ -207,7 +207,7 @@
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <Border Background="Gray">
-                                                <Image Name="VSElementImage"  Source="{Binding IconResourcePath}" MouseLeftButtonDown="VSElementImage_LeftMouseDown" />
+                                                <Image Name="VSElementImage"  Source="{Binding IconResourcePath}" MouseLeftButtonDown="VSMenuItem_LeftMouseDown" />
                                             </Border>
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>

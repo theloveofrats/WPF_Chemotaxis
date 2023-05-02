@@ -14,7 +14,7 @@ namespace WPF_Chemotaxis.Model
     /// the model. Parameters are exposed to the UI for modification.
     /// </summary>
     
-    [VSElementAttribute(ui_TypeLabel = "Ligand", symbolResourcePath = "Resources/LigandIcon.png", symbolSize = 6.0)]
+    [VSElementAttribute(ui_TypeLabel = "Ligand", symbolResourcePath = "Resources/LigandIcon.png", symbolSize = 6.0, tagX = 15, tagY = -10, tagCentre = false)]
     public class Ligand : LabelledLinkable, IHeatMapSource
     {
         public string label = "Ligand";

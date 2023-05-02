@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows;
 
 namespace WPF_Chemotaxis.VisualScripting
 {
@@ -14,7 +15,9 @@ namespace WPF_Chemotaxis.VisualScripting
         public string IconResourcePath { get; private set; }
         public string UIDisplayLabel { get; private set; }
         public double IconSize { get; private set; }
-        public Type   TargetType     { get; private set; }
+        public Type TargetType { get; private set; }
+        public Point NametagOffset { get; private set; }
+        public bool tagAlignCentre { get; private set; }
 
         private static int colorIndex = 0;
         private static Color[] colors = new Color[] { Color.FromRgb(217,85,85),   Color.FromRgb(255, 122, 0), Color.FromRgb(253,245,103),
@@ -23,12 +26,14 @@ namespace WPF_Chemotaxis.VisualScripting
 
 
 
-        public VSViewModelElement(string UIDisplayLabel, string IconResourcePath, double IconSize, Type TargetType)
+        public VSViewModelElement(string UIDisplayLabel, string IconResourcePath, double IconSize, Type TargetType, Point NametagOffset, bool tagAlignCentre)
         {
             this.UIDisplayLabel = UIDisplayLabel;
             this.IconResourcePath = IconResourcePath;
             this.IconSize = IconSize;
             this.TargetType = TargetType;
+            this.NametagOffset = NametagOffset;
+            this.tagAlignCentre = tagAlignCentre;
         }
 
         public Image CreateModelElementControl()

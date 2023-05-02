@@ -9,6 +9,7 @@ using WPF_Chemotaxis.UX;
 using Newtonsoft.Json;
 using Microsoft.Win32;
 using System.IO;
+using System.Collections.Specialized;
 
 namespace WPF_Chemotaxis.Model
 {
@@ -56,10 +57,21 @@ namespace WPF_Chemotaxis.Model
 
         private static int listFocus = 0;
 
+        public event EventHandler<NotifyCollectionChangedEventArgs> OnModelChanged;
+
         public Model()
         {
             current = this;
             focusHistory.Add(this);
+            masterElementList.CollectionChanged += FireModelChangeEvent;
+        }
+
+        private void FireModelChangeEvent(object sender, NotifyCollectionChangedEventArgs e)
+        {
+            if (OnModelChanged != null)
+            {
+                OnModelChanged(sender, e);
+            }
         }
 
         public Model(string fromFile)
@@ -136,7 +148,7 @@ namespace WPF_Chemotaxis.Model
         }
 
         [ElementAdder(label = "Receptor", type = typeof(Receptor))]
-        public void AddLigand(Receptor receptor)
+        public void AddReceptor(Receptor receptor)
         {
 
         }
