@@ -144,7 +144,7 @@
                         <RowDefinition Height="250*"/>
                     </Grid.RowDefinitions>
 
-                    <Border Grid.Row="0" Grid.Column="2" x:Name="border" BorderBrush="Black"  Margin="15,50,15,-30" BorderThickness="2" Grid.ColumnSpan="1">
+                    <Border Grid.Row="0" Grid.Column="0" x:Name="border" BorderBrush="Black"  Margin="15,50,15,-30" BorderThickness="2" Grid.ColumnSpan="1">
                         <Grid Background="White"  Margin="0,0,0,0">
                             <Image x:Name="mazeFileThumbnail" Stretch="Uniform" VerticalAlignment="Center" HorizontalAlignment="Center"></Image>
                         </Grid>

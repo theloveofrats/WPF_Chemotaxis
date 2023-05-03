@@ -25,7 +25,11 @@ namespace WPF_Chemotaxis.CorePlugin
 
         [JsonIgnore]                                                                                // [JsonIgnore] is a tag you need to put on fields that aren't saved as part of the model. 
         IDictionary<Cell, PBRWParams> paramRefs = new Dictionary<Cell, PBRWParams>();               // This field is used in active simulations, not in model definition, so it isn't saved.
-                                                                                                    // Because each cell can have a parameter value on a spectrum of values, this dictionary allows us to
+           
+        public CellLogic_PBRW() : base()
+        {
+            Init();
+        }                                                                                           // Because each cell can have a parameter value on a spectrum of values, this dictionary allows us to
                                                                                                     // pass in a cell and look up the table of values used by that cell. 
         public override string DisplayType => "Cell movement logic";                                // The "Type" field in the display window where you set up a model. Like Cell or Receptor.
 
