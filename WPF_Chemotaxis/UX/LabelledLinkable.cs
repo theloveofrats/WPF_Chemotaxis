@@ -24,6 +24,11 @@ namespace WPF_Chemotaxis.UX
         //So that any derivated class auomatically adds itself to the masterelementlist.
         public LabelledLinkable()
         {
+            
+        }
+
+        protected void Init()
+        {
             if (!Model.Model.FreezeAdditions)
             {
                 Model.Model.MasterElementList.Add(this);

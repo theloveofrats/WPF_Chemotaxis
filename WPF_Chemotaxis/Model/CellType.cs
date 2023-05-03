@@ -41,11 +41,11 @@ namespace WPF_Chemotaxis.Model
 
         public CellType() : base()
         {
-
+            Init();
         }
         public CellType(string label) : base(label)
         {
-
+            Init();
         }
 
         [ElementAdder(label ="Add Receptor", type = typeof(Receptor))]

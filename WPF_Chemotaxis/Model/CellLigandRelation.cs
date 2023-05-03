@@ -7,12 +7,14 @@ using WPF_Chemotaxis.UX;
 using WPF_Chemotaxis.Simulations;
 using System.Windows;
 using Newtonsoft.Json;
+using WPF_Chemotaxis.VisualScripting;
 
 namespace WPF_Chemotaxis.Model
 {
     /// <summary>
     /// Relational class for cell-ligand direct interactions (rather than receptor-mediated interactions).
     /// </summary>
+
     public class CellLigandRelation : LabelledLinkable
     {
         [JsonProperty]
@@ -50,6 +52,7 @@ namespace WPF_Chemotaxis.Model
         {
             this.cellType = cell;
             this.input_ligand = ligand;
+            Init();
         }
 
         public override void RemoveElement(ILinkable element, ILinkable replacement=null)

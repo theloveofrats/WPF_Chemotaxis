@@ -35,6 +35,15 @@ namespace WPF_Chemotaxis.VisualScripting
             this.NametagOffset = NametagOffset;
             this.tagAlignCentre = tagAlignCentre;
         }
+        public VSViewModelElement(VSElementAttribute attribute, Type targetType)
+        {
+            this.UIDisplayLabel = attribute.ui_TypeLabel;
+            this.IconResourcePath = attribute.symbolResourcePath;
+            this.IconSize = attribute.symbolSize;
+            this.TargetType = targetType;
+            this.NametagOffset = new Point(attribute.tagX, attribute.tagY);
+            this.tagAlignCentre = attribute.tagCentre;
+        }
 
         public Image CreateModelElementControl()
         {

@@ -11,81 +11,255 @@ using WPF_Chemotaxis.Model;
 using WPF_Chemotaxis.UX;
 using System.Collections.Specialized;
 using System.Windows.Media;
+using System.Windows.Input;
+using System.Windows.Shapes;
 
 namespace WPF_Chemotaxis.VisualScripting
 {
     internal class VSModelManager
     {
-        private Dictionary<UIElement, ILinkable> visualToComponentMap = new();
+        private Multimap<UIElement, ILinkable> ui_model_multimap = new();
+        private Dictionary<UIElement, List<UIElement>> radial_child_elements = new();
+        private Dictionary<UIElement, List<UIElement>> list_child_elements = new();
+        private Dictionary<UIElement, List<UIElement>> arrow_child_elements = new();
+        private Canvas targetCanvas;
+        private VisualModelElementFactory factory;
+        private VisualScriptingSelectionManager selectionManager;
+        private SciRand rnd;
+        private bool _islistening = true;
 
-        public VSModelManager()
+        public VSModelManager(Canvas targetCanvas, VisualScriptingSelectionManager selectionManager)
         {
             Model.Model.Current.OnModelChanged += this.HandleModelChanges;
+            this.targetCanvas = targetCanvas;
+            this.factory = new(targetCanvas);
+            this.selectionManager = selectionManager;
+            this.rnd = new();
         }
 
-        private void HandleModelChanges(object sender, NotifyCollectionChangedEventArgs e)
-        {
-            if(e.Action == NotifyCollectionChangedAction.Add)
-            {
-                foreach(var item in e.NewItems)
-                {
-                    VSElementAttribute itemAttribute = item.GetType().GetCustomAttribute<VSElementAttribute>();
-                    if (itemAttribute != null)
-                    {
-                        if (!visualToComponentMap.Values.Contains(item))
-                        {
+        /*
+         * Creates a new ILinkable and then gets the factoy to make and link a UI to it.
+         * 
+         */
 
-                        }
-                    }
+        public void CreateNewModelElementFromMenu(VSViewModelElement fromMenu, Point clickPsn)
+        {
+            _islistening = false;
+
+            ILinkable newModelElement = Activator.CreateInstance(fromMenu.TargetType) as ILinkable;
+            newModelElement.Name = "New " + newModelElement.DisplayType;
+            if (newModelElement != null)
+            {
+                UIElement newElement = this.factory.CreateModelElementImage(fromMenu, clickPsn, newModelElement, DefaultLeftMouseDown, DefaultLeftMouseUp, DefaultRightMouseUp);
+                ui_model_multimap.TryAdd(newElement, newModelElement);
+            }
+            _islistening = true;
+        }
+
+        private void AddDetectedMainElement(ILinkable element)
+        {
+            //If an item that could be picked from the menu isn't listed in the visual componenet dictionary, make it and place it.
+            if (!ui_model_multimap.Contains(element))
+            {
+                //Create model part programatically here
+                Point newPoint = new Point(10 + (targetCanvas.ActualWidth-20) * rnd.NextDouble(), 10 + (targetCanvas.ActualHeight-20) * rnd.NextDouble());
+                UIElement createdUIElement;
+                if (factory.TryCreateUIForExtantModelElement(element, newPoint, out createdUIElement, DefaultLeftMouseDown, DefaultLeftMouseUp, DefaultRightMouseUp))
+                {
+                    ui_model_multimap.TryAdd(createdUIElement, element);
                 }
             }
-            if (e.Action == NotifyCollectionChangedAction.Remove)
+        }
+
+        private void AddRadialDockedUI(UIElement parent, UIElement child, double dist)
+        {
+            Canvas parentCanvas = VisualTreeHelper.GetParent(parent) as Canvas;
+            Canvas childCanvas = VisualTreeHelper.GetParent(child) as Canvas;
+            //Calculate point
+            Point childAbsPosition = child.TransformToAncestor(targetCanvas).Transform(new Point(0.5 * child.RenderSize.Width, 0.5 * child.RenderSize.Height));
+            Point parentAbsPosition = parent.TransformToAncestor(targetCanvas).Transform(new Point(0.5 * parent.RenderSize.Width, 0.5 * parent.RenderSize.Height));
+
+            Point currentRelativePosition = new Point(childAbsPosition.X - parentAbsPosition.X, childAbsPosition.Y - parentAbsPosition.Y);
+            double targetAngleRadians = Math.Atan2(currentRelativePosition.Y, currentRelativePosition.X);
+            double targetRotationDegrees = 90d + 180d * targetAngleRadians / Math.PI;
+            //double multiplier = relationParams.forcePositionDistance / Math.Sqrt(currentRelativePosition.X * currentRelativePosition.X + currentRelativePosition.Y * currentRelativePosition.Y);
+
+            //Reparent
+            Canvas oldParent = (childCanvas.Parent as Canvas);
+            if (oldParent != null)
             {
-                foreach (var dropped in e.OldItems)
+                oldParent.Children.Remove(childCanvas);
+            }
+            parentCanvas.Children.Add(childCanvas);
+
+            Point targetPoint = new Point(dist * Math.Cos(targetAngleRadians), dist * Math.Sin(targetAngleRadians));
+
+            //Update to new point and rotation
+            Canvas.SetLeft(childCanvas, targetPoint.X);
+            Canvas.SetTop(childCanvas, targetPoint.Y);
+            childCanvas.RenderTransform = new RotateTransform(angle: targetRotationDegrees);
+
+            foreach (var iter in childCanvas.Children)
+            {
+                TextBox label = iter as TextBox;
+                if (label != null)
                 {
-                    if (visualToComponentMap.Values.Contains(dropped))
-                    {
-                        List<UIElement> toRemove = new();
-                        foreach (UIElement key in visualToComponentMap.Keys)
-                        {
-                            if (visualToComponentMap[key] == dropped)
-                            {
-                                toRemove.Add(key);
-                            }
-                        }
-                        foreach(var elem in toRemove)
-                        {
-                            RemoveElement(elem);
-                        }
-                    }
+                    label.RenderTransform = (Transform)childCanvas.RenderTransform.Inverse;
                 }
             }
+            targetCanvas.InvalidateVisual();
         }
 
-        private void RemoveElement(UIElement element)
+        private void AddChildLineUI(UIElement parent, UIElement child)
         {
-            visualToComponentMap.Remove(element);
-            (VisualTreeHelper.GetParent(element) as Canvas).Children.Remove(element);
+            Canvas parentCanvas = VisualTreeHelper.GetParent(parent) as Canvas;
+            Canvas childCanvas = VisualTreeHelper.GetParent(child) as Canvas;
+
+            Line line = new Line();
+            line.Stroke = Brushes.Blue;
+            line.StrokeThickness = 4;
+
+            Point p1 = child.TransformToAncestor(targetCanvas).Transform(new Point(0.5*child.RenderSize.Width, 0.5*child.RenderSize.Height)); 
+            Point p2 = parent.TransformToAncestor(targetCanvas).Transform(new Point(0.5*parent.RenderSize.Width, 0.5*parent.RenderSize.Height));
+
+            line.X1 = p1.X;
+            line.Y1 = p1.Y;
+            line.X2 = p2.X;
+            line.Y2 = p2.Y;
+            targetCanvas.Children.Add(line);
+            Canvas.SetZIndex(line, -1);
+
+
+            targetCanvas.InvalidateVisual();
         }
 
-        public bool AddNewModelPart(UIElement newVisual, VSViewModelElement vsToModelLinker)
+
+        private void AddUIChildToUIParent(UIElement parent, UIElement child, VSRelationAttribute relationParams)
         {
-            if (visualToComponentMap.ContainsKey(newVisual)) return false;
             
-            ILinkable newLink = Activator.CreateInstance(vsToModelLinker.TargetType) as ILinkable;
-            newLink.Name = "New " + newLink.DisplayType;
 
-            if (newLink != null)
+            switch(relationParams.forcedPositionType)
             {
-                visualToComponentMap.Add(newVisual, newLink);
-                return true;
+                case ForcedPositionType.NONE:
+
+                    AddChildLineUI(child, parent);
+                    List<UIElement> lineChildren;
+                    if (radial_child_elements.TryGetValue(parent, out lineChildren))
+                    {
+                        lineChildren.Add(child);
+                    }
+                    else
+                    {
+                        lineChildren = new List<UIElement>() { child };
+                        radial_child_elements.Add(parent, lineChildren);
+                    }
+
+                    break;
+                case ForcedPositionType.RADIUS:
+
+                    AddRadialDockedUI(parent, child, relationParams.forcePositionDistance);
+                    List<UIElement> radialChildren;
+                    if(radial_child_elements.TryGetValue(parent, out radialChildren)){
+                        radialChildren.Add(child);
+                    }
+                    else
+                    {
+                        radialChildren = new List<UIElement>() {child};
+                        radial_child_elements.Add(parent, radialChildren);
+                    }
+
+                    break;
+
+                case ForcedPositionType.LIST:
+                    break;
+                case ForcedPositionType.WORKERCLASS:
+                    break;
+
+            }
+        }
+
+        private bool TryAddRelationshipMarker(ILinkable relationalLink, VSRelationAttribute relation)
+        {
+       
+            Type linkType = relationalLink.GetType();
+            ILinkable parent = linkType.GetField(relation.parentFieldName, BindingFlags.NonPublic | BindingFlags.Instance).GetValue(relationalLink) as ILinkable;
+            ILinkable child  = linkType.GetField(relation.childFieldName, BindingFlags.NonPublic | BindingFlags.Instance).GetValue(relationalLink) as ILinkable;
+
+            if(parent!=null && child != null)
+            {
+                System.Diagnostics.Debug.Print(String.Format("Found parent {0} and child {1} objects", parent.Name, child.Name));
+                List<UIElement> parentUISet, childUISet;
+                
+                if(ui_model_multimap.TryGetValues(parent, out parentUISet) && ui_model_multimap.TryGetValues(child, out childUISet)){
+
+                    AddUIChildToUIParent(parentUISet[0], childUISet[0], relation);
+                }
             }
             return false;
         }
 
+        private void HandleModelChanges(object sender, NotifyCollectionChangedEventArgs e)
+        {
+            //If we are adding this ourselves, don't also react to it.
+            if (!_islistening) return;
+
+            if(e.Action == NotifyCollectionChangedAction.Add)
+            {
+                foreach(var uncastitem in e.NewItems)
+                {
+                    ILinkable item = uncastitem as ILinkable;
+                    if (item != null)
+                    {
+                        // If an element that can be added via menu has been added elsewhere...
+                        VSElementAttribute itemAttribute = item.GetType().GetCustomAttribute<VSElementAttribute>();
+                        if (itemAttribute != null)
+                        {
+                            AddDetectedMainElement(item);
+                        }
+                        else
+                        {
+                            VSRelationAttribute relationAttribute = item.GetType().GetCustomAttribute<VSRelationAttribute>();
+                            if (relationAttribute != null)
+                            {
+                                System.Diagnostics.Debug.Print("Found relation attribute!");
+                                TryAddRelationshipMarker(item, relationAttribute);
+                            }
+                        }
+                    }
+                }
+            }
+
+            else if (e.Action == NotifyCollectionChangedAction.Remove)
+            {
+                foreach (var uncastdropped in e.OldItems)
+                {
+                    //Foreach dropped item
+                    ILinkable dropped =  uncastdropped as ILinkable;
+                    if (dropped != null)
+                    {
+                        //If the map contains it, remove it from the model
+                        HashSet<UIElement> droppedUIs;
+                        if (ui_model_multimap.Remove(dropped, out droppedUIs))
+                        {
+                            //Then iterate and remove UIs from visual tree
+                            foreach (UIElement item in droppedUIs)
+                            {
+                                RemoveElementFromVisualTree(item);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        private void RemoveElementFromVisualTree(UIElement element)
+        {
+            (VisualTreeHelper.GetParent(element) as Canvas).Children.Remove(element);
+        }
+
         public bool TryGetModelElementFromVisual(UIElement visual, out ILinkable modelElement)
         {
-            return visualToComponentMap.TryGetValue(visual, out modelElement);
+            return ui_model_multimap.TryGetValue(visual, out modelElement);
         }
 
         public bool TryConnectElements(UIElement parentVisual, UIElement childVisual)
@@ -94,7 +268,6 @@ namespace WPF_Chemotaxis.VisualScripting
 
             if(TryGetModelElementFromVisual(parentVisual, out parent) && TryGetModelElementFromVisual(childVisual, out child))
             {
-                System.Diagnostics.Debug.Print(String.Format("parent {0} and child {1} both in model", parent.Name, child.Name));
                 return FindConnectionMethod(parent, child);
             }
             return false;
@@ -131,6 +304,138 @@ namespace WPF_Chemotaxis.VisualScripting
                 System.Diagnostics.Debug.Print(String.Format("Method found to add child of type {0}", childLink.GetType()));
                 method.Invoke(parentLink, new object[] { childLink });
                 return true;
+            }
+        }
+
+
+        // Click on item in visual model
+        private void DefaultLeftMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.Handled) return;
+
+            //If there's no selection, select sender
+            if (!selectionManager.HasSelection)
+            {
+                selectionManager.SelectElement(sender as UIElement);
+            }
+            //If there is a selection and it's not the sender, clear it and select the sender
+            else if (!sender.Equals(selectionManager.SelectedElement))
+            {
+                selectionManager.ClearSelection();
+                selectionManager.SelectElement(sender as UIElement);
+            }
+
+            selectionManager.StartDrag(e.GetPosition(targetCanvas));
+            if (selectionManager.HasSelection)
+            {
+                e.Handled = true;
+            }
+            else
+            {
+
+            }
+        }
+
+        private void DefaultLeftMouseUp(object sender, MouseButtonEventArgs e)
+        {
+            if (e.Handled) return;
+            var buttonUpOn = sender as UIElement;
+            Point clickPsn = e.GetPosition(targetCanvas);
+
+            // DO NOT HANDLE OUT OF BOUNDS. POSSIBLY A MISTAKE?
+            if (!selectionManager.InBounds(clickPsn))
+            {
+                selectionManager.EndDrag();
+                return;
+            }
+            
+
+            //IF THE ELEMENT FIRING A BUTTON UP IS NOT THE SELECTED ELEMENT, AND WE HAVE DRAGGED FROM THE CANVAS ONTO IT.
+            if (buttonUpOn != null && buttonUpOn != selectionManager.SelectedElement && selectionManager.IsDragging)
+            {
+                System.Diagnostics.Debug.Print(string.Format("Dragged element on other element"));
+                //If there was a selection to drag, and not just a random canvas drag, try to link the elements
+                if (selectionManager.HasSelection)
+                {
+                    System.Diagnostics.Debug.Print(string.Format("Selection manger has selection"));
+                    ILinkable parent, child;
+                    if (TryGetModelElementFromVisual(selectionManager.SelectedElement, out child) && TryGetModelElementFromVisual(buttonUpOn, out parent))
+                    {
+                        System.Diagnostics.Debug.Print(string.Format("Attempt to attach {0} to {1}", child.Name, parent.Name));
+                        if (TryConnectElements(buttonUpOn, selectionManager.SelectedElement))
+                        {
+                            //System.Diagnostics.Debug.Print(string.Format("CONNECTED HERE!"));
+                        }
+                        selectionManager.EndDrag();
+                        e.Handled = true;
+                    }
+                    else
+                    {
+                        
+                    }
+                }
+                // Otherwise, if there was a selected menu item, create the relevant objects.
+                else if (selectionManager.SelectedMenuItem != null)
+                {
+                    CreateNewModelElementFromMenu(selectionManager.SelectedMenuItem, clickPsn);
+                    selectionManager.ClearMenuSelection();
+
+                    if (TryConnectElements(buttonUpOn, selectionManager.SelectedElement))
+                    {
+                        
+                    }
+                    e.Handled = true;
+                }
+                selectionManager.EndDrag();
+            }
+
+            // If it's a click but not a drag on selected item
+            if (buttonUpOn == selectionManager.SelectedElement && !selectionManager.IsDragging)
+            {
+                System.Diagnostics.Debug.Print(string.Format("Button up without drag on SELECTED"));
+                //IF the sender element IS the selection and it was a double click
+                if (selectionManager.HasSelection && buttonUpOn == selectionManager.SelectedElement && e.ClickCount > 1)
+                {
+                    System.Diagnostics.Debug.Print(string.Format("DOUBLE CLICK"));
+                    ILinkable clickedOnLink;
+                    if (ui_model_multimap.TryGetValue(selectionManager.SelectedElement, out clickedOnLink))
+                    {
+                        Model.Model.SetNextFocus(clickedOnLink);
+                        selectionManager.EndDrag();
+                    }
+                }
+                else
+                {
+                    selectionManager.EndDrag();
+                    e.Handled = true;
+                }
+            }
+            selectionManager.EndDrag();
+        }
+
+        private void DefaultRightMouseUp(object sender, MouseButtonEventArgs e)
+        {
+            if (e.Handled) return;
+            var buttonUpOn = sender as UIElement;
+            Point clickPsn = e.GetPosition(targetCanvas);
+
+            // DO NOT HANDLE OUT OF BOUNDS. POSSIBLY A MISTAKE?
+            if (!selectionManager.InBounds(clickPsn))
+            {
+                selectionManager.EndDrag();
+                return;
+            }
+
+            //Right click on selected element
+            if (selectionManager.HasSelection && buttonUpOn == selectionManager.SelectedElement)
+            {
+                System.Diagnostics.Debug.Print(string.Format("RIGHT CLICK"));
+                ILinkable clickedOnLink;
+                if (ui_model_multimap.TryGetValue(selectionManager.SelectedElement, out clickedOnLink))
+                {
+                    Model.Model.SetNextFocus(clickedOnLink);
+                }
+                e.Handled = true;
             }
         }
     }

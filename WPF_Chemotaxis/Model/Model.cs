@@ -10,6 +10,7 @@ using Newtonsoft.Json;
 using Microsoft.Win32;
 using System.IO;
 using System.Collections.Specialized;
+using System.ComponentModel;
 
 namespace WPF_Chemotaxis.Model
 {
@@ -18,7 +19,7 @@ namespace WPF_Chemotaxis.Model
     /// being the access point for the model, and controlling its navigation. This should probably be split
     /// into two classes.
     /// </summary>
-    public class Model : ILinkable
+    public class Model : ILinkable, INotifyPropertyChanged
     {
         [Link]
         private static string label;
@@ -55,9 +56,32 @@ namespace WPF_Chemotaxis.Model
 
         private static List<ILinkable> focusHistory = new();
 
-        private static int listFocus = 0;
+        private int listFocus = 0;
+        private int ListFocus 
+        { 
+            get
+            {
+                return listFocus;
+            } 
+            set
+            {
+
+                listFocus = value;
+                NotifyPropertyChanged("ListFocus");
+            }
+        }
 
         public event EventHandler<NotifyCollectionChangedEventArgs> OnModelChanged;
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        private void NotifyPropertyChanged(string info)
+        {
+            if (PropertyChanged != null)
+            {
+                System.Diagnostics.Debug.Print("Property Changed Firing!");
+                PropertyChanged(this, new PropertyChangedEventArgs(info));
+            }
+        }
 
         public Model()
         {
@@ -72,11 +96,6 @@ namespace WPF_Chemotaxis.Model
             {
                 OnModelChanged(sender, e);
             }
-        }
-
-        public Model(string fromFile)
-        {
-
         }
 
         public void RemoveElement(ILinkable element, ILinkable replacement=null)
@@ -95,7 +114,7 @@ namespace WPF_Chemotaxis.Model
         {
             get
             {
-                return focusHistory[listFocus];
+                return focusHistory[Current.ListFocus];
             }
         }
 
@@ -103,7 +122,7 @@ namespace WPF_Chemotaxis.Model
         {
             get
             {
-                if (listFocus > 0) return focusHistory[--listFocus];
+                if (Current.ListFocus > 0) return focusHistory[--Current.listFocus];
                 else return focusHistory[0];
             }
         }
@@ -111,22 +130,22 @@ namespace WPF_Chemotaxis.Model
         {
             get
             {
-                if (listFocus < focusHistory.Count - 1) listFocus++;
-                return focusHistory[listFocus];
+                if (Current.ListFocus < focusHistory.Count - 1) Current.listFocus++;
+                return focusHistory[Current.ListFocus];
             }
         }
 
         public static void Reset()
         {
-            listFocus = 0;
+            Current.ListFocus = 0;
             focusHistory = new List<ILinkable>() {focusHistory[0]};
         }
 
         public static void SetNextFocus(ILinkable next)
         {
-            focusHistory = focusHistory.GetRange(0, listFocus+1);
+            focusHistory = focusHistory.GetRange(0, Current.ListFocus +1);
             focusHistory.Add(next);
-            listFocus++;
+            Current.ListFocus++;
         }
 
         string ILinkable.Name { get => "All Elements"; set => label=value;}

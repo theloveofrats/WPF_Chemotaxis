@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using WPF_Chemotaxis.UX;
 using Newtonsoft.Json;
+using WPF_Chemotaxis.VisualScripting;
 
 namespace WPF_Chemotaxis.Model
 {
@@ -12,6 +13,7 @@ namespace WPF_Chemotaxis.Model
     /// Defines the relationship between a given ligand and a given receptor type. 
     /// Parameters fro kD and efficacy are exposed to the UI for modification.
     /// </summary>
+    [VSRelationAttribute(forcedPositionType = ForcedPositionType.NONE, childFieldName = "receptor", parentFieldName = "ligand")]
     public class LigandReceptorRelation : LabelledLinkable
     {
         [JsonPropertyAttribute]
@@ -50,6 +52,7 @@ namespace WPF_Chemotaxis.Model
 
             this.ligand.receptorInteractions.Add(this);
             this.receptor.ligandInteractions.Add(this);
+            Init();
         }
 
         public void SetReceptor(Receptor r)

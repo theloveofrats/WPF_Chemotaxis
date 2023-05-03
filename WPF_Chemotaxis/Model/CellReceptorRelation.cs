@@ -5,12 +5,14 @@ using System.Text;
 using System.Threading.Tasks;
 using WPF_Chemotaxis.UX;
 using Newtonsoft.Json;
+using WPF_Chemotaxis.VisualScripting;
 
 namespace WPF_Chemotaxis.Model
 {
     /// <summary>
     /// Class quantifying the relationship between a cell type and a receptor type.
     /// </summary>
+    [VSRelationAttribute(forcedPositionType = ForcedPositionType.RADIUS, forcePositionDistance = 125, childFieldName = "receptor", parentFieldName = "cell")]
     public class CellReceptorRelation : LabelledLinkable
     {
         [JsonProperty]
@@ -35,7 +37,10 @@ namespace WPF_Chemotaxis.Model
         [Param(Name = "Receptor weight", Min = 0)]
         public CenteredDoubleRange Weight { get; set; } = new CenteredDoubleRange(1,0);
 
-        public CellReceptorRelation() : base() { }
+        public CellReceptorRelation() : base() 
+        {
+            Init();
+        }
         public CellReceptorRelation(string label) : base(label) { }
 
         public CellReceptorRelation(CellType cell, Receptor receptor) : base()
@@ -43,8 +48,8 @@ namespace WPF_Chemotaxis.Model
 
             this.cell = cell;
             this.receptor = receptor;
-
             if (!this.cell.receptorTypes.Contains(this)) this.cell.receptorTypes.Add(this);
+            Init();
         }
 
         public override void RemoveElement(ILinkable element, ILinkable replacement=null)

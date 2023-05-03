@@ -22,12 +22,12 @@ namespace WPF_Chemotaxis.Model
 
         public Receptor() : base()
         {
-
+            Init();
         }
         
         public Receptor(string label) : base(label)
         {
-
+            Init();
         }
 
         [ElementAdder(label = "Add Ligand", type = typeof(Ligand))]

@@ -15,21 +15,21 @@ namespace WPF_Chemotaxis.VisualScripting
         private VisualBrush vBrush;
         private Size drawSize;
         private Point offset;
-        public DragAdorner(UIElement adorned, UIElement brushImg, Size targetRenderSize) : base(adorned)
+        public DragAdorner(UIElement adorned, UIElement brushImg, Point offset) : base(adorned)
         {
             vBrush = new VisualBrush(brushImg);
 
             vBrush.Opacity = 0.6;
-
-            Rect trans_size = brushImg.RenderTransform.TransformBounds(new Rect(0, 0, targetRenderSize.Width, targetRenderSize.Height));
+            Transform brushTrans = brushImg.RenderTransform;
+            Rect trans_size = brushTrans.TransformBounds(VisualTreeHelper.GetDescendantBounds(brushImg));
 
             drawSize = new Size(trans_size.Width+40, trans_size.Height+40);
-            this.offset = new Point(0.5*drawSize.Width, 0.5*drawSize.Height);
+            this.offset = offset;
         }
 
         public void SetPosition(Point position)
         {
-            this.location = new Point(position.X-offset.X, position.Y-offset.Y);
+            this.location = new Point(position.X-(offset.X+20), position.Y-(offset.Y+20));
             this.InvalidateVisual();
         }
 

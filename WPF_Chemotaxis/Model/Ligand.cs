@@ -32,8 +32,14 @@ namespace WPF_Chemotaxis.Model
         [LinkAttribute]
         public List<LigandReceptorRelation> receptorInteractions = new();
 
-        public Ligand() : base() { }
-        public Ligand(string label) : base(label) { }
+        public Ligand() : base() 
+        {
+            Init();
+        }
+        public Ligand(string label) : base(label) 
+        {
+            Init();
+        }
 
 
 

@@ -16,8 +16,14 @@ namespace ECM_Plugin
         [LinkAttribute]
         public List<ECM_Ligand_Interaction> ligandInteractions = new();
 
-        public ECMType() : base() { }
-        public ECMType(string label) : base(label) { }
+        public ECMType() : base() 
+        {
+            Init();
+        }
+        public ECMType(string label) : base(label) 
+        {
+            Init();
+        }
 
         //Specifically the parts of the class that are IHeatMapSource related.
         private List<Func<WPF_Chemotaxis.Simulations.Environment, int, int, byte>> heatMethods;

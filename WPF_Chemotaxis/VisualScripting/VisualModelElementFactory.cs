@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -19,7 +20,43 @@ namespace WPF_Chemotaxis.VisualScripting
         {
             this.targetCanvas = targetCanvas;
         }
-        public UIElement CreateModelElementImage(VSViewModelElement fromMenuElement, Point clickPsn,  VSModelManager vsModelManager, Action<object, MouseButtonEventArgs> LeftMouseDownHandler = null, Action<object, MouseButtonEventArgs> LeftMouseUpHandler = null)
+
+        /// <summary>
+        /// Creates a UI element appropriate to a specified type IF the type is decorated with an appropriate VSElement, and returns it via out param. Otherwise, returns false with a null out param.
+        /// </summary>
+        /// <param name="type"></param>
+        /// <param name="psn"></param>
+        /// <param name="manager"></param>
+        /// <param name="createdElement"></param>
+        /// <param name="LeftMouseDownHandler"></param>
+        /// <param name="LeftMouseUpHandler"></param>
+        /// <returns></returns>
+        public bool TryCreateUIForExtantModelElement(ILinkable linkToConnect, Point psn, out UIElement createdElement, Action<object, MouseButtonEventArgs> LeftMouseDownHandler, Action<object, MouseButtonEventArgs> LeftMouseUpHandler, Action<object, MouseButtonEventArgs> RightMouseUpHandler)
+        {
+            var vsAttribute = linkToConnect.GetType().GetCustomAttribute<VSElementAttribute>();
+            if (vsAttribute != null)
+            {
+                VSViewModelElement virtualMenuItem = new VSViewModelElement(vsAttribute, linkToConnect.GetType());
+                createdElement = CreateModelElementImage(virtualMenuItem, psn, linkToConnect, LeftMouseDownHandler, LeftMouseUpHandler, RightMouseUpHandler);
+                return true;
+            }
+            else
+            {
+                createdElement = null;
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Creates a UI element from a given menu selection fromMenuElement.
+        /// </summary>
+        /// <param name="fromMenuElement"></param>
+        /// <param name="clickPsn"></param>
+        /// <param name="vsModelManager"></param>
+        /// <param name="LeftMouseDownHandler"></param>
+        /// <param name="LeftMouseUpHandler"></param>
+        /// <returns></returns>
+        public UIElement CreateModelElementImage(VSViewModelElement fromMenuElement, Point clickPsn, ILinkable linkedModelElement, Action<object, MouseButtonEventArgs> LeftMouseDownHandler, Action<object, MouseButtonEventArgs> LeftMouseUpHandler, Action<object, MouseButtonEventArgs> RightMouseUpHandler)
         {
             Point nametagOffset = fromMenuElement.NametagOffset;
             Canvas imageParent = new Canvas();
@@ -32,20 +69,16 @@ namespace WPF_Chemotaxis.VisualScripting
             Canvas.SetLeft(img, - 0.5 * img.Width);
             targetCanvas.Children.Add(imageParent);
             imageParent.Children.Add(img);
-            img.MouseLeftButtonDown += (o,e) => LeftMouseDownHandler(o,e);
-            img.MouseLeftButtonUp   += (o,e) => LeftMouseUpHandler(o,e);
-            vsModelManager.AddNewModelPart(img, fromMenuElement);
-            TextBox nameBox = new TextBox();
+            img.MouseLeftButtonDown += (o, e) => LeftMouseDownHandler(o,e);
+            img.MouseLeftButtonUp   += (o, e) => LeftMouseUpHandler(o,e);
+            img.MouseRightButtonUp  += (o, e) => RightMouseUpHandler(o, e);
 
-            ILinkable elem;
-            if(vsModelManager.TryGetModelElementFromVisual(img, out elem))
-            {
-                Binding myTargetBinding = new Binding("Name");
-                myTargetBinding.Source = elem;
-                myTargetBinding.Mode = BindingMode.TwoWay;
-                BindingOperations.SetBinding(nameBox, TextBox.TextProperty, myTargetBinding);
-                nameBox.Text = elem.Name;
-            }
+            TextBox nameBox = new TextBox();
+            Binding myTargetBinding = new Binding("Name");
+            myTargetBinding.Source = linkedModelElement;
+            myTargetBinding.Mode = BindingMode.TwoWay;
+            BindingOperations.SetBinding(nameBox, TextBox.TextProperty, myTargetBinding);
+            nameBox.Text = linkedModelElement.Name;
 
             nameBox.VerticalAlignment = VerticalAlignment.Center;
             nameBox.HorizontalAlignment = fromMenuElement.tagAlignCentre ? HorizontalAlignment.Center : HorizontalAlignment.Left;
@@ -53,7 +86,7 @@ namespace WPF_Chemotaxis.VisualScripting
             Canvas.SetTop(nameBox, nametagOffset.Y);
             Canvas.SetLeft(nameBox, nametagOffset.X);
 
-            return imageParent;
+            return img;
         }
 
 
