@@ -26,8 +26,8 @@ namespace WPF_Chemotaxis.VisualScripting
 
         public UIElement SelectedElement { get; private set; }
 
-        private VSViewModelElement selectedMenuItem;
-        public VSViewModelElement SelectedMenuItem
+        private VSListMenuElement selectedMenuItem;
+        public VSListMenuElement SelectedMenuItem
         {
             get
             {
@@ -79,7 +79,7 @@ namespace WPF_Chemotaxis.VisualScripting
                 SelectedElement = null;
             }
         }
-        public void SelectMenuItem(VSViewModelElement newItem)
+        public void SelectMenuItem(VSListMenuElement newItem)
         {
             SelectedMenuItem = newItem;
         }

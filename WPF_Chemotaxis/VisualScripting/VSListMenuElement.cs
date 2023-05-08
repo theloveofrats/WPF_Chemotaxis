@@ -10,7 +10,7 @@ using System.Windows;
 
 namespace WPF_Chemotaxis.VisualScripting
 {
-    public class VSViewModelElement
+    public class VSListMenuElement
     {
         public string IconResourcePath { get; private set; }
         public string UIDisplayLabel { get; private set; }
@@ -26,7 +26,7 @@ namespace WPF_Chemotaxis.VisualScripting
 
 
 
-        public VSViewModelElement(string UIDisplayLabel, string IconResourcePath, double IconSize, Type TargetType, Point NametagOffset, bool tagAlignCentre)
+        public VSListMenuElement(string UIDisplayLabel, string IconResourcePath, double IconSize, Type TargetType, Point NametagOffset, bool tagAlignCentre)
         {
             this.UIDisplayLabel = UIDisplayLabel;
             this.IconResourcePath = IconResourcePath;
@@ -35,7 +35,7 @@ namespace WPF_Chemotaxis.VisualScripting
             this.NametagOffset = NametagOffset;
             this.tagAlignCentre = tagAlignCentre;
         }
-        public VSViewModelElement(VSElementAttribute attribute, Type targetType)
+        public VSListMenuElement(VSElementAttribute attribute, Type targetType)
         {
             this.UIDisplayLabel = attribute.ui_TypeLabel;
             this.IconResourcePath = attribute.symbolResourcePath;

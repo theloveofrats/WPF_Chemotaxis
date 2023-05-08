@@ -42,7 +42,7 @@ namespace WPF_Chemotaxis.VisualScripting
          * 
          */
 
-        public void CreateNewModelElementFromMenu(VSViewModelElement fromMenu, Point clickPsn)
+        public void CreateNewModelElementFromMenu(VSListMenuElement fromMenu, Point clickPsn)
         {
             _islistening = false;
 

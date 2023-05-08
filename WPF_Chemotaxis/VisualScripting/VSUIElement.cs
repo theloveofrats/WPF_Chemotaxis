@@ -13,7 +13,12 @@ using WPF_Chemotaxis.UX;
 
 namespace WPF_Chemotaxis.VisualScripting
 {
-    public class VSUIElement : Canvas
+    /// <summary>
+    /// Represents any single instance of a UI image that has a particular model element associated with it. 
+    /// Two instances of this class can target the same element, but will have it represented in different places:
+    /// for example, two cells may express the same receptor- 
+    /// </summary>
+    public class VSUIElement : VSDiagramObject
     {
         public ILinkable LinkedModelPart { get; private set; }
         private Image ui_symbol;
@@ -22,7 +27,7 @@ namespace WPF_Chemotaxis.VisualScripting
 
         private VSUIElement() { }
 
-        public VSUIElement MakeUIFromMenuItem(VSViewModelElement fromMenuElement, Point clickPsn, ILinkable linkedModelElement, Action<object, MouseButtonEventArgs> LeftMouseDownHandler, Action<object, MouseButtonEventArgs> LeftMouseUpHandler, Action<object, MouseButtonEventArgs> RightMouseUpHandler)
+        public VSUIElement MakeUIFromMenuItem(VSListMenuElement fromMenuElement, Point clickPsn, ILinkable linkedModelElement, Action<object, MouseButtonEventArgs> LeftMouseDownHandler, Action<object, MouseButtonEventArgs> LeftMouseUpHandler, Action<object, MouseButtonEventArgs> RightMouseUpHandler)
         {
             //New base canvas for the element
             VSUIElement newElement = new VSUIElement();
@@ -43,19 +48,19 @@ namespace WPF_Chemotaxis.VisualScripting
             newElement.ui_symbol.MouseRightButtonUp += (o, e) => RightMouseUpHandler(o, e);
 
             //Textbox label for the element
-            TextBox nameBox = new TextBox();
-            nameBox.VerticalAlignment = VerticalAlignment.Center;
-            nameBox.HorizontalAlignment = fromMenuElement.tagAlignCentre ? HorizontalAlignment.Center : HorizontalAlignment.Left;
-            newElement.Children.Add(nameBox);
+            label = new TextBox();
+            label.VerticalAlignment = VerticalAlignment.Center;
+            label.HorizontalAlignment = fromMenuElement.tagAlignCentre ? HorizontalAlignment.Center : HorizontalAlignment.Left;
+            newElement.Children.Add(label);
             Point nametagOffset = fromMenuElement.NametagOffset;
-            Canvas.SetTop(nameBox, nametagOffset.Y);
-            Canvas.SetLeft(nameBox, nametagOffset.X);
+            Canvas.SetTop(label, nametagOffset.Y);
+            Canvas.SetLeft(label, nametagOffset.X);
 
             //Bind the textbox.
             Binding myTargetBinding = new Binding("Name");
             myTargetBinding.Source = newElement.LinkedModelPart;
             myTargetBinding.Mode = BindingMode.TwoWay;
-            BindingOperations.SetBinding(nameBox, TextBox.TextProperty, myTargetBinding);
+            BindingOperations.SetBinding(label, TextBox.TextProperty, myTargetBinding);
 
             main_canvas.Children.Add(newElement);
             return newElement;

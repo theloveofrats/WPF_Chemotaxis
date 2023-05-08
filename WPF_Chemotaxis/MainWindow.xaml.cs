@@ -786,11 +786,11 @@ namespace WPF_Chemotaxis
         //Handle changes to selection. selection should not be changed elsewhere
         private void visualElementList_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            VSViewManager.SelectMenuItem(visualElementList.SelectedItem as VSViewModelElement);
+            VSViewManager.SelectMenuItem(visualElementList.SelectedItem as VSListMenuElement);
         }
 
-        private ObservableCollection<VSViewModelElement> vsElementsList;
-        public ObservableCollection<VSViewModelElement> VSElementList 
+        private ObservableCollection<VSListMenuElement> vsElementsList;
+        public ObservableCollection<VSListMenuElement> VSElementList 
         {
             get
             {
@@ -803,9 +803,9 @@ namespace WPF_Chemotaxis
             }
         }
         
-        private ObservableCollection<VSViewModelElement> FindAllVSElements()
+        private ObservableCollection<VSListMenuElement> FindAllVSElements()
         {
-            ObservableCollection<VSViewModelElement> viewList = new();
+            ObservableCollection<VSListMenuElement> viewList = new();
 
             var typeList = AppDomain.CurrentDomain.GetAssemblies().SelectMany(x => x.GetTypes()).Where(y => y.GetCustomAttribute<VSElementAttribute>()!=null);
 
@@ -813,7 +813,7 @@ namespace WPF_Chemotaxis
             {
                 var vsInfo = iterType.GetCustomAttribute<VSElementAttribute>();
 
-                viewList.Add(new VSViewModelElement(vsInfo.ui_TypeLabel, vsInfo.symbolResourcePath, vsInfo.symbolSize, iterType, new Point(vsInfo.tagX, vsInfo.tagY), vsInfo.tagCentre));
+                viewList.Add(new VSListMenuElement(vsInfo.ui_TypeLabel, vsInfo.symbolResourcePath, vsInfo.symbolSize, iterType, new Point(vsInfo.tagX, vsInfo.tagY), vsInfo.tagCentre));
             }
             return viewList;
         }
@@ -879,7 +879,7 @@ namespace WPF_Chemotaxis
         private void VSCanvas_LeftMouseUp(object sender, MouseButtonEventArgs e)
         {
             if (e.Handled) return;
-            VSViewModelElement selectedSidebarItem = (visualElementList.SelectedItem as VSViewModelElement);
+            VSListMenuElement selectedSidebarItem = (visualElementList.SelectedItem as VSListMenuElement);
             Point clickPsn = e.GetPosition(VSCanvas);
 
             if (VSViewManager.InBounds(clickPsn))
