@@ -20,16 +20,20 @@ namespace WPF_Chemotaxis.VisualScripting
             var x = (int)(hitTestParameters.HitPoint.X / ActualWidth * source.PixelWidth);
             var y = (int)(hitTestParameters.HitPoint.Y / ActualHeight * source.PixelHeight);
 
-            // Copy the single pixel into a new byte array representing RGBA
-            var pixel = new byte[4];
-            source.CopyPixels(new Int32Rect(x, y, 1, 1), pixel, 4, 0);
+            if (x < 0 || y < 0 || x >= source.PixelWidth || y >= source.PixelHeight) return null; 
 
-            // Check the alpha (transparency) of the pixel
-            // - threshold can be adjusted from 0 to 255
-            if (pixel[3] < 10)
-                return null;
+            var bytesPerPixel = (source.Format.BitsPerPixel + 7) / 8;
+            var bytes = new byte[bytesPerPixel];
+            var rect = new Int32Rect(x, y, 1, 1);
 
-            return new PointHitTestResult(this, hitTestParameters.HitPoint);
+            source.CopyPixels(rect, bytes, bytesPerPixel, 0);
+
+            if (source.Format == PixelFormats.Bgra32)
+            {
+                if (bytes[3] > 10) return new PointHitTestResult(this, hitTestParameters.HitPoint);
+                else               return null;
+            }
+            else return base.HitTestCore(hitTestParameters);
         }
     }
 }

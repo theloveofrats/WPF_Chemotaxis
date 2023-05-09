@@ -22,6 +22,8 @@ namespace WPF_Chemotaxis.VisualScripting
 
         public event PropertyChangedEventHandler PropertyChanged;
 
+        public static VisualScriptingSelectionManager Current { get; private set; }
+
         public bool IsDragging { get; private set; }
 
         public UIElement SelectedElement { get; private set; }
@@ -40,9 +42,15 @@ namespace WPF_Chemotaxis.VisualScripting
             }
         }
 
-        public VisualScriptingSelectionManager(Canvas baseCanvas)
+        private VisualScriptingSelectionManager(Canvas baseCanvas)
         {
             this.baseCanvas = baseCanvas;
+            Current = this;
+        }
+
+        public static void InitialiseVisualScriptingSelectionManager(Canvas baseCanvas)
+        {
+            new VisualScriptingSelectionManager(baseCanvas);
         }
 
         public bool HasSelection

@@ -47,7 +47,7 @@ namespace WPF_Chemotaxis.VisualScripting
 
         public Image CreateModelElementControl()
         {
-            Image image = new Image();
+            Image image = new TransparentPassthroughImage();
             var bmp = new BitmapImage();
             bmp.BeginInit();
             bmp.UriSource = new Uri(@"pack://application:,,,/"+this.IconResourcePath);

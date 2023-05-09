@@ -27,43 +27,42 @@ namespace WPF_Chemotaxis.VisualScripting
 
         private VSUIElement() { }
 
-        public VSUIElement MakeUIFromMenuItem(VSListMenuElement fromMenuElement, Point clickPsn, ILinkable linkedModelElement, Action<object, MouseButtonEventArgs> LeftMouseDownHandler, Action<object, MouseButtonEventArgs> LeftMouseUpHandler, Action<object, MouseButtonEventArgs> RightMouseUpHandler)
+        public VSUIElement(VSListMenuElement fromMenuElement, Point clickPsn, ILinkable linkedModelElement, Canvas main_canvas, Action<object, MouseButtonEventArgs> LeftMouseDownHandler, Action<object, MouseButtonEventArgs> LeftMouseUpHandler, Action<object, MouseButtonEventArgs> RightMouseUpHandler)
         {
             //New base canvas for the element
-            VSUIElement newElement = new VSUIElement();
-            newElement.Background = new SolidColorBrush(Colors.Transparent);
-            newElement.ui_symbol = fromMenuElement.CreateModelElementControl();
-            newElement.LinkedModelPart = linkedModelElement;
-            newElement.Width = 0;
-            newElement.Height = 0;
-            Canvas.SetTop(newElement, clickPsn.Y);
-            Canvas.SetLeft(newElement, clickPsn.X);
+
+            this.Background = new SolidColorBrush(Colors.Transparent);
+            this.ui_symbol = fromMenuElement.CreateModelElementControl();
+            this.LinkedModelPart = linkedModelElement;
+            this.Width = 0;
+            this.Height = 0;
+            Canvas.SetTop(this, clickPsn.Y);
+            Canvas.SetLeft(this, clickPsn.X);
 
             // Actual UI image for it here
-            newElement.Children.Add(newElement.ui_symbol);
-            Canvas.SetTop(newElement.ui_symbol, -0.5 * newElement.ui_symbol.Height);
-            Canvas.SetLeft(newElement.ui_symbol, -0.5 * newElement.ui_symbol.Width);
-            newElement.ui_symbol.MouseLeftButtonDown += (o, e) => LeftMouseDownHandler(o, e);
-            newElement.ui_symbol.MouseLeftButtonUp += (o, e) => LeftMouseUpHandler(o, e);
-            newElement.ui_symbol.MouseRightButtonUp += (o, e) => RightMouseUpHandler(o, e);
+            this.Children.Add(this.ui_symbol);
+            Canvas.SetTop(this.ui_symbol, -0.5 * this.ui_symbol.Height);
+            Canvas.SetLeft(this.ui_symbol, -0.5 * this.ui_symbol.Width);
+            this.ui_symbol.MouseLeftButtonDown += (o, e) => LeftMouseDownHandler(o, e);
+            this.ui_symbol.MouseLeftButtonUp += (o, e) => LeftMouseUpHandler(o, e);
+            this.ui_symbol.MouseRightButtonUp += (o, e) => RightMouseUpHandler(o, e);
 
             //Textbox label for the element
             label = new TextBox();
             label.VerticalAlignment = VerticalAlignment.Center;
             label.HorizontalAlignment = fromMenuElement.tagAlignCentre ? HorizontalAlignment.Center : HorizontalAlignment.Left;
-            newElement.Children.Add(label);
+            this.Children.Add(label);
             Point nametagOffset = fromMenuElement.NametagOffset;
             Canvas.SetTop(label, nametagOffset.Y);
             Canvas.SetLeft(label, nametagOffset.X);
 
             //Bind the textbox.
             Binding myTargetBinding = new Binding("Name");
-            myTargetBinding.Source = newElement.LinkedModelPart;
+            myTargetBinding.Source = this.LinkedModelPart;
             myTargetBinding.Mode = BindingMode.TwoWay;
             BindingOperations.SetBinding(label, TextBox.TextProperty, myTargetBinding);
 
-            main_canvas.Children.Add(newElement);
-            return newElement;
+            main_canvas.Children.Add(this);
         }
     }
 }

@@ -41,7 +41,6 @@ namespace WPF_Chemotaxis.VisualScripting
          * Creates a new ILinkable and then gets the factoy to make and link a UI to it.
          * 
          */
-
         public void CreateNewModelElementFromMenu(VSListMenuElement fromMenu, Point clickPsn)
         {
             _islistening = false;
@@ -50,7 +49,7 @@ namespace WPF_Chemotaxis.VisualScripting
             newModelElement.Name = "New " + newModelElement.DisplayType;
             if (newModelElement != null)
             {
-                UIElement newElement = this.factory.CreateModelElementImage(fromMenu, clickPsn, newModelElement, DefaultLeftMouseDown, DefaultLeftMouseUp, DefaultRightMouseUp);
+                VSUIElement newElement = new VSUIElement(fromMenu, clickPsn, newModelElement, targetCanvas, DefaultLeftMouseDown, DefaultLeftMouseUp, DefaultRightMouseUp);
                 ui_model_multimap.TryAdd(newElement, newModelElement);
             }
             _islistening = true;
@@ -63,7 +62,7 @@ namespace WPF_Chemotaxis.VisualScripting
             {
                 //Create model part programatically here
                 Point newPoint = new Point(10 + (targetCanvas.ActualWidth-20) * rnd.NextDouble(), 10 + (targetCanvas.ActualHeight-20) * rnd.NextDouble());
-                UIElement createdUIElement;
+                VSDiagramObject createdUIElement;
                 if (factory.TryCreateUIForExtantModelElement(element, newPoint, out createdUIElement, DefaultLeftMouseDown, DefaultLeftMouseUp, DefaultRightMouseUp))
                 {
                     ui_model_multimap.TryAdd(createdUIElement, element);
@@ -307,136 +306,7 @@ namespace WPF_Chemotaxis.VisualScripting
             }
         }
 
-
         // Click on item in visual model
-        private void DefaultLeftMouseDown(object sender, MouseButtonEventArgs e)
-        {
-            if (e.Handled) return;
-
-            //If there's no selection, select sender
-            if (!selectionManager.HasSelection)
-            {
-                selectionManager.SelectElement(sender as UIElement);
-            }
-            //If there is a selection and it's not the sender, clear it and select the sender
-            else if (!sender.Equals(selectionManager.SelectedElement))
-            {
-                selectionManager.ClearSelection();
-                selectionManager.SelectElement(sender as UIElement);
-            }
-
-            selectionManager.StartDrag(e.GetPosition(targetCanvas));
-            if (selectionManager.HasSelection)
-            {
-                e.Handled = true;
-            }
-            else
-            {
-
-            }
-        }
-
-        private void DefaultLeftMouseUp(object sender, MouseButtonEventArgs e)
-        {
-            if (e.Handled) return;
-            var buttonUpOn = sender as UIElement;
-            Point clickPsn = e.GetPosition(targetCanvas);
-
-            // DO NOT HANDLE OUT OF BOUNDS. POSSIBLY A MISTAKE?
-            if (!selectionManager.InBounds(clickPsn))
-            {
-                selectionManager.EndDrag();
-                return;
-            }
-            
-
-            //IF THE ELEMENT FIRING A BUTTON UP IS NOT THE SELECTED ELEMENT, AND WE HAVE DRAGGED FROM THE CANVAS ONTO IT.
-            if (buttonUpOn != null && buttonUpOn != selectionManager.SelectedElement && selectionManager.IsDragging)
-            {
-                System.Diagnostics.Debug.Print(string.Format("Dragged element on other element"));
-                //If there was a selection to drag, and not just a random canvas drag, try to link the elements
-                if (selectionManager.HasSelection)
-                {
-                    System.Diagnostics.Debug.Print(string.Format("Selection manger has selection"));
-                    ILinkable parent, child;
-                    if (TryGetModelElementFromVisual(selectionManager.SelectedElement, out child) && TryGetModelElementFromVisual(buttonUpOn, out parent))
-                    {
-                        System.Diagnostics.Debug.Print(string.Format("Attempt to attach {0} to {1}", child.Name, parent.Name));
-                        if (TryConnectElements(buttonUpOn, selectionManager.SelectedElement))
-                        {
-                            //System.Diagnostics.Debug.Print(string.Format("CONNECTED HERE!"));
-                        }
-                        selectionManager.EndDrag();
-                        e.Handled = true;
-                    }
-                    else
-                    {
-                        
-                    }
-                }
-                // Otherwise, if there was a selected menu item, create the relevant objects.
-                else if (selectionManager.SelectedMenuItem != null)
-                {
-                    CreateNewModelElementFromMenu(selectionManager.SelectedMenuItem, clickPsn);
-                    selectionManager.ClearMenuSelection();
-
-                    if (TryConnectElements(buttonUpOn, selectionManager.SelectedElement))
-                    {
-                        
-                    }
-                    e.Handled = true;
-                }
-                selectionManager.EndDrag();
-            }
-
-            // If it's a click but not a drag on selected item
-            if (buttonUpOn == selectionManager.SelectedElement && !selectionManager.IsDragging)
-            {
-                System.Diagnostics.Debug.Print(string.Format("Button up without drag on SELECTED"));
-                //IF the sender element IS the selection and it was a double click
-                if (selectionManager.HasSelection && buttonUpOn == selectionManager.SelectedElement && e.ClickCount > 1)
-                {
-                    System.Diagnostics.Debug.Print(string.Format("DOUBLE CLICK"));
-                    ILinkable clickedOnLink;
-                    if (ui_model_multimap.TryGetValue(selectionManager.SelectedElement, out clickedOnLink))
-                    {
-                        Model.Model.SetNextFocus(clickedOnLink);
-                        selectionManager.EndDrag();
-                    }
-                }
-                else
-                {
-                    selectionManager.EndDrag();
-                    e.Handled = true;
-                }
-            }
-            selectionManager.EndDrag();
-        }
-
-        private void DefaultRightMouseUp(object sender, MouseButtonEventArgs e)
-        {
-            if (e.Handled) return;
-            var buttonUpOn = sender as UIElement;
-            Point clickPsn = e.GetPosition(targetCanvas);
-
-            // DO NOT HANDLE OUT OF BOUNDS. POSSIBLY A MISTAKE?
-            if (!selectionManager.InBounds(clickPsn))
-            {
-                selectionManager.EndDrag();
-                return;
-            }
-
-            //Right click on selected element
-            if (selectionManager.HasSelection && buttonUpOn == selectionManager.SelectedElement)
-            {
-                System.Diagnostics.Debug.Print(string.Format("RIGHT CLICK"));
-                ILinkable clickedOnLink;
-                if (ui_model_multimap.TryGetValue(selectionManager.SelectedElement, out clickedOnLink))
-                {
-                    Model.Model.SetNextFocus(clickedOnLink);
-                }
-                e.Handled = true;
-            }
-        }
+        
     }
 }

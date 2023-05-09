@@ -774,7 +774,8 @@ namespace WPF_Chemotaxis
         {
             SetVSElementsDisplaySource();
 
-            VSViewManager = new(VSCanvas);
+            VisualScriptingSelectionManager.InitialiseVisualScriptingSelectionManager(VSCanvas);
+            this.VSViewManager = VisualScriptingSelectionManager.Current;
             modelManager = new(VSCanvas, VSViewManager);
         }
 

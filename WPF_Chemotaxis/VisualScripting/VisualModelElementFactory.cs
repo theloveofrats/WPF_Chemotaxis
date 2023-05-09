@@ -31,13 +31,13 @@ namespace WPF_Chemotaxis.VisualScripting
         /// <param name="LeftMouseDownHandler"></param>
         /// <param name="LeftMouseUpHandler"></param>
         /// <returns></returns>
-        public bool TryCreateUIForExtantModelElement(ILinkable linkToConnect, Point psn, out UIElement createdElement, Action<object, MouseButtonEventArgs> LeftMouseDownHandler, Action<object, MouseButtonEventArgs> LeftMouseUpHandler, Action<object, MouseButtonEventArgs> RightMouseUpHandler)
+        public bool TryCreateUIForExtantModelElement(ILinkable linkToConnect, Point psn, out VSDiagramObject createdElement, Action<object, MouseButtonEventArgs> LeftMouseDownHandler, Action<object, MouseButtonEventArgs> LeftMouseUpHandler, Action<object, MouseButtonEventArgs> RightMouseUpHandler)
         {
             var vsAttribute = linkToConnect.GetType().GetCustomAttribute<VSElementAttribute>();
             if (vsAttribute != null)
             {
                 VSListMenuElement virtualMenuItem = new VSListMenuElement(vsAttribute, linkToConnect.GetType());
-                createdElement = CreateModelElementImage(virtualMenuItem, psn, linkToConnect, LeftMouseDownHandler, LeftMouseUpHandler, RightMouseUpHandler);
+                createdElement = new VSUIElement(virtualMenuItem, psn, linkToConnect, targetCanvas, LeftMouseDownHandler, LeftMouseUpHandler, RightMouseUpHandler);
                 return true;
             }
             else
@@ -56,7 +56,7 @@ namespace WPF_Chemotaxis.VisualScripting
         /// <param name="LeftMouseDownHandler"></param>
         /// <param name="LeftMouseUpHandler"></param>
         /// <returns></returns>
-        public UIElement CreateModelElementImage(VSListMenuElement fromMenuElement, Point clickPsn, ILinkable linkedModelElement, Action<object, MouseButtonEventArgs> LeftMouseDownHandler, Action<object, MouseButtonEventArgs> LeftMouseUpHandler, Action<object, MouseButtonEventArgs> RightMouseUpHandler)
+        /*public UIElement CreateModelElementImage(VSListMenuElement fromMenuElement, Point clickPsn, ILinkable linkedModelElement, Action<object, MouseButtonEventArgs> LeftMouseDownHandler, Action<object, MouseButtonEventArgs> LeftMouseUpHandler, Action<object, MouseButtonEventArgs> RightMouseUpHandler)
         {
             Point nametagOffset = fromMenuElement.NametagOffset;
             Canvas imageParent = new Canvas();
@@ -87,7 +87,7 @@ namespace WPF_Chemotaxis.VisualScripting
             Canvas.SetLeft(nameBox, nametagOffset.X);
 
             return img;
-        }
+        }*/
 
 
     }
