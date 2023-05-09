@@ -8,6 +8,7 @@ using System.Windows.Controls;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Input;
+using System.Windows.Threading;
 
 namespace WPF_Chemotaxis.VisualScripting
 {
@@ -16,7 +17,7 @@ namespace WPF_Chemotaxis.VisualScripting
         public Point Position  { get; private set; }
         public double Rotation { get; private set; }
 
-
+        protected static DispatcherTimer _clickTimer;
 
         public virtual void SetPosition(double x, double y)
         {
@@ -51,30 +52,75 @@ namespace WPF_Chemotaxis.VisualScripting
         public event PropertyChangedEventHandler PropertyChanged;
         protected void OnPropertyChanged(string name)
         {
-            if(PropertyChanged != null)
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+        }
+
+
+        protected static object cachedClickSender;
+        protected static MouseButtonEventArgs cachedSingleClickArgs;
+        protected void HandleLeftMouseUpEvent(object sender, MouseButtonEventArgs e)
+        {
+            if (_clickTimer == null)
             {
-                PropertyChanged(this, new PropertyChangedEventArgs(name));
+                _clickTimer = new();
+                _clickTimer.Interval = new TimeSpan(0, 0, 0, 0, 400);
+            }
+                
+            if (e.ClickCount == 1)
+            {
+                _clickTimer.Tick += PostTick;
+                cachedClickSender = sender;
+                cachedSingleClickArgs = e;
+                _clickTimer.Start();
+            }
+            else if (e.ClickCount > 1)
+            {
+                cachedClickSender = null;
+                cachedSingleClickArgs = null;
+                _clickTimer.Stop();
+                DoubleClickLeft(sender, e);
             }
         }
 
+        protected void PostTick(object sender, EventArgs e)
+        {
+            _clickTimer.Stop();
+            SingleClickLeft(cachedClickSender, cachedSingleClickArgs);
+            cachedClickSender = null;
+            cachedSingleClickArgs = null;
+            _clickTimer.Tick -= PostTick;
+        }
+
+        protected virtual void SingleClickLeft(object sender, MouseButtonEventArgs e)
+        {
+            System.Diagnostics.Debug.Print(String.Format("Left click at position {0}:{1}", e.GetPosition(this).X, e.GetPosition(this).Y));
+        }
+
+        protected virtual void DoubleClickLeft(object sender, MouseButtonEventArgs e)
+        {
+            System.Diagnostics.Debug.Print(String.Format("Double click at position {0}:{1}", e.GetPosition(this).X, e.GetPosition(this).Y));
+        }
+
+
+        //Just needs to get dragged element, not select.
         protected void DefaultLeftMouseDown(object sender, MouseButtonEventArgs e)
         {
             if (e.Handled) return;
-
+            VisualScriptingSelectionManager selector = VisualScriptingSelectionManager.Current;
 
             //If there's no selection, select sender
-            if (!VisualScriptingSelectionManager.Current.HasSelection)
+            if (!selector.HasSelection)
             {
-                selectionManager.SelectElement(sender as UIElement);
+                selector.SelectElement(sender as UIElement);
             }
             //If there is a selection and it's not the sender, clear it and select the sender
-            else if (!sender.Equals(selectionManager.SelectedElement))
+            else if (!sender.Equals(selector.SelectedElement))
             {
-                selectionManager.ClearSelection();
-                selectionManager.SelectElement(sender as UIElement);
+                selector.ClearSelection();
+                selector.SelectElement(sender as UIElement);
             }
 
-            selectionManager.StartDrag(e.GetPosition(targetCanvas));
+            selector.StartDrag(e.GetPosition(targetCanvas));
             if (selectionManager.HasSelection)
             {
                 e.Handled = true;
