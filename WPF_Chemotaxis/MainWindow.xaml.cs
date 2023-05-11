@@ -772,11 +772,12 @@ namespace WPF_Chemotaxis
 
         private void SetUpVisualScriptingWindow()
         {
+            VSCanvas.KeyDown += KeyDownHandler;
             SetVSElementsDisplaySource();
 
             VisualScriptingSelectionManager.InitialiseVisualScriptingSelectionManager(VSCanvas);
-            this.VSViewManager = VisualScriptingSelectionManager.Current;
-            modelManager = new(VSCanvas, VSViewManager);
+            modelManager = VSModelManager.Current;
+            modelManager.Init(VSCanvas);
         }
 
         private void SetVSElementsDisplaySource()
@@ -787,7 +788,7 @@ namespace WPF_Chemotaxis
         //Handle changes to selection. selection should not be changed elsewhere
         private void visualElementList_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            VSViewManager.SelectMenuItem(visualElementList.SelectedItem as VSListMenuElement);
+            VisualScriptingSelectionManager.Current.SelectMenuItem(visualElementList.SelectedItem as VSListMenuElement);
         }
 
         private ObservableCollection<VSListMenuElement> vsElementsList;
@@ -804,6 +805,16 @@ namespace WPF_Chemotaxis
             }
         }
         
+        private void KeyDownHandler(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Delete) { 
+                if (VisualScriptingSelectionManager.Current.HasSelection)
+                {
+                    VSModelManager.Current.TryDeleteModelElement(VisualScriptingSelectionManager.Current.SelectedElement);
+                }
+            }
+        }
+
         private ObservableCollection<VSListMenuElement> FindAllVSElements()
         {
             ObservableCollection<VSListMenuElement> viewList = new();
@@ -823,14 +834,14 @@ namespace WPF_Chemotaxis
 
         private static T InvokeMethod<T>(Type type, string methodName, object obj = null, params object[] parameters) => (T)type.GetMethod(methodName)?.Invoke(obj, parameters);
 
-        internal VisualScriptingSelectionManager VSViewManager { get; private set;}
+        //internal VisualScriptingSelectionManager VSViewManager { get; private set;}
 
         private void VSCanvas_MouseWheel(object sender, MouseWheelEventArgs e)
         {
             double angle = e.Delta/8d;
-            if (VSViewManager.HasSelection)
+            if (VisualScriptingSelectionManager.Current.HasSelection)
             {
-                VSViewManager.RotateSelected(angle);
+                VisualScriptingSelectionManager.Current.RotateSelected(angle);
             }
         }
         /*
@@ -842,7 +853,7 @@ namespace WPF_Chemotaxis
         // This handles clicking on the MENU. Cancels VSElement selection.
         private void VSMenuItem_LeftMouseDown(object sender, MouseButtonEventArgs e)
         {
-            VSViewManager.ClearSelection();
+            VisualScriptingSelectionManager.Current.ClearSelection();
             //Mouse.Capture(VSCanvas, CaptureMode.SubTree);
             //System.Diagnostics.Debug.Print("CANVAS CAPTURE");
         }
@@ -852,9 +863,9 @@ namespace WPF_Chemotaxis
         private void VSCanvas_LeftMouseDown(object sender, MouseButtonEventArgs e)
         {
             if (e.Handled) return;
-            VSViewManager.ClearSelection();
+            VisualScriptingSelectionManager.Current.ClearSelection();
             visualElementList.UnselectAll();
-            VSViewManager.StartDrag(e.GetPosition(VSCanvas));
+            VisualScriptingSelectionManager.Current.StartDrag(e.GetPosition(VSCanvas));
         }
 
       
@@ -863,10 +874,10 @@ namespace WPF_Chemotaxis
         private void VSCanvas_LeftMouseDrag(object sender, MouseEventArgs e)
         {
             Point clickPsn = e.GetPosition(VSCanvas);
-            if (VSViewManager.InBounds(clickPsn))
+            if (VisualScriptingSelectionManager.Current.InBounds(clickPsn))
             {
-                VSViewManager.UpdateDrag(clickPsn);
-                if (VSViewManager.IsDragging) 
+                VisualScriptingSelectionManager.Current.UpdateDrag(clickPsn);
+                if (VisualScriptingSelectionManager.Current.IsDragging) 
                 {
                     Mouse.Capture(VSCanvas, CaptureMode.SubTree);
                 }
@@ -883,7 +894,7 @@ namespace WPF_Chemotaxis
             VSListMenuElement selectedSidebarItem = (visualElementList.SelectedItem as VSListMenuElement);
             Point clickPsn = e.GetPosition(VSCanvas);
 
-            if (VSViewManager.InBounds(clickPsn))
+            if (VisualScriptingSelectionManager.Current.InBounds(clickPsn))
             {
                 // If we clicked in bounds and there is a selected menu item, create a new object on the canvas
                 if (selectedSidebarItem != null)
@@ -892,9 +903,9 @@ namespace WPF_Chemotaxis
                     visualElementList.UnselectAll();
                 }
                 // Otherwise, if we are in bounds and we were dragging a selected element
-                else if (VSViewManager.HasSelection && VSViewManager.IsDragging)
+                else if (VisualScriptingSelectionManager.Current.HasSelection && VisualScriptingSelectionManager.Current.IsDragging)
                 {
-                    VSViewManager.MoveSelected(clickPsn);
+                    VisualScriptingSelectionManager.Current.MoveSelected(clickPsn);
                 }
 
             }
@@ -928,7 +939,7 @@ namespace WPF_Chemotaxis
 
         private void ResetMouseState()
         {
-            VSViewManager.EndDrag();
+            VisualScriptingSelectionManager.Current.EndDrag();
         }
 
 

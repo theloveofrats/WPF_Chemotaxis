@@ -17,7 +17,14 @@ namespace WPF_Chemotaxis.VisualScripting
         public Point Position  { get; private set; }
         public double Rotation { get; private set; }
 
+        protected Canvas _mainCanvas;
+
         protected static DispatcherTimer _clickTimer;
+
+        public VSDiagramObject(Canvas canvas)
+        {
+            this._mainCanvas = canvas;
+        }
 
         public virtual void SetPosition(double x, double y)
         {
@@ -58,12 +65,29 @@ namespace WPF_Chemotaxis.VisualScripting
 
         protected static object cachedClickSender;
         protected static MouseButtonEventArgs cachedSingleClickArgs;
-        protected void HandleLeftMouseUpEvent(object sender, MouseButtonEventArgs e)
+        protected void HandleLeftMouseDownEvent(object sender, MouseButtonEventArgs e)
         {
+            VisualScriptingSelectionManager selector = VisualScriptingSelectionManager.Current; 
+            if (!selector.HasSelection)
+            {
+                selector.SelectElement(this);
+            }
+            //If there is a selection and it's not the sender, clear it and select the sender
+            else if (!sender.Equals(selector.SelectedElement))
+            {
+                selector.ClearSelection();
+                selector.SelectElement(this);
+            }
+
+            selector.StartDrag(e.GetPosition(this.Parent as Canvas));
+            if (selector.HasSelection)
+            {
+                e.Handled = true;
+            }
             if (_clickTimer == null)
             {
                 _clickTimer = new();
-                _clickTimer.Interval = new TimeSpan(0, 0, 0, 0, 400);
+                _clickTimer.Interval = new TimeSpan(0, 0, 0, 0, 250);
             }
                 
             if (e.ClickCount == 1)
@@ -91,9 +115,27 @@ namespace WPF_Chemotaxis.VisualScripting
             _clickTimer.Tick -= PostTick;
         }
 
+        //This is actually only routed to on a mouse down, so generally shouldn't do anything because mouse down already controls selection.
+        //However, for mouse up after a drag, this isn't true. This is handled elsewhere.
         protected virtual void SingleClickLeft(object sender, MouseButtonEventArgs e)
         {
+            if (e == null) return;
+            
+            //If there's no selection, select sender
+            
             System.Diagnostics.Debug.Print(String.Format("Left click at position {0}:{1}", e.GetPosition(this).X, e.GetPosition(this).Y));
+        }
+
+        //Needs to only handle drags! So we mark the click as handled if it is a mouse up on the selected element.
+        protected virtual void SingleClickLeftUp(object sender, MouseButtonEventArgs e)
+        {
+            var selector = VisualScriptingSelectionManager.Current;
+
+            if (selector.HasSelection && selector.SelectedElement==this)
+            {
+                selector.EndDrag();
+                e.Handled = true;
+            }
         }
 
         protected virtual void DoubleClickLeft(object sender, MouseButtonEventArgs e)
@@ -101,36 +143,37 @@ namespace WPF_Chemotaxis.VisualScripting
             System.Diagnostics.Debug.Print(String.Format("Double click at position {0}:{1}", e.GetPosition(this).X, e.GetPosition(this).Y));
         }
 
-
-        //Just needs to get dragged element, not select.
-        protected void DefaultLeftMouseDown(object sender, MouseButtonEventArgs e)
+        protected virtual void SingleClickMiddle(object sender, MouseButtonEventArgs e)
         {
-            if (e.Handled) return;
-            VisualScriptingSelectionManager selector = VisualScriptingSelectionManager.Current;
+            if (e.ChangedButton != MouseButton.Middle) return;
 
-            //If there's no selection, select sender
-            if (!selector.HasSelection)
-            {
-                selector.SelectElement(sender as UIElement);
-            }
-            //If there is a selection and it's not the sender, clear it and select the sender
-            else if (!sender.Equals(selector.SelectedElement))
-            {
-                selector.ClearSelection();
-                selector.SelectElement(sender as UIElement);
-            }
+            System.Diagnostics.Debug.Print(String.Format("Middle-click at position {0}:{1}", e.GetPosition(this).X, e.GetPosition(this).Y));
+            var selector = VisualScriptingSelectionManager.Current;
+            Point clickPsn = e.GetPosition(this);
 
-            selector.StartDrag(e.GetPosition(targetCanvas));
-            if (selectionManager.HasSelection)
-            {
+            //If MMB on selected element, open corresponding parameter window.
+            if(selector.HasSelection && selector.SelectedElement == this) 
+            { 
+                System.Diagnostics.Debug.Print(string.Format("MMB on selected element"));
+                var modelCast = (VSUIElement)this;
+                if (modelCast != null)
+                {
+                    Model.Model.SetNextFocus(modelCast.LinkedModelPart);
+                }
+
                 e.Handled = true;
-            }
-            else
-            {
-
             }
         }
 
+        protected virtual void SingleClickRight(object sender, MouseButtonEventArgs e)
+        {
+            System.Diagnostics.Debug.Print(String.Format("Right-click at position {0}:{1}", e.GetPosition(this).X, e.GetPosition(this).Y));
+        }
+
+
+        //Just needs to get dragged element, not select.
+     
+        /*
         protected void DefaultLeftMouseUp(object sender, MouseButtonEventArgs e)
         {
             if (e.Handled) return;
@@ -207,31 +250,6 @@ namespace WPF_Chemotaxis.VisualScripting
             }
             selectionManager.EndDrag();
         }
-
-        protected void DefaultRightMouseUp(object sender, MouseButtonEventArgs e)
-        {
-            if (e.Handled) return;
-            var buttonUpOn = sender as UIElement;
-            Point clickPsn = e.GetPosition(targetCanvas);
-
-            // DO NOT HANDLE OUT OF BOUNDS. POSSIBLY A MISTAKE?
-            if (!selectionManager.InBounds(clickPsn))
-            {
-                selectionManager.EndDrag();
-                return;
-            }
-
-            //Right click on selected element
-            if (selectionManager.HasSelection && buttonUpOn == selectionManager.SelectedElement)
-            {
-                System.Diagnostics.Debug.Print(string.Format("RIGHT CLICK"));
-                ILinkable clickedOnLink;
-                if (ui_model_multimap.TryGetValue(selectionManager.SelectedElement, out clickedOnLink))
-                {
-                    Model.Model.SetNextFocus(clickedOnLink);
-                }
-                e.Handled = true;
-            }
-        }
+        */
     }
 }

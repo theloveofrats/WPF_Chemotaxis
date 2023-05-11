@@ -31,13 +31,17 @@ namespace WPF_Chemotaxis.VisualScripting
         /// <param name="LeftMouseDownHandler"></param>
         /// <param name="LeftMouseUpHandler"></param>
         /// <returns></returns>
-        public bool TryCreateUIForExtantModelElement(ILinkable linkToConnect, Point psn, out VSDiagramObject createdElement, Action<object, MouseButtonEventArgs> LeftMouseDownHandler, Action<object, MouseButtonEventArgs> LeftMouseUpHandler, Action<object, MouseButtonEventArgs> RightMouseUpHandler)
+        public bool TryCreateUIForExtantModelElement(ILinkable linkToConnect, Point psn, out VSDiagramObject createdElement)
         {
             var vsAttribute = linkToConnect.GetType().GetCustomAttribute<VSElementAttribute>();
+            System.Diagnostics.Debug.Print(String.Format("Grabbing attribute"));
             if (vsAttribute != null)
             {
+                System.Diagnostics.Debug.Print(String.Format("Making fake list menu element to pass to VSUIElement constructor"));
                 VSListMenuElement virtualMenuItem = new VSListMenuElement(vsAttribute, linkToConnect.GetType());
-                createdElement = new VSUIElement(virtualMenuItem, psn, linkToConnect, targetCanvas, LeftMouseDownHandler, LeftMouseUpHandler, RightMouseUpHandler);
+                System.Diagnostics.Debug.Print(String.Format("passing"));
+                createdElement = new VSUIElement(virtualMenuItem, psn, linkToConnect, targetCanvas);
+                System.Diagnostics.Debug.Print(String.Format("Made element"));
                 return true;
             }
             else

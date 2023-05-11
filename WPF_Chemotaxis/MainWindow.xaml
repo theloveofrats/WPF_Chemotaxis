@@ -198,7 +198,7 @@
                     </Grid.RowDefinitions>
                     
                     <Border Grid.Row="0" Grid.ColumnSpan="2" BorderBrush="Black" BorderThickness="1" Margin="10,10,10,10" ClipToBounds="True">
-                        <Canvas x:Name="VSCanvas" MouseWheel="VSCanvas_MouseWheel" MouseMove="VSCanvas_LeftMouseDrag" MouseLeftButtonDown="VSCanvas_LeftMouseDown" MouseLeftButtonUp="VSCanvas_LeftMouseUp" Background="White"/>
+                        <Canvas x:Name="VSCanvas" Focusable="True" MouseWheel="VSCanvas_MouseWheel" MouseMove="VSCanvas_LeftMouseDrag" MouseLeftButtonDown="VSCanvas_LeftMouseDown" MouseLeftButtonUp="VSCanvas_LeftMouseUp" Background="White"/>
                     </Border>
                     <Border Grid.Row="0" Grid.Column="2" BorderBrush="Black" BorderThickness="1" Margin="10,10,10,10">
                         <DataGrid x:Name="visualElementList" AutoGenerateColumns="False" Margin="0,0,0,0" MinRowHeight="80" MinColumnWidth="80" Grid.Row="0" Grid.Column="2" SelectedItem="{Binding VSViewManager.SelectedMenuItem, Mode=TwoWay}">

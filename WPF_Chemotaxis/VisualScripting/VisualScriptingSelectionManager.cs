@@ -16,7 +16,8 @@ namespace WPF_Chemotaxis.VisualScripting
     {
         private Canvas baseCanvas;
         private Point dragFrom;
-        private Point dragTo;
+        private Point dragTo; 
+        private Point dragOffset;
         private DragAdorner dragGhost;
         private bool preDrag = false;
 
@@ -26,7 +27,7 @@ namespace WPF_Chemotaxis.VisualScripting
 
         public bool IsDragging { get; private set; }
 
-        public UIElement SelectedElement { get; private set; }
+        public VSDiagramObject SelectedElement { get; private set; }
 
         private VSListMenuElement selectedMenuItem;
         public VSListMenuElement SelectedMenuItem
@@ -68,7 +69,7 @@ namespace WPF_Chemotaxis.VisualScripting
             }
         }
 
-        public void SelectElement(UIElement element)
+        public void SelectElement(VSDiagramObject element)
         {
             if (element == null) return;
             SelectedElement = element;
@@ -96,45 +97,58 @@ namespace WPF_Chemotaxis.VisualScripting
             SelectedMenuItem = null;
         }
 
-        public void RotateSelected(double degrees)
+        private void UnrotateTextLabels(Canvas parentObject, RotateTransform toUndo)
         {
-            if (!HasSelection) return;
-
-            var selectedParent = VisualTreeHelper.GetParent(SelectedElement) as Canvas;
-            RotateTransform current = selectedParent.RenderTransform as RotateTransform;
-
-            if (current == null)
-            {
-                selectedParent.RenderTransform = new RotateTransform();
-                current = selectedParent.RenderTransform as RotateTransform;
-            }
-            current.Angle += degrees;
-            
-            foreach(var child in selectedParent.Children)
+            foreach (var child in parentObject.Children)
             {
                 TextBox label = child as TextBox;
                 if (label != null)
                 {
-                    label.RenderTransform = (Transform) current.Inverse;
+                    label.RenderTransform = (Transform)toUndo.Inverse;
+                }
+                else
+                {
+                    Canvas childCanvas = child as Canvas;
+                    if (childCanvas != null)
+                    {
+                        UnrotateTextLabels(childCanvas, toUndo);
+                    }
                 }
             }
         }
 
+        public void RotateSelected(double degrees)
+        {
+
+            RotateTransform current = SelectedElement?.RenderTransform as RotateTransform;
+
+            if (current == null)
+            {
+                SelectedElement.RenderTransform = new RotateTransform();
+                current = SelectedElement.RenderTransform as RotateTransform;
+            }
+            current.Angle += degrees;
+
+            UnrotateTextLabels(SelectedElement, current);
+        }
+
+        // Point clickPsn is always relative to the base canvas!
         private void AddDragGhost(Point clickPsn)
         {
             if (HasSelection)
             {
                 UIElement parent = VisualTreeHelper.GetParent(SelectedElement) as UIElement;
-                Point offset = baseCanvas.TransformToDescendant(SelectedElement).Transform(clickPsn);
-                dragGhost = new DragAdorner(baseCanvas, parent, offset);
+                dragOffset = baseCanvas.TransformToDescendant(SelectedElement).Transform(dragFrom);
+
+                dragGhost = new DragAdorner(parent, SelectedElement,dragOffset);
                 dragGhost.IsHitTestVisible = false;
-                AdornerLayer.GetAdornerLayer(baseCanvas).Add(dragGhost);
+                AdornerLayer.GetAdornerLayer(parent).Add(dragGhost);
             }
         }
 
         public void MoveSelected(Point moveTo)
         {
-            MoveElement(VisualTreeHelper.GetParent(SelectedElement) as UIElement, moveTo);
+            MoveElement(SelectedElement, new Point(moveTo.X-dragOffset.X, moveTo.Y-dragOffset.Y));
         }
 
         private void MoveElement(UIElement element, Point dragTo)
@@ -157,6 +171,7 @@ namespace WPF_Chemotaxis.VisualScripting
             {
                 if (Math.Abs(dragTo.X - dragFrom.X) > SystemParameters.MinimumHorizontalDragDistance || Math.Abs(dragTo.Y - dragFrom.Y) > SystemParameters.MinimumVerticalDragDistance)
                 {
+                    dragFrom = newPos;
                     IsDragging = true;
                     if (HasSelection)
                     {
@@ -168,13 +183,14 @@ namespace WPF_Chemotaxis.VisualScripting
             {
                 if (dragGhost != null)
                 {
-                    dragGhost.SetPosition(newPos);
+                    dragGhost.SetPosition(newPos, dragOffset);
                 }
             }
         }
 
         public void EndDrag()
         {
+            dragOffset = default;
             dragFrom = default;
             dragTo = default;
             preDrag = false;

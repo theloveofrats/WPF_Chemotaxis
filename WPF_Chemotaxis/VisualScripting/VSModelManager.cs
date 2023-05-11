@@ -18,23 +18,39 @@ namespace WPF_Chemotaxis.VisualScripting
 {
     internal class VSModelManager
     {
-        private Multimap<UIElement, ILinkable> ui_model_multimap = new();
-        private Dictionary<UIElement, List<UIElement>> radial_child_elements = new();
-        private Dictionary<UIElement, List<UIElement>> list_child_elements = new();
-        private Dictionary<UIElement, List<UIElement>> arrow_child_elements = new();
+        private Multimap<VSDiagramObject, ILinkable> ui_model_multimap = new();
+        private Dictionary<VSDiagramObject, List<VSDiagramObject>> radial_child_elements = new();
+        private Dictionary<VSDiagramObject, List<VSDiagramObject>> list_child_elements = new();
+        private Dictionary<VSDiagramObject, List<VSDiagramObject>> arrow_child_elements = new();
         private Canvas targetCanvas;
         private VisualModelElementFactory factory;
         private VisualScriptingSelectionManager selectionManager;
         private SciRand rnd;
         private bool _islistening = true;
 
-        public VSModelManager(Canvas targetCanvas, VisualScriptingSelectionManager selectionManager)
+        private static VSModelManager _current;
+        public static VSModelManager Current
         {
+            get
+            {
+                if(_current == null)
+                {
+                    _current = new();
+                }
+                return _current;
+            }
+        }
+
+        private VSModelManager()
+        { 
             Model.Model.Current.OnModelChanged += this.HandleModelChanges;
-            this.targetCanvas = targetCanvas;
-            this.factory = new(targetCanvas);
-            this.selectionManager = selectionManager;
+            this.selectionManager = VisualScriptingSelectionManager.Current;
             this.rnd = new();
+        }
+        public void Init(Canvas targetCanvas)
+        {
+            if(this.targetCanvas==null) this.targetCanvas = targetCanvas;
+            this.factory = new(targetCanvas);
         }
 
         /*
@@ -44,13 +60,22 @@ namespace WPF_Chemotaxis.VisualScripting
         public void CreateNewModelElementFromMenu(VSListMenuElement fromMenu, Point clickPsn)
         {
             _islistening = false;
-
-            ILinkable newModelElement = Activator.CreateInstance(fromMenu.TargetType) as ILinkable;
-            newModelElement.Name = "New " + newModelElement.DisplayType;
-            if (newModelElement != null)
+            try
             {
-                VSUIElement newElement = new VSUIElement(fromMenu, clickPsn, newModelElement, targetCanvas, DefaultLeftMouseDown, DefaultLeftMouseUp, DefaultRightMouseUp);
-                ui_model_multimap.TryAdd(newElement, newModelElement);
+                System.Diagnostics.Debug.Print(string.Format("About to create object of type {0}, but with listening={0}", fromMenu.TargetType.Name, _islistening));
+                ILinkable newModelElement = (ILinkable) Activator.CreateInstance(fromMenu.TargetType);
+                System.Diagnostics.Debug.Print("Created object of type " + newModelElement.GetType().Name);
+                newModelElement.Name = "New " + newModelElement.DisplayType;
+                if (newModelElement != null)
+                {
+                    System.Diagnostics.Debug.Print("Making UI element... " + fromMenu.TargetType.Name);
+                    VSUIElement newElement = new VSUIElement(fromMenu, clickPsn, newModelElement, targetCanvas);
+                    ui_model_multimap.TryAdd(newElement, newModelElement);
+                }
+            }
+            catch(TargetInvocationException e)
+            {
+                System.Diagnostics.Debug.Print(string.Format("failed to make instance of type {0} due to error {1}\n {2}", fromMenu.TargetType.Name, e.InnerException, e.StackTrace));
             }
             _islistening = true;
         }
@@ -63,17 +88,20 @@ namespace WPF_Chemotaxis.VisualScripting
                 //Create model part programatically here
                 Point newPoint = new Point(10 + (targetCanvas.ActualWidth-20) * rnd.NextDouble(), 10 + (targetCanvas.ActualHeight-20) * rnd.NextDouble());
                 VSDiagramObject createdUIElement;
-                if (factory.TryCreateUIForExtantModelElement(element, newPoint, out createdUIElement, DefaultLeftMouseDown, DefaultLeftMouseUp, DefaultRightMouseUp))
+                System.Diagnostics.Debug.Print(String.Format("Trying to create UI element for new {0}", element.DisplayType));
+                if (factory.TryCreateUIForExtantModelElement(element, newPoint, out createdUIElement))
                 {
+                    System.Diagnostics.Debug.Print(String.Format("Trying to add to dictionary", element.DisplayType));
                     ui_model_multimap.TryAdd(createdUIElement, element);
+                    System.Diagnostics.Debug.Print(String.Format("Added!"));
                 }
             }
         }
 
-        private void AddRadialDockedUI(UIElement parent, UIElement child, double dist)
+        private void AddRadialDockedUI(VSDiagramObject parent, VSDiagramObject child, double dist)
         {
-            Canvas parentCanvas = VisualTreeHelper.GetParent(parent) as Canvas;
-            Canvas childCanvas = VisualTreeHelper.GetParent(child) as Canvas;
+            
+            Canvas oldParent = VisualTreeHelper.GetParent(child) as Canvas;
             //Calculate point
             Point childAbsPosition = child.TransformToAncestor(targetCanvas).Transform(new Point(0.5 * child.RenderSize.Width, 0.5 * child.RenderSize.Height));
             Point parentAbsPosition = parent.TransformToAncestor(targetCanvas).Transform(new Point(0.5 * parent.RenderSize.Width, 0.5 * parent.RenderSize.Height));
@@ -83,33 +111,34 @@ namespace WPF_Chemotaxis.VisualScripting
             double targetRotationDegrees = 90d + 180d * targetAngleRadians / Math.PI;
             //double multiplier = relationParams.forcePositionDistance / Math.Sqrt(currentRelativePosition.X * currentRelativePosition.X + currentRelativePosition.Y * currentRelativePosition.Y);
 
+            System.Diagnostics.Debug.Print("Trying to make radial dock link");
+
             //Reparent
-            Canvas oldParent = (childCanvas.Parent as Canvas);
             if (oldParent != null)
             {
-                oldParent.Children.Remove(childCanvas);
+                oldParent.Children.Remove(child);
             }
-            parentCanvas.Children.Add(childCanvas);
+            (parent as Canvas).Children.Add(child);
 
             Point targetPoint = new Point(dist * Math.Cos(targetAngleRadians), dist * Math.Sin(targetAngleRadians));
 
             //Update to new point and rotation
-            Canvas.SetLeft(childCanvas, targetPoint.X);
-            Canvas.SetTop(childCanvas, targetPoint.Y);
-            childCanvas.RenderTransform = new RotateTransform(angle: targetRotationDegrees);
+            Canvas.SetLeft(child, targetPoint.X);
+            Canvas.SetTop(child, targetPoint.Y);
+            child.RenderTransform = new RotateTransform(angle: targetRotationDegrees);
 
-            foreach (var iter in childCanvas.Children)
+            foreach (var iter in (child as Canvas).Children)
             {
                 TextBox label = iter as TextBox;
                 if (label != null)
                 {
-                    label.RenderTransform = (Transform)childCanvas.RenderTransform.Inverse;
+                    label.RenderTransform = (Transform)child.RenderTransform.Inverse;
                 }
             }
             targetCanvas.InvalidateVisual();
         }
 
-        private void AddChildLineUI(UIElement parent, UIElement child)
+        private void AddChildLineUI(VSDiagramObject parent, VSDiagramObject child)
         {
             Canvas parentCanvas = VisualTreeHelper.GetParent(parent) as Canvas;
             Canvas childCanvas = VisualTreeHelper.GetParent(child) as Canvas;
@@ -133,23 +162,21 @@ namespace WPF_Chemotaxis.VisualScripting
         }
 
 
-        private void AddUIChildToUIParent(UIElement parent, UIElement child, VSRelationAttribute relationParams)
+        private void AddUIChildToUIParent(VSDiagramObject parent, VSDiagramObject child, VSRelationAttribute relationParams)
         {
-            
-
             switch(relationParams.forcedPositionType)
             {
                 case ForcedPositionType.NONE:
 
                     AddChildLineUI(child, parent);
-                    List<UIElement> lineChildren;
+                    List<VSDiagramObject> lineChildren;
                     if (radial_child_elements.TryGetValue(parent, out lineChildren))
                     {
                         lineChildren.Add(child);
                     }
                     else
                     {
-                        lineChildren = new List<UIElement>() { child };
+                        lineChildren = new List<VSDiagramObject>() { child };
                         radial_child_elements.Add(parent, lineChildren);
                     }
 
@@ -157,13 +184,13 @@ namespace WPF_Chemotaxis.VisualScripting
                 case ForcedPositionType.RADIUS:
 
                     AddRadialDockedUI(parent, child, relationParams.forcePositionDistance);
-                    List<UIElement> radialChildren;
+                    List<VSDiagramObject> radialChildren;
                     if(radial_child_elements.TryGetValue(parent, out radialChildren)){
                         radialChildren.Add(child);
                     }
                     else
                     {
-                        radialChildren = new List<UIElement>() {child};
+                        radialChildren = new List<VSDiagramObject>() {child};
                         radial_child_elements.Add(parent, radialChildren);
                     }
 
@@ -187,10 +214,10 @@ namespace WPF_Chemotaxis.VisualScripting
             if(parent!=null && child != null)
             {
                 System.Diagnostics.Debug.Print(String.Format("Found parent {0} and child {1} objects", parent.Name, child.Name));
-                List<UIElement> parentUISet, childUISet;
+                List<VSDiagramObject> parentUISet, childUISet;
                 
                 if(ui_model_multimap.TryGetValues(parent, out parentUISet) && ui_model_multimap.TryGetValues(child, out childUISet)){
-
+                    System.Diagnostics.Debug.Print(String.Format("Fetched UI elements for the ends of the relations...", parent.Name, child.Name));
                     AddUIChildToUIParent(parentUISet[0], childUISet[0], relation);
                 }
             }
@@ -199,9 +226,12 @@ namespace WPF_Chemotaxis.VisualScripting
 
         private void HandleModelChanges(object sender, NotifyCollectionChangedEventArgs e)
         {
+            System.Diagnostics.Debug.Print(string.Format("Detected model change with listening={0}", _islistening));
             //If we are adding this ourselves, don't also react to it.
-            if (!_islistening) return;
-
+            if (!_islistening)
+            {
+                return;
+            }
             if(e.Action == NotifyCollectionChangedAction.Add)
             {
                 foreach(var uncastitem in e.NewItems)
@@ -213,6 +243,7 @@ namespace WPF_Chemotaxis.VisualScripting
                         VSElementAttribute itemAttribute = item.GetType().GetCustomAttribute<VSElementAttribute>();
                         if (itemAttribute != null)
                         {
+                            System.Diagnostics.Debug.Print("Found menu item attribute!");
                             AddDetectedMainElement(item);
                         }
                         else
@@ -237,11 +268,11 @@ namespace WPF_Chemotaxis.VisualScripting
                     if (dropped != null)
                     {
                         //If the map contains it, remove it from the model
-                        HashSet<UIElement> droppedUIs;
+                        HashSet<VSDiagramObject> droppedUIs;
                         if (ui_model_multimap.Remove(dropped, out droppedUIs))
                         {
                             //Then iterate and remove UIs from visual tree
-                            foreach (UIElement item in droppedUIs)
+                            foreach (VSDiagramObject item in droppedUIs)
                             {
                                 RemoveElementFromVisualTree(item);
                             }
@@ -251,28 +282,33 @@ namespace WPF_Chemotaxis.VisualScripting
             }
         }
 
-        private void RemoveElementFromVisualTree(UIElement element)
+        //Lets listeners to model change handle the visual side!
+        public bool TryDeleteModelElement(VSDiagramObject byDiagramObject)
         {
-            (VisualTreeHelper.GetParent(element) as Canvas).Children.Remove(element);
-        }
-
-        public bool TryGetModelElementFromVisual(UIElement visual, out ILinkable modelElement)
-        {
-            return ui_model_multimap.TryGetValue(visual, out modelElement);
-        }
-
-        public bool TryConnectElements(UIElement parentVisual, UIElement childVisual)
-        {
-            ILinkable parent, child;
-
-            if(TryGetModelElementFromVisual(parentVisual, out parent) && TryGetModelElementFromVisual(childVisual, out child))
+            var targetObject = byDiagramObject as VSUIElement;
+            if (targetObject!=null)
             {
-                return FindConnectionMethod(parent, child);
+                Model.Model.Current.RemoveElement(targetObject.LinkedModelPart);
             }
             return false;
         }
 
-        public void TryDisconnectElements(UIElement parentVisual, UIElement childVisual)
+        private void RemoveElementFromVisualTree(VSDiagramObject element)
+        {
+            (VisualTreeHelper.GetParent(element) as Canvas).Children.Remove(element);
+        }
+
+        public bool TryGetModelElementFromVisual(VSDiagramObject visual, out ILinkable modelElement)
+        {
+            return ui_model_multimap.TryGetValue(visual, out modelElement);
+        }
+
+        public bool TryConnectElements(VSUIElement parentVisual, VSUIElement childVisual)
+        {
+            return FindConnectionMethod(parentVisual.LinkedModelPart, childVisual.LinkedModelPart);
+        }
+
+        public void TryDisconnectElements(VSDiagramObject parentVisual, VSDiagramObject childVisual)
         {
             ILinkable parent, child;
 
