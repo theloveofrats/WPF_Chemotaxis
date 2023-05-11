@@ -96,6 +96,7 @@ namespace WPF_Chemotaxis.VisualScripting
                 {
                     _forewardmap.Remove(item);
                 }
+                removed = true;
             }
             return removed;
         }

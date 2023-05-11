@@ -109,6 +109,7 @@ namespace WPF_Chemotaxis.VisualScripting
 
                 }
             }
+            Keyboard.Focus(_mainCanvas);
             selector.EndDrag();
         }
     }

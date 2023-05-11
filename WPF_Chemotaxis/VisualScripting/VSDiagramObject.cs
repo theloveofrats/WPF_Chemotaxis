@@ -17,6 +17,21 @@ namespace WPF_Chemotaxis.VisualScripting
         public Point Position  { get; private set; }
         public double Rotation { get; private set; }
 
+        public double AbsoluteX
+        {
+            get
+            {
+                return TransformToAncestor(_mainCanvas).Transform(Position).X;
+            }
+        }
+        public double AbsoluteY
+        {
+            get
+            {
+                return TransformToAncestor(_mainCanvas).Transform(Position).Y;
+            }
+        }
+
         protected Canvas _mainCanvas;
 
         protected static DispatcherTimer _clickTimer;
@@ -169,87 +184,5 @@ namespace WPF_Chemotaxis.VisualScripting
         {
             System.Diagnostics.Debug.Print(String.Format("Right-click at position {0}:{1}", e.GetPosition(this).X, e.GetPosition(this).Y));
         }
-
-
-        //Just needs to get dragged element, not select.
-     
-        /*
-        protected void DefaultLeftMouseUp(object sender, MouseButtonEventArgs e)
-        {
-            if (e.Handled) return;
-            var buttonUpOn = sender as UIElement;
-            Point clickPsn = e.GetPosition(targetCanvas);
-
-            // DO NOT HANDLE OUT OF BOUNDS. POSSIBLY A MISTAKE?
-            if (!selectionManager.InBounds(clickPsn))
-            {
-                selectionManager.EndDrag();
-                return;
-            }
-
-
-            //IF THE ELEMENT FIRING A BUTTON UP IS NOT THE SELECTED ELEMENT, AND WE HAVE DRAGGED FROM THE CANVAS ONTO IT.
-            if (buttonUpOn != null && buttonUpOn != selectionManager.SelectedElement && selectionManager.IsDragging)
-            {
-                System.Diagnostics.Debug.Print(string.Format("Dragged element on other element"));
-                //If there was a selection to drag, and not just a random canvas drag, try to link the elements
-                if (selectionManager.HasSelection)
-                {
-                    System.Diagnostics.Debug.Print(string.Format("Selection manger has selection"));
-                    ILinkable parent, child;
-                    if (TryGetModelElementFromVisual(selectionManager.SelectedElement, out child) && TryGetModelElementFromVisual(buttonUpOn, out parent))
-                    {
-                        System.Diagnostics.Debug.Print(string.Format("Attempt to attach {0} to {1}", child.Name, parent.Name));
-                        if (TryConnectElements(buttonUpOn, selectionManager.SelectedElement))
-                        {
-                            //System.Diagnostics.Debug.Print(string.Format("CONNECTED HERE!"));
-                        }
-                        selectionManager.EndDrag();
-                        e.Handled = true;
-                    }
-                    else
-                    {
-
-                    }
-                }
-                // Otherwise, if there was a selected menu item, create the relevant objects.
-                else if (selectionManager.SelectedMenuItem != null)
-                {
-                    CreateNewModelElementFromMenu(selectionManager.SelectedMenuItem, clickPsn);
-                    selectionManager.ClearMenuSelection();
-
-                    if (TryConnectElements(buttonUpOn, selectionManager.SelectedElement))
-                    {
-
-                    }
-                    e.Handled = true;
-                }
-                selectionManager.EndDrag();
-            }
-
-            // If it's a click but not a drag on selected item
-            if (buttonUpOn == selectionManager.SelectedElement && !selectionManager.IsDragging)
-            {
-                System.Diagnostics.Debug.Print(string.Format("Button up without drag on SELECTED"));
-                //IF the sender element IS the selection and it was a double click
-                if (selectionManager.HasSelection && buttonUpOn == selectionManager.SelectedElement && e.ClickCount > 1)
-                {
-                    System.Diagnostics.Debug.Print(string.Format("DOUBLE CLICK"));
-                    ILinkable clickedOnLink;
-                    if (ui_model_multimap.TryGetValue(selectionManager.SelectedElement, out clickedOnLink))
-                    {
-                        Model.Model.SetNextFocus(clickedOnLink);
-                        selectionManager.EndDrag();
-                    }
-                }
-                else
-                {
-                    selectionManager.EndDrag();
-                    e.Handled = true;
-                }
-            }
-            selectionManager.EndDrag();
-        }
-        */
     }
 }

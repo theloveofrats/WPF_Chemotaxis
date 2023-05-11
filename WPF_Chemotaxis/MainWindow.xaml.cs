@@ -772,6 +772,7 @@ namespace WPF_Chemotaxis
 
         private void SetUpVisualScriptingWindow()
         {
+            //VSCanvas.KeyDown += (s,e) => KeyDownHandler(s,e);
             VSCanvas.KeyDown += KeyDownHandler;
             SetVSElementsDisplaySource();
 
@@ -807,10 +808,11 @@ namespace WPF_Chemotaxis
         
         private void KeyDownHandler(object sender, KeyEventArgs e)
         {
+            System.Diagnostics.Debug.Print("Keypress happened");
             if (e.Key == Key.Delete) { 
                 if (VisualScriptingSelectionManager.Current.HasSelection)
-                {
-                    VSModelManager.Current.TryDeleteModelElement(VisualScriptingSelectionManager.Current.SelectedElement);
+                {                  
+                    VSModelManager.Current.TryDeleteVisual(VisualScriptingSelectionManager.Current.SelectedElement);
                 }
             }
         }
@@ -910,6 +912,7 @@ namespace WPF_Chemotaxis
 
             }
             ResetMouseState();
+            Keyboard.Focus(VSCanvas);
             e.Handled = true;
         }
 

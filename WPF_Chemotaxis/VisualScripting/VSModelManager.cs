@@ -140,9 +140,10 @@ namespace WPF_Chemotaxis.VisualScripting
 
         private void AddChildLineUI(VSDiagramObject parent, VSDiagramObject child)
         {
-            Canvas parentCanvas = VisualTreeHelper.GetParent(parent) as Canvas;
-            Canvas childCanvas = VisualTreeHelper.GetParent(child) as Canvas;
 
+            VSRelationElement relation = new VSRelationElement(parent, child, targetCanvas);
+
+            /*
             Line line = new Line();
             line.Stroke = Brushes.Blue;
             line.StrokeThickness = 4;
@@ -156,7 +157,7 @@ namespace WPF_Chemotaxis.VisualScripting
             line.Y2 = p2.Y;
             targetCanvas.Children.Add(line);
             Canvas.SetZIndex(line, -1);
-
+            */
 
             targetCanvas.InvalidateVisual();
         }
@@ -267,10 +268,12 @@ namespace WPF_Chemotaxis.VisualScripting
                     ILinkable dropped =  uncastdropped as ILinkable;
                     if (dropped != null)
                     {
+                        System.Diagnostics.Debug.Print("Caught lost item from observablelist");
                         //If the map contains it, remove it from the model
                         HashSet<VSDiagramObject> droppedUIs;
                         if (ui_model_multimap.Remove(dropped, out droppedUIs))
                         {
+                            System.Diagnostics.Debug.Print("Remove from model map returned true");
                             //Then iterate and remove UIs from visual tree
                             foreach (VSDiagramObject item in droppedUIs)
                             {
@@ -282,19 +285,37 @@ namespace WPF_Chemotaxis.VisualScripting
             }
         }
 
-        //Lets listeners to model change handle the visual side!
-        public bool TryDeleteModelElement(VSDiagramObject byDiagramObject)
+        //Lets listeners to model change handle the visual side! Does remove ALL parts of an element though, not just selected one.
+        /*public bool TryDeleteModelElement(VSDiagramObject byDiagramObject)
         {
             var targetObject = byDiagramObject as VSUIElement;
             if (targetObject!=null)
             {
                 Model.Model.Current.RemoveElement(targetObject.LinkedModelPart);
+                return true;
+            }
+            return false;
+        }*/
+        public bool TryDeleteVisual(VSDiagramObject byDiagramObject)
+        {
+            var targetObject = byDiagramObject as VSUIElement;
+            if (targetObject != null)
+            {
+                ILinkable link;
+                ui_model_multimap.Remove(byDiagramObject, out link);
+                if (!ui_model_multimap.Contains(link))
+                {
+                    Model.Model.Current.RemoveElement(targetObject.LinkedModelPart);
+                }
+                RemoveElementFromVisualTree(targetObject);
+                return true;
             }
             return false;
         }
 
         private void RemoveElementFromVisualTree(VSDiagramObject element)
         {
+            System.Diagnostics.Debug.Print("Deparenting object");
             (VisualTreeHelper.GetParent(element) as Canvas).Children.Remove(element);
         }
 
