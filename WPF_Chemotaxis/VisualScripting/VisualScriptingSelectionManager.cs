@@ -14,6 +14,8 @@ namespace WPF_Chemotaxis.VisualScripting
 {
     internal class VisualScriptingSelectionManager : INotifyPropertyChanged
     {
+        private const double BREAK_DOCK_SQ_DIST = 250 * 250;
+
         private Canvas baseCanvas;
         private Point dragFrom;
         private Point dragTo; 
@@ -148,13 +150,30 @@ namespace WPF_Chemotaxis.VisualScripting
 
         public void MoveSelected(Point moveTo)
         {
-            MoveElement(SelectedElement, new Point(moveTo.X-dragOffset.X, moveTo.Y-dragOffset.Y));
-        }
-
-        private void MoveElement(UIElement element, Point dragTo)
-        {
-            Canvas.SetTop(element, dragTo.Y);
-            Canvas.SetLeft(element, dragTo.X);
+            if (!HasSelection) return;
+            double rotation;
+            bool breakDock;
+            Point newPsn = GetPredictedDragPosition(moveTo, out rotation, out breakDock);
+            
+            if (SelectedElement.Docked)
+            {
+                if (!breakDock)
+                {
+                    SelectedElement.SetPosition(newPsn.X - dragOffset.X, newPsn.Y - dragOffset.Y);
+                    SelectedElement.SetToDockedPosition();
+                    return;
+                }
+                else
+                {
+                    SelectedElement.SetPosition(newPsn.X - dragOffset.X+SelectedElement.DockedTo.Position.X, newPsn.Y - dragOffset.Y+SelectedElement.DockedTo.Position.Y);
+                    SelectedElement.Undock();
+                    return;
+                }
+            }
+            else
+            {
+                SelectedElement.SetPosition(newPsn.X - dragOffset.X, newPsn.Y - dragOffset.Y);
+            }
         }
 
         //Does not actually start a drag unless UpdateDrag notices an appropriate distance!
@@ -181,11 +200,47 @@ namespace WPF_Chemotaxis.VisualScripting
             }
             if (IsDragging)
             {
-                if (dragGhost != null)
+                if (HasSelection && dragGhost != null)
                 {
-                    dragGhost.SetPosition(newPos, dragOffset);
+                    bool breakDock;
+                    double rotation;
+                    Point ghostPos = GetPredictedDragPosition(newPos, out rotation, out breakDock, true);
+                    dragGhost.SetPositionAndRotation(ghostPos, rotation);
                 }
             }
+        }
+
+        Point GetPredictedDragPosition(Point input, out double rotation, out bool breakDock, bool dragCorrect=false)
+        {
+            breakDock = false;
+            rotation = 0;
+            if (SelectedElement.Docked)
+            {
+                double sqDist = (input.X - SelectedElement.DockedTo.AbsolutePosition.X) * (input.X - SelectedElement.DockedTo.AbsolutePosition.X) + (input.Y - SelectedElement.AbsolutePosition.Y) * (input.Y - SelectedElement.AbsolutePosition.Y);
+                if (sqDist < BREAK_DOCK_SQ_DIST)
+                {
+                    Point found = SelectedElement.GetDockPosition(new Point(input.X, input.Y), out rotation);
+                    var rotator = (SelectedElement.RenderTransform as RotateTransform);
+                    if(rotator!=null) rotation -= rotator.Angle;
+                    
+                    //THIS NEEDS FIXING AFTER WE GET THE LABELS TO KEEP ORIGINAL ROTATION!
+                    if (dragCorrect)
+                    {
+                        found.X -= 18;
+                        found.Y -= 18;
+                    }
+                    return found;
+                }
+                else
+                {
+                    breakDock = true;
+                    return new Point(input.X-SelectedElement.DockedTo.Position.X, input.Y-SelectedElement.DockedTo.Position.Y);
+                }
+            }
+           
+            rotation = 0;
+            return new Point(input.X, input.Y);
+            
         }
 
         public void EndDrag()

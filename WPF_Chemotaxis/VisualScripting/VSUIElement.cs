@@ -28,14 +28,13 @@ namespace WPF_Chemotaxis.VisualScripting
         {
             //New base canvas for the element
 
+
             this.Background = new SolidColorBrush(Colors.Transparent);
             this.ui_symbol = fromMenuElement.CreateModelElementControl();
             this.LinkedModelPart = linkedModelElement;
             this.Width = 0;
             this.Height = 0;
-            Canvas.SetTop(this, clickPsn.Y);
-            Canvas.SetLeft(this, clickPsn.X);
-            System.Diagnostics.Debug.Print("A");
+
             // Actual UI image for it here
             this.Children.Add(this.ui_symbol);
             Canvas.SetTop(this.ui_symbol, -0.5 * this.ui_symbol.Height);
@@ -61,22 +60,18 @@ namespace WPF_Chemotaxis.VisualScripting
             Point nametagOffset = fromMenuElement.NametagOffset;
             Canvas.SetTop(label, nametagOffset.Y);
             Canvas.SetLeft(label, nametagOffset.X);
-            System.Diagnostics.Debug.Print("B");
             //Bind the textbox.
             Binding myTargetBinding = new Binding("Name");
             myTargetBinding.Source = this.LinkedModelPart;
             myTargetBinding.Mode = BindingMode.TwoWay;
             BindingOperations.SetBinding(label, TextBox.TextProperty, myTargetBinding);
 
-            System.Diagnostics.Debug.Print("C");
-            _mainCanvas = main_canvas;
-            _mainCanvas.Children.Add(this);
-            System.Diagnostics.Debug.Print("D");
+            SetPosition(clickPsn.X, clickPsn.Y);
+            System.Diagnostics.Debug.Print(String.Format("Current position is {0:0.0}:{1:0.0}.", this.AbsolutePosition.X, this.AbsolutePosition.Y));
         }
 
         protected override void SingleClickLeftUp(object sender, MouseButtonEventArgs e)
         {
-            System.Diagnostics.Debug.Print(String.Format("Mouse up on {0} element {1}", LinkedModelPart.DisplayType, LinkedModelPart.Name));
             var selector = VisualScriptingSelectionManager.Current;
             // Base always handles if this is a mouse up on a selected item. We're only interested in drags here.
             base.SingleClickLeftUp(sender, e);

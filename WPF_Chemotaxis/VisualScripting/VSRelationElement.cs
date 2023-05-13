@@ -32,15 +32,17 @@ namespace WPF_Chemotaxis.VisualScripting
             this.primary = primary; 
             this.secondary = secondary;
             MakeLine();
-            _mainCanvas.Children.Add(this);
         }
 
         private void MakeLine()
         {
-            if (this._line == null)
+            if (_line == null)
             {
-                this._line = new();
-                this.Children.Add(this._line);
+                _line = new();
+                _line.Stroke = Brushes.Blue;
+                _line.StrokeThickness = 4;
+                _mainCanvas.Children.Add(_line);
+                Canvas.SetZIndex(_line, -1);
             }
             Binding bindingX1 = new();
             Binding bindingX2 = new();
@@ -49,13 +51,13 @@ namespace WPF_Chemotaxis.VisualScripting
 
             bindingX1.Source = primary;
             bindingY1.Source = primary;
-            bindingX1.Path = new PropertyPath("AbsoluteX");
-            bindingY1.Path = new PropertyPath("AbsoluteY");
+            bindingX1.Path = new PropertyPath("AbsolutePosition.X");
+            bindingY1.Path = new PropertyPath("AbsolutePosition.Y");
 
             bindingX2.Source = secondary;
             bindingY2.Source = secondary;
-            bindingX2.Path = new PropertyPath("AbsoluteX");
-            bindingY2.Path = new PropertyPath("AbsoluteY");
+            bindingX2.Path = new PropertyPath("AbsolutePosition.X");
+            bindingY2.Path = new PropertyPath("AbsolutePosition.Y");
 
             bindingX1.Mode = BindingMode.TwoWay;
             bindingY1.Mode = BindingMode.TwoWay;

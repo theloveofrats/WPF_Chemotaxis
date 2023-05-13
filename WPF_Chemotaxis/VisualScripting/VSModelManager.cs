@@ -98,45 +98,10 @@ namespace WPF_Chemotaxis.VisualScripting
             }
         }
 
-        private void AddRadialDockedUI(VSDiagramObject parent, VSDiagramObject child, double dist)
-        {
-            
-            Canvas oldParent = VisualTreeHelper.GetParent(child) as Canvas;
-            //Calculate point
-            Point childAbsPosition = child.TransformToAncestor(targetCanvas).Transform(new Point(0.5 * child.RenderSize.Width, 0.5 * child.RenderSize.Height));
-            Point parentAbsPosition = parent.TransformToAncestor(targetCanvas).Transform(new Point(0.5 * parent.RenderSize.Width, 0.5 * parent.RenderSize.Height));
-
-            Point currentRelativePosition = new Point(childAbsPosition.X - parentAbsPosition.X, childAbsPosition.Y - parentAbsPosition.Y);
-            double targetAngleRadians = Math.Atan2(currentRelativePosition.Y, currentRelativePosition.X);
-            double targetRotationDegrees = 90d + 180d * targetAngleRadians / Math.PI;
-            //double multiplier = relationParams.forcePositionDistance / Math.Sqrt(currentRelativePosition.X * currentRelativePosition.X + currentRelativePosition.Y * currentRelativePosition.Y);
-
-            System.Diagnostics.Debug.Print("Trying to make radial dock link");
-
-            //Reparent
-            if (oldParent != null)
-            {
-                oldParent.Children.Remove(child);
-            }
-            (parent as Canvas).Children.Add(child);
-
-            Point targetPoint = new Point(dist * Math.Cos(targetAngleRadians), dist * Math.Sin(targetAngleRadians));
-
-            //Update to new point and rotation
-            Canvas.SetLeft(child, targetPoint.X);
-            Canvas.SetTop(child, targetPoint.Y);
-            child.RenderTransform = new RotateTransform(angle: targetRotationDegrees);
-
-            foreach (var iter in (child as Canvas).Children)
-            {
-                TextBox label = iter as TextBox;
-                if (label != null)
-                {
-                    label.RenderTransform = (Transform)child.RenderTransform.Inverse;
-                }
-            }
-            targetCanvas.InvalidateVisual();
-        }
+        //private void AddRadialDockedUI(VSDiagramObject parent, VSDiagramObject child, double dist)
+        //{
+        
+        //}
 
         private void AddChildLineUI(VSDiagramObject parent, VSDiagramObject child)
         {
@@ -184,7 +149,8 @@ namespace WPF_Chemotaxis.VisualScripting
                     break;
                 case ForcedPositionType.RADIUS:
 
-                    AddRadialDockedUI(parent, child, relationParams.forcePositionDistance);
+                    child.DockToVSObject(parent, relationParams.forcePositionDistance);
+
                     List<VSDiagramObject> radialChildren;
                     if(radial_child_elements.TryGetValue(parent, out radialChildren)){
                         radialChildren.Add(child);
