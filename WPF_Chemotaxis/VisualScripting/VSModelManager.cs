@@ -98,43 +98,23 @@ namespace WPF_Chemotaxis.VisualScripting
             }
         }
 
-        //private void AddRadialDockedUI(VSDiagramObject parent, VSDiagramObject child, double dist)
-        //{
-        
-        //}
-
-        private void AddChildLineUI(VSDiagramObject parent, VSDiagramObject child)
+        private void AddChildLineUI(VSDiagramObject parent, VSDiagramObject child, ILinkable relationLink)
         {
 
-            VSRelationElement relation = new VSRelationElement(parent, child, targetCanvas);
-
-            /*
-            Line line = new Line();
-            line.Stroke = Brushes.Blue;
-            line.StrokeThickness = 4;
-
-            Point p1 = child.TransformToAncestor(targetCanvas).Transform(new Point(0.5*child.RenderSize.Width, 0.5*child.RenderSize.Height)); 
-            Point p2 = parent.TransformToAncestor(targetCanvas).Transform(new Point(0.5*parent.RenderSize.Width, 0.5*parent.RenderSize.Height));
-
-            line.X1 = p1.X;
-            line.Y1 = p1.Y;
-            line.X2 = p2.X;
-            line.Y2 = p2.Y;
-            targetCanvas.Children.Add(line);
-            Canvas.SetZIndex(line, -1);
-            */
-
+            VSRelationElement relation = new VSRelationElement(parent, child, relationLink, targetCanvas);
+            ui_model_multimap.TryAdd(relation, relation.ModelReation);
+            
             targetCanvas.InvalidateVisual();
         }
 
 
-        private void AddUIChildToUIParent(VSDiagramObject parent, VSDiagramObject child, VSRelationAttribute relationParams)
+        private void AddUIChildToUIParent(VSDiagramObject parent, VSDiagramObject child, VSRelationAttribute relationParams, ILinkable relationalModelLink)
         {
             switch(relationParams.forcedPositionType)
             {
                 case ForcedPositionType.NONE:
 
-                    AddChildLineUI(child, parent);
+                    AddChildLineUI(child, parent, relationalModelLink);
                     List<VSDiagramObject> lineChildren;
                     if (radial_child_elements.TryGetValue(parent, out lineChildren))
                     {
@@ -185,7 +165,7 @@ namespace WPF_Chemotaxis.VisualScripting
                 
                 if(ui_model_multimap.TryGetValues(parent, out parentUISet) && ui_model_multimap.TryGetValues(child, out childUISet)){
                     System.Diagnostics.Debug.Print(String.Format("Fetched UI elements for the ends of the relations...", parent.Name, child.Name));
-                    AddUIChildToUIParent(parentUISet[0], childUISet[0], relation);
+                    AddUIChildToUIParent(parentUISet[0], childUISet[0], relation, relationalLink);
                 }
             }
             return false;
@@ -281,8 +261,8 @@ namespace WPF_Chemotaxis.VisualScripting
 
         private void RemoveElementFromVisualTree(VSDiagramObject element)
         {
-            System.Diagnostics.Debug.Print("Deparenting object");
-            (VisualTreeHelper.GetParent(element) as Canvas).Children.Remove(element);
+            element.Dispose();
+            
         }
 
         public bool TryGetModelElementFromVisual(VSDiagramObject visual, out ILinkable modelElement)

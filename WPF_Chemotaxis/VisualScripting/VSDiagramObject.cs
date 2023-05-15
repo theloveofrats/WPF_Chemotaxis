@@ -141,6 +141,11 @@ namespace WPF_Chemotaxis.VisualScripting
             }
         }
 
+        public virtual void Dispose()
+        {
+            (Parent as Canvas).Children.Remove(this);
+        }
+
         //Manages docking an object and hooking up listeners.
         public void DockToVSObject(VSDiagramObject  dockParent, double dockDistance)
         {

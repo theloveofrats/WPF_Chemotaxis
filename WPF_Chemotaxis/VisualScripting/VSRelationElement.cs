@@ -9,6 +9,7 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Media;
 using System.Windows.Shapes;
+using WPF_Chemotaxis.UX;
 
 namespace WPF_Chemotaxis.VisualScripting
 {
@@ -17,14 +18,16 @@ namespace WPF_Chemotaxis.VisualScripting
 
         VSDiagramObject primary;
         VSDiagramObject secondary;
-        Line _line;
+        public Line RelationLine { get; private set; }
+        public ILinkable ModelReation { get; private set; }
 
         public VSRelationElement(Canvas canvas) : base(canvas)
         {
 
         }
-        public VSRelationElement(VSDiagramObject primary, VSDiagramObject secondary, Canvas canvas) : base(canvas)
+        public VSRelationElement(VSDiagramObject primary, VSDiagramObject secondary, ILinkable modelRelation, Canvas canvas) : base(canvas)
         {
+            this.ModelReation = modelRelation;
             BindControl(primary, secondary);
         }
         public void BindControl(VSDiagramObject primary, VSDiagramObject secondary)
@@ -34,15 +37,21 @@ namespace WPF_Chemotaxis.VisualScripting
             MakeLine();
         }
 
+        public override void Dispose()
+        {
+            _mainCanvas.Children.Remove(RelationLine);
+            base.Dispose();
+        }
+
         private void MakeLine()
         {
-            if (_line == null)
+            if (RelationLine == null)
             {
-                _line = new();
-                _line.Stroke = Brushes.Blue;
-                _line.StrokeThickness = 4;
-                _mainCanvas.Children.Add(_line);
-                Canvas.SetZIndex(_line, -1);
+                RelationLine = new();
+                RelationLine.Stroke = Brushes.Blue;
+                RelationLine.StrokeThickness = 4;
+                _mainCanvas.Children.Add(RelationLine);
+                Canvas.SetZIndex(RelationLine, -1);
             }
             Binding bindingX1 = new();
             Binding bindingX2 = new();
@@ -69,10 +78,10 @@ namespace WPF_Chemotaxis.VisualScripting
             bindingX2.UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged;
             bindingY2.UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged;
 
-            BindingOperations.SetBinding(_line, Line.X1Property, bindingX1);
-            BindingOperations.SetBinding(_line, Line.Y1Property, bindingY1);
-            BindingOperations.SetBinding(_line, Line.X2Property, bindingX2);
-            BindingOperations.SetBinding(_line, Line.Y2Property, bindingY2);
+            BindingOperations.SetBinding(RelationLine, Line.X1Property, bindingX1);
+            BindingOperations.SetBinding(RelationLine, Line.Y1Property, bindingY1);
+            BindingOperations.SetBinding(RelationLine, Line.X2Property, bindingX2);
+            BindingOperations.SetBinding(RelationLine, Line.Y2Property, bindingY2);
         }
 
         private void OnHandleMoved(object sender, PropertyChangedEventArgs e)
