@@ -100,11 +100,24 @@ namespace WPF_Chemotaxis.VisualScripting
 
         private void AddChildLineUI(VSDiagramObject parent, VSDiagramObject child, ILinkable relationLink)
         {
+            //If there are duplicates to make, we need to know
+            ILinkable parentModelElement, childModelElement;
+            if (ui_model_multimap.TryGetValue(parent, out parentModelElement) && ui_model_multimap.TryGetValue(child, out childModelElement))
+            {
+                List<VSDiagramObject> parentDuplicates, childDuplicates;
+                if (ui_model_multimap.TryGetValues(parentModelElement, out parentDuplicates) && ui_model_multimap.TryGetValues(childModelElement, out childDuplicates)){
 
-            VSRelationElement relation = new VSRelationElement(parent, child, relationLink, targetCanvas);
-            ui_model_multimap.TryAdd(relation, relation.ModelReation);
-            
-            targetCanvas.InvalidateVisual();
+                    foreach (var par in parentDuplicates)
+                    {
+                        foreach (var chi in childDuplicates)
+                        {
+                            VSRelationElement relation = new VSRelationElement(par, chi, relationLink, targetCanvas);
+                            ui_model_multimap.TryAdd(relation, relation.ModelReation);
+                        }
+                    }
+                    targetCanvas.InvalidateVisual();
+                }
+            }
         }
 
 
