@@ -175,7 +175,14 @@ namespace WPF_Chemotaxis.VisualScripting
                             if (uis.Count > 0)
                             {
                                 SelectedElement.Undock();
+
+                                foreach(var line in VSModelManager.Current.GetConnections(SelectedElement))
+                                {
+                                    VSModelManager.Current.TryDeleteVisual(line);
+                                }
+
                                 VSModelManager.Current.TryDeleteVisual(selectedVS);
+
                                 return;
                             }
                         }

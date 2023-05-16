@@ -268,16 +268,17 @@ namespace WPF_Chemotaxis.VisualScripting
         }*/
         public bool TryDeleteVisual(VSDiagramObject byDiagramObject)
         {
-            var targetObject = byDiagramObject as VSUIElement;
-            if (targetObject != null)
+            //var targetObject = byDiagramObject as VSUIElement;
+            if (byDiagramObject != null)
             {
                 ILinkable link;
                 ui_model_multimap.Remove(byDiagramObject, out link);
+
                 if (!ui_model_multimap.Contains(link))
                 {
-                    Model.Model.Current.RemoveElement(targetObject.LinkedModelPart);
+                    Model.Model.Current.RemoveElement(link);
                 }
-                RemoveElementFromVisualTree(targetObject);
+                RemoveElementFromVisualTree(byDiagramObject);
                 return true;
             }
             return false;
