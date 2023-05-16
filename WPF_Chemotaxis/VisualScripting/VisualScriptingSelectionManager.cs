@@ -163,8 +163,24 @@ namespace WPF_Chemotaxis.VisualScripting
                     SelectedElement.SetToDockedPosition();
                     return;
                 }
+                //If breaking dock, we need to check if this is a duplicate item, and delete it if it is.
                 else
                 {
+                    var selectedVS = SelectedElement as VSUIElement;
+                    if (selectedVS!=null)
+                    {
+                        List<VSDiagramObject> uis;
+                        if (VSModelManager.Current.TryGetUIListFromLink(selectedVS.LinkedModelPart, out uis))
+                        {
+                            if (uis.Count > 0)
+                            {
+                                SelectedElement.Undock();
+                                VSModelManager.Current.TryDeleteVisual(selectedVS);
+                                return;
+                            }
+                        }
+                    }
+
                     SelectedElement.SetPosition(newPsn.X - dragOffset.X+SelectedElement.DockedTo.Position.X, newPsn.Y - dragOffset.Y+SelectedElement.DockedTo.Position.Y);
                     SelectedElement.Undock();
                     return;

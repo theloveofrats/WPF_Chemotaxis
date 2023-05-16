@@ -893,6 +893,9 @@ namespace WPF_Chemotaxis
         private void VSCanvas_LeftMouseUp(object sender, MouseButtonEventArgs e)
         {
             if (e.Handled) return;
+
+            System.Diagnostics.Debug.Print("Canvas LMB up detected.");
+
             VSListMenuElement selectedSidebarItem = (visualElementList.SelectedItem as VSListMenuElement);
             Point clickPsn = e.GetPosition(VSCanvas);
 

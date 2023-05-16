@@ -23,14 +23,34 @@ namespace WPF_Chemotaxis.VisualScripting
         public ILinkable LinkedModelPart { get; private set; }
         private Image ui_symbol;
         private TextBox label;
+        private VSListMenuElement source;
+        private Color _clr;
+        public Color UIElementColor
+        {
+            get
+            {
+                return _clr;
+            }
+            set
+            {
+                if (!_clr.Equals(value))
+                {
+                    _clr = value;
 
-        public VSUIElement(VSListMenuElement fromMenuElement, Point clickPsn, ILinkable linkedModelElement, Canvas main_canvas) : base(main_canvas)
+                    //We need something like this- that informs every UI element of the update, then tries to set it if it doesn't already know!
+                    //VSModelManager.UpdateColor(LinkedModelPart, value)
+                }
+            }
+        }
+
+        public VSUIElement(VSListMenuElement fromMenuElement, Point clickPsn, ILinkable linkedModelElement, Canvas main_canvas, Color clr=default) : base(main_canvas)
         {
             //New base canvas for the element
-
+            this.source = fromMenuElement;
 
             this.Background = new SolidColorBrush(Colors.Transparent);
-            this.ui_symbol = fromMenuElement.CreateModelElementControl();
+            this.ui_symbol = fromMenuElement.CreateModelElementControl(out clr);
+            this._clr = clr;
             this.LinkedModelPart = linkedModelElement;
             this.Width = 0;
             this.Height = 0;
@@ -70,6 +90,25 @@ namespace WPF_Chemotaxis.VisualScripting
             System.Diagnostics.Debug.Print(String.Format("Current position is {0:0.0}:{1:0.0}.", this.AbsolutePosition.X, this.AbsolutePosition.Y));
         }
 
+        public override VSDiagramObject Duplicate()
+        {
+            System.Diagnostics.Debug.Print("Duplicated as a member of the class VSUIElement");
+            var newEl =  new VSUIElement(this.source, new Point(0,0), this.LinkedModelPart, _mainCanvas, this._clr);
+
+            var connectionList = VSModelManager.Current.GetConnections(this);
+            foreach(var connection in connectionList)
+            {
+                VSRelationElement dupeLink;
+                if (connection.DuplicateWithNewHandle(this, newEl, out dupeLink))
+                {
+                    VSModelManager.Current.TryAdd(dupeLink, dupeLink.ModelReation);
+                }
+            }
+       
+            return newEl;
+        }
+
+
         protected override void SingleClickLeftUp(object sender, MouseButtonEventArgs e)
         {
             var selector = VisualScriptingSelectionManager.Current;
@@ -81,21 +120,46 @@ namespace WPF_Chemotaxis.VisualScripting
                 selector.EndDrag();
                 return;
             }
-
             
-            if (selector.HasSelection && selector.SelectedElement!=this && selector.IsDragging && selector.InBounds(e.GetPosition(_mainCanvas)))
+            else if (selector.HasSelection && selector.SelectedElement!=this && selector.IsDragging && selector.InBounds(e.GetPosition(_mainCanvas)))
             {
-                System.Diagnostics.Debug.Print(String.Format("Meets criteria for join"));
+                var castElement = selector.SelectedElement as VSUIElement;
                 //If we're dragging on a proper element control and not another kind of diagram object
-                if (selector.SelectedElement.GetType().IsAssignableTo(typeof(VSUIElement)))
+                if (castElement != null)
                 {
-                    if (VSModelManager.Current.TryConnectElements(parentVisual: this, childVisual: selector.SelectedElement as VSUIElement))
+                    //If we're not draging around the same object
+                    if (castElement.Docked && castElement.DockedTo!=this)
                     {
-                        System.Diagnostics.Debug.Print("Connected!");
+                        if (this.HasDaughter(castElement.LinkedModelPart))
+                        {
+                            return;
+                        }
+                        else
+                        {
+                            var copy = selector.SelectedElement.Duplicate();
+                            VSModelManager.Current.TryAdd(copy, (copy as VSUIElement).LinkedModelPart);
+                            if (VSModelManager.Current.TryConnectElements(parentVisual: this, childVisual: copy as VSUIElement))
+                            {
+
+                                System.Diagnostics.Debug.Print("Connected duplicate!");
+                            }
+                            else
+                            {
+                                System.Diagnostics.Debug.Print("Could not connect duplicate!");
+                            }
+                        }
                     }
                     else
                     {
-                        System.Diagnostics.Debug.Print("Could not connect!");
+
+                        if (VSModelManager.Current.TryConnectElements(parentVisual: this, childVisual: selector.SelectedElement as VSUIElement))
+                        {
+                            System.Diagnostics.Debug.Print("Connected!");
+                        }
+                        else
+                        {
+                            System.Diagnostics.Debug.Print("Could not connect!");
+                        }
                     }
                 }
                 //For other diagram objects...
@@ -104,6 +168,7 @@ namespace WPF_Chemotaxis.VisualScripting
 
                 }
             }
+            e.Handled = true;
             Keyboard.Focus(_mainCanvas);
             selector.EndDrag();
         }

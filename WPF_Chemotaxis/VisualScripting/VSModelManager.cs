@@ -116,7 +116,8 @@ namespace WPF_Chemotaxis.VisualScripting
 
                     AddChildLineUI(child, parent, relationalModelLink);
                     List<VSDiagramObject> lineChildren;
-                    if (radial_child_elements.TryGetValue(parent, out lineChildren))
+                    
+                    /*if (radial_child_elements.TryGetValue(parent, out lineChildren))
                     {
                         lineChildren.Add(child);
                     }
@@ -124,13 +125,14 @@ namespace WPF_Chemotaxis.VisualScripting
                     {
                         lineChildren = new List<VSDiagramObject>() { child };
                         radial_child_elements.Add(parent, lineChildren);
-                    }
+                    }*/
 
                     break;
                 case ForcedPositionType.RADIUS:
 
-                    child.DockToVSObject(parent, relationParams.forcePositionDistance);
+                    child.DockToVSObject(parent, relationParams.forcePositionDistance, relationalModelLink); 
 
+                    /*
                     List<VSDiagramObject> radialChildren;
                     if(radial_child_elements.TryGetValue(parent, out radialChildren)){
                         radialChildren.Add(child);
@@ -139,7 +141,7 @@ namespace WPF_Chemotaxis.VisualScripting
                     {
                         radialChildren = new List<VSDiagramObject>() {child};
                         radial_child_elements.Add(parent, radialChildren);
-                    }
+                    }*/
 
                     break;
 
@@ -149,6 +151,12 @@ namespace WPF_Chemotaxis.VisualScripting
                     break;
 
             }
+        }
+
+        public List<VSRelationElement> GetConnections(VSDiagramObject handle)
+        {
+            var connections = (from sel in ui_model_multimap.MultipleItemsList().OfType<VSRelationElement>() where sel.HasHandle(handle) select sel);
+            return connections.ToList();
         }
 
         private bool TryAddRelationshipMarker(ILinkable relationalLink, VSRelationAttribute relation)
@@ -165,7 +173,23 @@ namespace WPF_Chemotaxis.VisualScripting
                 
                 if(ui_model_multimap.TryGetValues(parent, out parentUISet) && ui_model_multimap.TryGetValues(child, out childUISet)){
                     System.Diagnostics.Debug.Print(String.Format("Fetched UI elements for the ends of the relations...", parent.Name, child.Name));
+
+
+                    // SO HERE IS A PROBLEM! WE ARE ADDING RELATIONSHIPS BASED ON A LISTENER- WE NEED THE NEW RELATION LINK UI THAT WAS GENERATED BUT DON'T KNOW WHICH- HOWEVER WE DO KNOW THAT IT'S UNDOCKED!
+                    // AN UNDOCKED COPY IS EITHER THE ONLY ONE, OR IT IS NEW, SO WE FIND THE UNDOCKED ONE AND WE PASS IN THAT!
+
+                    //However- none of this applies to lines, so we might have to work around that here...
+
+                    foreach(var childUI in childUISet)
+                    {
+                        if (!childUI.Docked)
+                        {
+                            AddUIChildToUIParent(parentUISet[0], childUI, relation, relationalLink);
+                            return true;
+                        }
+                    }
                     AddUIChildToUIParent(parentUISet[0], childUISet[0], relation, relationalLink);
+                    return true;
                 }
             }
             return false;
@@ -265,6 +289,16 @@ namespace WPF_Chemotaxis.VisualScripting
             
         }
 
+        public bool TryAdd(VSDiagramObject visual, ILinkable link)
+        {
+            return ui_model_multimap.TryAdd(visual, link);
+        }
+
+        public bool TryGetUIListFromLink(ILinkable link, out List<VSDiagramObject> uis)
+        {
+            return ui_model_multimap.TryGetValues(link, out uis);
+        }
+
         public bool TryGetModelElementFromVisual(VSDiagramObject visual, out ILinkable modelElement)
         {
             return ui_model_multimap.TryGetValue(visual, out modelElement);
@@ -293,7 +327,6 @@ namespace WPF_Chemotaxis.VisualScripting
             foreach (MethodInfo m in methods)
             {
                 ElementAdder adder = (m.GetCustomAttribute<ElementAdder>() as ElementAdder);
-                System.Diagnostics.Debug.Print(String.Format("parent has adder for type {0}",adder.type));
                 if (adder.type == childLink.GetType())
                 {
                     method = m;

@@ -53,7 +53,6 @@ namespace WPF_Chemotaxis.VisualScripting
         }
         public VSDiagramObject DockedTo { get; private set; }
         private double dockDistance;
-        private ILinkable relationshipLink;
 
         protected Canvas _mainCanvas;
 
@@ -64,6 +63,11 @@ namespace WPF_Chemotaxis.VisualScripting
             this._mainCanvas = canvas;
             _mainCanvas.Children.Add(this);
         }
+        public virtual VSDiagramObject Duplicate()
+        {
+            VSDiagramObject newObj = new VSDiagramObject(_mainCanvas);
+            return newObj;
+        }
 
         public virtual void SetPosition(double x, double y)
         {
@@ -72,7 +76,6 @@ namespace WPF_Chemotaxis.VisualScripting
         }
         public virtual void SetPosition(Point pt)
         {
-            //await Task.Delay(5);
             Position = pt;
             OnPropertyChanged("Position", 20);
             OnPropertyChanged("AbsolutePosition", 20);
@@ -100,10 +103,13 @@ namespace WPF_Chemotaxis.VisualScripting
             RotateTransform gt = this.RenderTransform as RotateTransform;
             if (gt == null)
             {
-                gt = new RotateTransform();
+                gt = new RotateTransform(newRotation);
+                this.RenderTransform = gt as Transform;
             }
-            gt.Angle = Rotation;
-            this.RenderTransform = gt as Transform; 
+            else
+            {
+                gt.Angle = Rotation;
+            }
             OnPropertyChanged("Rotation", 20);
         }
         public void NudgeRotation(double plusRotation)
@@ -124,7 +130,7 @@ namespace WPF_Chemotaxis.VisualScripting
         {
             await Task.Delay(msDelay);
             var castElement = this as VSUIElement;
-            if(castElement!=null) System.Diagnostics.Debug.Print(string.Format("Just got a property change of {0} for {1}",name, castElement.LinkedModelPart.Name));
+            //if(castElement!=null) System.Diagnostics.Debug.Print(string.Format("Just got a property change of {0} for {1}",name, castElement.LinkedModelPart.Name));
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
         }
 
@@ -147,7 +153,7 @@ namespace WPF_Chemotaxis.VisualScripting
         }
 
         //Manages docking an object and hooking up listeners.
-        public void DockToVSObject(VSDiagramObject  dockParent, double dockDistance)
+        public void DockToVSObject(VSDiagramObject  dockParent, double dockDistance, ILinkable impliedLink)
         {
             Point cachedAbsolutePosition = AbsolutePosition;
             if (Parent == dockParent) {
@@ -157,15 +163,12 @@ namespace WPF_Chemotaxis.VisualScripting
                 this.DockedTo = dockParent;
                 this.dockDistance = dockDistance;
                 dockParent.PropertyChanged += this.ParentPropertyChanged;
-
                 SetToDockedPosition();
-
                 Canvas oldParent = Parent as Canvas;
                 oldParent?.Children.Remove(this);
                 dockParent.Children.Add(this);
                 
             }
-            System.Diagnostics.Debug.Print(string.Format("Postdock abs psn {0:0.0}:{1:0.0}", AbsolutePosition.X, AbsolutePosition.Y));
             _mainCanvas.InvalidateVisual();
         }
         //FromDropPosition will come from canvas, not from move.
@@ -190,8 +193,8 @@ namespace WPF_Chemotaxis.VisualScripting
             Point newPos = GetDockPosition(AbsolutePosition, out angle);
             //_mainCanvas.TransformToDescendant(dockedTo).Transform(
             this.SetPosition(newPos);
-            RenderTransform = new RotateTransform(angle: angle);
-
+            this.SetRotation(angle);
+            
             /*
             foreach (var iter in Children)
             {
@@ -210,12 +213,25 @@ namespace WPF_Chemotaxis.VisualScripting
             DockedTo.PropertyChanged -= this.ParentPropertyChanged;
             DockedTo.Children.Remove(this);
             this.RenderTransform = new RotateTransform(0);
-            _mainCanvas.Children.Add(this);
 
+            VSModelManager.Current.TryDisconnectElements(DockedTo, this);
+            
+            _mainCanvas.Children.Add(this);
             DockedTo = null;
             dockDistance = -1;
         }
 
+        protected bool HasDaughter(ILinkable link)
+        {
+            foreach(var el in this.Children.OfType<VSUIElement>())
+            {
+                if (el.LinkedModelPart == link)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
 
         protected static object cachedClickSender;
         protected static MouseButtonEventArgs cachedSingleClickArgs;

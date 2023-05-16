@@ -37,11 +37,9 @@ namespace WPF_Chemotaxis.VisualScripting
             System.Diagnostics.Debug.Print(String.Format("Grabbing attribute"));
             if (vsAttribute != null)
             {
-                System.Diagnostics.Debug.Print(String.Format("Making fake list menu element to pass to VSUIElement constructor"));
                 VSListMenuElement virtualMenuItem = new VSListMenuElement(vsAttribute, linkToConnect.GetType());
-                System.Diagnostics.Debug.Print(String.Format("passing"));
                 createdElement = new VSUIElement(virtualMenuItem, psn, linkToConnect, targetCanvas);
-                System.Diagnostics.Debug.Print(String.Format("Made element"));
+                System.Diagnostics.Debug.Print(String.Format("Made element reacting to model change"));
                 return true;
             }
             else

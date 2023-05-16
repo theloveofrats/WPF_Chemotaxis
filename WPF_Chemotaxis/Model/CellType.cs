@@ -72,7 +72,16 @@ namespace WPF_Chemotaxis.Model
         {
             //System.Diagnostics.Debug.Print(string.Format("Trying to remove element {0} from {1}", element.Name, this.Name));
             if (element == null) return;
-            if (element is CellLigandRelation)
+            if(element is Receptor)
+            {
+                List<CellReceptorRelation> drop = (from r in receptorTypes where r.Receptor == element select r).ToList();
+                foreach (var receptorType in drop)
+                {
+                    Model.Current.RemoveElement(receptorType, replacement);
+                }
+            }
+
+            else if (element is CellLigandRelation)
             {
                 if (this.ligandInteractions.Contains(element))
                 {

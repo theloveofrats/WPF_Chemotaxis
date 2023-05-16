@@ -45,7 +45,7 @@ namespace WPF_Chemotaxis.VisualScripting
             this.tagAlignCentre = attribute.tagCentre;
         }
 
-        public Image CreateModelElementControl()
+        public Image CreateModelElementControl(out Color clr)
         {
             Image image = new TransparentPassthroughImage();
             var bmp = new BitmapImage();
@@ -55,7 +55,17 @@ namespace WPF_Chemotaxis.VisualScripting
 
             var colorBmp = new WriteableBitmap(bmp);
 
-            Color nextColor = colors[colorIndex++ % colors.Length];
+
+
+            Color nextColor;
+            if (clr == default)
+            {
+                nextColor = colors[colorIndex++ % colors.Length];
+            }
+            else
+            {
+                nextColor = clr;
+            }
 
             for(int i=0; i<colorBmp.PixelWidth; i++)
             {
@@ -72,6 +82,7 @@ namespace WPF_Chemotaxis.VisualScripting
             image.Source = colorBmp;
             image.Width = 10 * IconSize;
             image.Height = 10 * IconSize;
+            clr = nextColor;
             return image;
         }
     }

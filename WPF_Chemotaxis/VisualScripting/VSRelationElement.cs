@@ -36,13 +36,11 @@ namespace WPF_Chemotaxis.VisualScripting
             this.secondary = secondary;
             MakeLine();
         }
-
         public override void Dispose()
         {
-            _mainCanvas.Children.Remove(RelationLine);
+            if(this.RelationLine!=null) _mainCanvas.Children.Remove(RelationLine);
             base.Dispose();
         }
-
         private void MakeLine()
         {
             if (RelationLine == null)
@@ -83,7 +81,27 @@ namespace WPF_Chemotaxis.VisualScripting
             BindingOperations.SetBinding(RelationLine, Line.X2Property, bindingX2);
             BindingOperations.SetBinding(RelationLine, Line.Y2Property, bindingY2);
         }
-
+        public bool DuplicateWithNewHandle(VSDiagramObject oldHandle, VSDiagramObject newHandle, out VSRelationElement dupe)
+        {
+            if (!this.HasHandle(oldHandle))
+            {
+                dupe = null;
+                return false;
+            }
+            VSDiagramObject newPrimary, newSecondary;
+            if (oldHandle == this.primary)
+            {
+                newPrimary = newHandle;
+                newSecondary = secondary;
+            }
+            else
+            {
+                newSecondary = newHandle;
+                newPrimary = this.primary;
+            }
+            dupe = new VSRelationElement(newPrimary, newSecondary, this.ModelReation, _mainCanvas);
+            return true;
+        }
         private void OnHandleMoved(object sender, PropertyChangedEventArgs e)
         {
             if (e.PropertyName.Equals("Position") || e.PropertyName.Equals("Rotation"))
@@ -91,7 +109,10 @@ namespace WPF_Chemotaxis.VisualScripting
                 this.InvalidateVisual();
             }
         }
-
+        public bool HasHandle(VSDiagramObject handle)
+        {
+            return (primary == handle || secondary == handle);
+        }
         protected override void OnRender(DrawingContext dc)
         {
             base.OnRender(dc);
