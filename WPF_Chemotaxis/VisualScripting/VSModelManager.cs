@@ -284,6 +284,17 @@ namespace WPF_Chemotaxis.VisualScripting
             //var targetObject = byDiagramObject as VSUIElement;
             if (byDiagramObject != null)
             {
+                var iter = byDiagramObject.Children.OfType<VSDiagramObject>().ToList();
+                foreach (var child in iter)
+                {
+                    TryDeleteVisual(child);
+                }
+                var cnx = GetConnections(byDiagramObject);
+                foreach (var connection in cnx)
+                {
+                    TryDeleteVisual(connection);
+                }
+
                 ILinkable link;
                 ui_model_multimap.Remove(byDiagramObject, out link);
 
