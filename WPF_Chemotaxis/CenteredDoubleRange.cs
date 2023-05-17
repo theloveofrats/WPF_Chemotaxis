@@ -44,5 +44,16 @@ namespace WPF_Chemotaxis
                 return rnd.NextDouble(min, max);
             }
         }
+
+        public double SeededRandomInRange(int seed)
+        {
+            rnd.Reseed(seed.ToString());
+            double min = Value - Range;
+            double max = Value + Range;
+            if (HardMin != null && HardMin > min) min = HardMin.Value;
+            if (HardMax != null && HardMax < max) max = HardMax.Value;
+
+            return rnd.NextDouble(min, max);
+        }
     }
 }

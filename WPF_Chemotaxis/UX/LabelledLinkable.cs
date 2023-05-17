@@ -171,5 +171,10 @@ namespace WPF_Chemotaxis.UX
                 return allOpts;
             }
         }
+
+        public virtual bool TryAddTo(ILinkable link)
+        {
+            return false;
+        }
     }
 }

@@ -258,6 +258,11 @@ namespace WPF_Chemotaxis.Model
             }
         }
 
+        public bool TryAddTo(ILinkable other)
+        {
+            return false;
+        }
+
         /*public void DeserializeModel(bool clean)
         {
             if (clean) masterElementList.Clear();

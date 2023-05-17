@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Windows;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -14,7 +15,7 @@ namespace WPF_Chemotaxis.Model
     /// each receptor will take input ligand concentations from a cell and respond with levels of occupancy and activity.
     /// </summary>
     [VSElementAttribute(ui_TypeLabel = "Surface Enzyme", symbolResourcePath = "Resources/EnzymeIcon.png", symbolSize = 6.0, tagX = 12, tagY = -12, tagCentre = false)]
-    public class CellSurfaceEnzyme : LabelledLinkable, ICellComponent
+    public class CellSurfaceEnzyme : LabelledLinkable
     {
         public string label = "Receptor";
 
@@ -108,67 +109,48 @@ namespace WPF_Chemotaxis.Model
             }
         }
 
-        public void Update(Cell cell, Simulation sim, Simulations.Environment env, IFluidModel flow)
+        public void Update(Cell cell, Simulation sim, Simulations.Environment env, IFluidModel flow, double weight)
         {
             foreach (Point p in cell.localPoints)
             {
-
-
-
-                double rate = vMax / c.localPoints.Count;
-
-                //Offload to a proper solver later!
-                if (input_ligand != null)
+                foreach (EnzymeLigandRelation elr in this.ligandInteractions)
                 {
-                    double in_cnc = env.GetConcentration(input_ligand, p.X, p.Y);
-
-
-
-                    if (Hill == 1)
-                    {
-                        rate *= in_cnc / (in_cnc + kM);
-                    }
-                    else
-                    {
-                        double fc = Math.Pow(in_cnc, Hill);
-                        rate *= fc / (fc + Math.Pow(kM, Hill));
-                    }
+                    double rate = weight*elr.vMax / cell.localPoints.Count;
+                    GetOccupancyFraction(elr, env, p.X, p.Y);
+                    //Offload to a proper solver later!
+                    env.DegradeAtRate(elr.Ligand, elr.ProductLigand, p.X, p.Y, rate, elr.multiplier, sim.Settings.dt);
                 }
-
-                env.DegradeAtRate(input_ligand, output_ligand, p.X, p.Y, rate, multiplier, dt);
-
             }
         }
-
-        private void GetOccupancy(Simulations.Environment environment, int x, int y)
+        private double GetOccupancyFraction(EnzymeLigandRelation ligandRelation, Simulations.Environment environment, double x, double y)
         {
-            double ckd_sum = 0;
-            foreach (LigandReceptorRelation lrr in this.ligandInteractions)
+            return GetOccupancyFraction(ligandRelation, environment, (int)(x / environment.settings.DX), (int)(y / environment.settings.DX));
+        }
+        private double GetOccupancyFraction(EnzymeLigandRelation ligandRelation, Simulations.Environment environment, int x, int y)
+        {
+            if (!this.ligandInteractions.Contains(ligandRelation)) return 0;
+
+            double btm = 0;
+            double top = environment.GetConcentration(ligandRelation.Ligand, x, y) / ligandRelation.kM;
+
+            foreach (EnzymeLigandRelation elr in this.ligandInteractions)
             {
-                ckd_sum += environment.GetConcentration(lrr.Ligand, x, y) / lrr.kD;
+                btm += environment.GetConcentration(elr.Ligand, x, y) / elr.kM;
             }
 
-            return ckd_sum / (ckd_sum + 1.0);
-        }
-        public double GetEfficacy(Simulations.Environment environment, double x, double y)
-        {
-            return GetEfficacy(environment, (int)(x / environment.settings.DX), (int)(y / environment.settings.DX));
+            return top / (btm + 1.0);
         }
 
-        public double GetEfficacy(Simulations.Environment environment, int x, int y)
+        public override bool TryAddTo(ILinkable link)
         {
-            double ckd_top = 0;
-            double ckd_btm = 0;
-
-            double affinityPart;
-            foreach (LigandReceptorRelation lrr in this.ligandInteractions)
+            if (link is CellType)
             {
-                affinityPart = environment.GetConcentration(lrr.Ligand, x, y) / lrr.kD;
-                ckd_btm += affinityPart;
-                ckd_top += affinityPart * lrr.eff;
+                var cellType = link as CellType;
+                CellEnzymeRelation cer = new CellEnzymeRelation(cellType, this);
+                cellType.AddCellLogicComponent(cer);
+                return true;
             }
-
-            return ckd_top / (ckd_btm + 1.0);
+            else return base.TryAddTo(link);
         }
     }
 }

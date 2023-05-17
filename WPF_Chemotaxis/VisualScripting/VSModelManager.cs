@@ -210,7 +210,6 @@ namespace WPF_Chemotaxis.VisualScripting
 
         private void HandleModelChanges(object sender, NotifyCollectionChangedEventArgs e)
         {
-            System.Diagnostics.Debug.Print(string.Format("Detected model change with listening={0}", _islistening));
             //If we are adding this ourselves, don't also react to it.
             if (!_islistening)
             {
@@ -227,7 +226,6 @@ namespace WPF_Chemotaxis.VisualScripting
                         VSElementAttribute itemAttribute = item.GetType().GetCustomAttribute<VSElementAttribute>();
                         if (itemAttribute != null)
                         {
-                            System.Diagnostics.Debug.Print("Found menu item attribute!");
                             AddDetectedMainElement(item);
                         }
                         else
@@ -235,7 +233,6 @@ namespace WPF_Chemotaxis.VisualScripting
                             VSRelationAttribute relationAttribute = item.GetType().GetCustomAttribute<VSRelationAttribute>();
                             if (relationAttribute != null)
                             {
-                                System.Diagnostics.Debug.Print("Found relation attribute!");
                                 TryAddRelationshipMarker(item, relationAttribute);
                             }
                         }
@@ -358,7 +355,10 @@ namespace WPF_Chemotaxis.VisualScripting
                     break;
                 }
             }
-            if (method == null) return false;
+            if (method == null)
+            {
+                return childLink.TryAddTo(parentLink);
+            }
             else
             {
                 System.Diagnostics.Debug.Print(String.Format("Method found to add child of type {0}", childLink.GetType()));

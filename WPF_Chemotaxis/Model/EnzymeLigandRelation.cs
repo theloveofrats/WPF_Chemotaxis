@@ -20,7 +20,14 @@ namespace WPF_Chemotaxis.Model
     {
         [JsonProperty]
         [Link]
-        CellSurfaceEnzyme enzyme;
+        CellSurfaceEnzyme _enzyme;
+        public CellSurfaceEnzyme Enzyme
+        {
+            get
+            {
+                return _enzyme;
+            }
+        }
 
         [JsonProperty]
         [InstanceChooser(label = "Input ligand")]
@@ -60,7 +67,7 @@ namespace WPF_Chemotaxis.Model
 
         public EnzymeLigandRelation(CellSurfaceEnzyme enzyme, Ligand ligand) : base()
         {
-            this.enzyme = enzyme;
+            this._enzyme = enzyme;
             this._inputLigand = ligand;
             Init();
         }
@@ -95,11 +102,11 @@ namespace WPF_Chemotaxis.Model
             else if (element is CellSurfaceEnzyme)
             {
                 CellSurfaceEnzyme enz = (CellSurfaceEnzyme)element;
-                if (this.enzyme == enz)
+                if (this._enzyme == enz)
                 {
-                    this.enzyme = (CellSurfaceEnzyme)replacement;
+                    this._enzyme = (CellSurfaceEnzyme)replacement;
 
-                    if (this.enzyme == null) Model.Current.RemoveElement(this);
+                    if (this._enzyme == null) Model.Current.RemoveElement(this);
                 }
             }
         }
@@ -112,9 +119,9 @@ namespace WPF_Chemotaxis.Model
             get
             {
                 if (name != null) return name;
-                else if (enzyme == null || (Ligand == null && _outputLigand == null)) return "Broken Enzyme-Ligand interaction";
-                else if (_outputLigand == null) return string.Format("New {0}-{1} interaction", enzyme.Name, _outputLigand.Name);
-                return string.Format("New {0}->{1}->{2} reaction", Ligand.Name, enzyme.Name, _outputLigand.Name);
+                else if (_enzyme == null || Ligand == null) return "Broken Enzyme-Ligand interaction";
+                else if (_outputLigand == null) return string.Format("New {0}-{1} interaction", _enzyme.Name, _inputLigand.Name);
+                else return string.Format("New {0}->{1}->{2} reaction", Ligand.Name, _enzyme.Name, _outputLigand.Name);
             }
             set
             {
