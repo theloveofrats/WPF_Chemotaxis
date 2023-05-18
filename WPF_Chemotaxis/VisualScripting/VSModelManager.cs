@@ -233,6 +233,7 @@ namespace WPF_Chemotaxis.VisualScripting
                             VSRelationAttribute relationAttribute = item.GetType().GetCustomAttribute<VSRelationAttribute>();
                             if (relationAttribute != null)
                             {
+                                System.Diagnostics.Debug.Print(String.Format("Found relation attribute of type {0}", item.Name));
                                 TryAddRelationshipMarker(item, relationAttribute);
                             }
                         }

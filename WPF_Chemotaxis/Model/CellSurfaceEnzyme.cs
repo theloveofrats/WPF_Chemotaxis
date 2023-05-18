@@ -20,7 +20,7 @@ namespace WPF_Chemotaxis.Model
         public string label = "Receptor";
 
         [LinkAttribute]
-        public List<EnzymeLigandRelation> ligandInteractions = new();
+        public List<EnzymeLigandRelation> substrateInteractions = new();
 
         public CellSurfaceEnzyme() : base()
         {
@@ -32,14 +32,17 @@ namespace WPF_Chemotaxis.Model
             Init();
         }
 
-        [ElementAdder(label = "Add Ligand", type = typeof(Ligand))]
-        public void AddLigand(Ligand ligand)
+        [ElementAdder(label = "Add Substrate", type = typeof(Ligand))]
+        public void AddSigand(Ligand ligand)
         {
-            foreach (var inter in ligandInteractions)
+            System.Diagnostics.Debug.Print(String.Format("Invoked {0} to AddSubstrate {1}", this.Name, ligand.Name));
+            foreach (var inter in substrateInteractions)
             {
                 if (inter.Ligand.Equals(ligand)) return;
             }
+            System.Diagnostics.Debug.Print(String.Format("Not curent substrate, so creating new enzyme relation..."));
             new EnzymeLigandRelation(this, ligand);
+            System.Diagnostics.Debug.Print(String.Format("Created ENZYME-LIGAND LINK"));
         }
 
         public void Initialise(Simulation sim)
@@ -53,7 +56,7 @@ namespace WPF_Chemotaxis.Model
             {
                 Ligand lig = (Ligand)element;
                 EnzymeLigandRelation found = null;
-                foreach (EnzymeLigandRelation elr in this.ligandInteractions)
+                foreach (EnzymeLigandRelation elr in this.substrateInteractions)
                 {
                     if (elr.Ligand == lig)
                     {
@@ -69,12 +72,12 @@ namespace WPF_Chemotaxis.Model
                     }
                     else
                     {
-                        this.ligandInteractions.Remove(found);
+                        this.substrateInteractions.Remove(found);
                     }
                 }
                 else
                 {
-                    foreach (EnzymeLigandRelation elr in this.ligandInteractions)
+                    foreach (EnzymeLigandRelation elr in this.substrateInteractions)
                     {
                         if (elr.ProductLigand == lig)
                         {
@@ -98,12 +101,12 @@ namespace WPF_Chemotaxis.Model
             else if (element is EnzymeLigandRelation)
             {
                 EnzymeLigandRelation elr = (EnzymeLigandRelation)element;
-                if (this.ligandInteractions.Contains(elr))
+                if (this.substrateInteractions.Contains(elr))
                 {
-                    this.ligandInteractions.Remove(elr);
+                    this.substrateInteractions.Remove(elr);
                     if (replacement != null && replacement.GetType().IsAssignableTo(typeof(EnzymeLigandRelation)))
                     {
-                        this.ligandInteractions.Add((EnzymeLigandRelation)replacement);
+                        this.substrateInteractions.Add((EnzymeLigandRelation)replacement);
                     }
                 }
             }
@@ -113,7 +116,7 @@ namespace WPF_Chemotaxis.Model
         {
             foreach (Point p in cell.localPoints)
             {
-                foreach (EnzymeLigandRelation elr in this.ligandInteractions)
+                foreach (EnzymeLigandRelation elr in this.substrateInteractions)
                 {
                     double rate = weight*elr.vMax / cell.localPoints.Count;
                     GetOccupancyFraction(elr, env, p.X, p.Y);
@@ -128,12 +131,12 @@ namespace WPF_Chemotaxis.Model
         }
         private double GetOccupancyFraction(EnzymeLigandRelation ligandRelation, Simulations.Environment environment, int x, int y)
         {
-            if (!this.ligandInteractions.Contains(ligandRelation)) return 0;
+            if (!this.substrateInteractions.Contains(ligandRelation)) return 0;
 
             double btm = 0;
             double top = environment.GetConcentration(ligandRelation.Ligand, x, y) / ligandRelation.kM;
 
-            foreach (EnzymeLigandRelation elr in this.ligandInteractions)
+            foreach (EnzymeLigandRelation elr in this.substrateInteractions)
             {
                 btm += environment.GetConcentration(elr.Ligand, x, y) / elr.kM;
             }
@@ -143,10 +146,13 @@ namespace WPF_Chemotaxis.Model
 
         public override bool TryAddTo(ILinkable link)
         {
+            System.Diagnostics.Debug.Print(String.Format("Trying to add {0} to {1} via {0}'s TryAddTo", this.Name, link.Name));
             if (link is CellType)
             {
                 var cellType = link as CellType;
+                System.Diagnostics.Debug.Print(String.Format("Adding to cell", this.Name, link.Name));
                 CellEnzymeRelation cer = new CellEnzymeRelation(cellType, this);
+                System.Diagnostics.Debug.Print(String.Format("Created cell-enzyme relation!", this.Name, link.Name));
                 cellType.AddCellLogicComponent(cer);
                 return true;
             }

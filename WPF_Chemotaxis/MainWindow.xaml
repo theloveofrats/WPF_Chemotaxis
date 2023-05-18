@@ -9,7 +9,7 @@
         xmlns:localux="clr-namespace:WPF_Chemotaxis.UX"
         xmlns:effects="clr-namespace:WPF_Chemotaxis.UX.Effects"
         mc:Ignorable="d"
-        Title="Luke's Excellent Cell Simulation" Height="650" Width="860" Loaded="Window_Loaded" Closing="Window_Closed">
+        Title="Luke's Excellent Cell Simulation" Height="700" Width="900" Loaded="Window_Loaded" Closing="Window_Closed">
     <Window.Resources>
         <!-- Array of heat map colors for coloring black and white heat maps -->
 

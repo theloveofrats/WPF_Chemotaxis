@@ -172,15 +172,15 @@ namespace WPF_Chemotaxis.VisualScripting
                         List<VSDiagramObject> uis;
                         if (VSModelManager.Current.TryGetUIListFromLink(selectedVS.LinkedModelPart, out uis))
                         {
-                            if (uis.Count > 0)
+                            //If more than one UI represents this model object
+                            if (uis.Count > 1)
                             {
+                                //Undock the one we just detached, chuck away its lines and delete it
                                 SelectedElement.Undock();
-
                                 foreach(var line in VSModelManager.Current.GetConnections(SelectedElement))
                                 {
                                     VSModelManager.Current.TryDeleteVisual(line);
                                 }
-
                                 VSModelManager.Current.TryDeleteVisual(selectedVS);
 
                                 return;
