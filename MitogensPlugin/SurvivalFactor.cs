@@ -33,18 +33,11 @@ namespace WPF_Chemotaxis.MitogensPlugin
         [Param(Name = "Death rate", Min = 0, Max = 1)]
         public double rate { get; set; } = 0.05;
 
-        private Simulation.CellNotificationHandler RegisterCell; // We don't know how many components cells will have,
-                                                          // or how many cells a simulation will have, so we
-                                                          // deal with their initialisation using events and
-                                                          // then components subscribe to any they are interested
-                                                          // in. This is a handler for a new cell being added.
-
         public void Initialise(Simulation sim) //Initialise is a required part of a cell component.
                                                //Called once when the simulation starts.
         {
-            RegisterCell = (sim, cell, args) => RegisterNewCell(sim, cell); // We have used it to subscribe to the
+            sim.CellAdded+= (s, e) => RegisterNewCell(s, e.NewCell);  // We have used it to subscribe to the
                                                                       // "Cell Added" event in the simulation.
-            sim.CellAdded += RegisterCell;
         }
 
         // Update called every dt!
@@ -66,7 +59,7 @@ namespace WPF_Chemotaxis.MitogensPlugin
                                                                  // specified by the rate parameter
                         {
                             // Remove cell from simulation!
-                            sim.RemoveCell(cell, CellDeathType.APOPTOTIC);
+                            sim.RemoveCell(cell, CellEventType.APOPTOTIC);
                         }
                     }
                 }

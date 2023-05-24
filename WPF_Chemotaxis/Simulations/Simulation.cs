@@ -9,7 +9,8 @@ using WPF_Chemotaxis.UX;
 using System.IO;
 using System.Diagnostics;
 
-namespace WPF_Chemotaxis.Simulations {
+namespace WPF_Chemotaxis.Simulations
+{
     /// <summary>
     /// Instances of Simulation are the core element of running simulations, informing other elsements of updates, changes to cell number
     /// and integrating the behaviour of Cell instances with the environment to properly update cell position. Having said this, further
@@ -64,10 +65,11 @@ namespace WPF_Chemotaxis.Simulations {
         private bool cancelled = false;
 
         public delegate void SimulationNotification(Simulation sim, Environment e, IEnumerable<Cell> cells);
-        public delegate void CellNotificationHandler(Simulation sim, Cell cell, CellNotificationEventArgs e);
+        public delegate void CellNotificationHandler(Simulation sim, CellNotificationEventArgs e);
 
         public event CellNotificationHandler CellAdded;
         public event CellNotificationHandler CellRemoved;
+        public event CellNotificationHandler CellReplaced;
 
         public event SimulationNotification Redraw;
         public event SimulationNotification EarlyUpdate;
@@ -77,7 +79,7 @@ namespace WPF_Chemotaxis.Simulations {
 
         private HashSet<Cell> cells = new();
         private HashSet<Cell> newCells = new();
-        private Dictionary<Cell, CellDeathType> removedcells = new();
+        private Dictionary<Cell, CellEventType> removedcells = new();
         private Environment environment;
 
         private Stopwatch draw_watch = new();
@@ -169,17 +171,17 @@ namespace WPF_Chemotaxis.Simulations {
 
             // This is a dirty, undesireable way of doing it, because it's so poorly extensible.
             // There should be a sim start event from, say, the simsettings, but this does give everyone a chance to subscribe to what they need to.
-
+            
             foreach (ILinkable link in Model.Model.MasterElementList)
             {
                 if(link is CellType)
                 {
                     CellType ct = link as CellType;
-
-                    foreach (ICellComponent component in ct.components) component.Initialise(this);
+                    foreach (var component in ct.components) component.Initialise(this);
                     if(ct.drawHandler!=null) ct.drawHandler.Initialise(this);
                 }
             }
+            //Environment initialised last so that the addition of cells can be intercepted by the correct modules.
             environment.Init(this);
         }
 
@@ -196,6 +198,8 @@ namespace WPF_Chemotaxis.Simulations {
                 c.UpdateInformation(this, this.environment, this.fluid, settings.dt);
             });
 
+
+            // THIS NEEDS TO BE DEPRECATED ONCE THE ALTERNATIVES ARE ADDED!
             Parallel.ForEach(cells, c =>
             {
                 c.PerformInteractions(this.environment, this.fluid, settings.dt);
@@ -218,7 +222,7 @@ namespace WPF_Chemotaxis.Simulations {
                 cells.Remove(cell);
                 if (this.CellRemoved != null)
                 {
-                    this.CellRemoved(this, cell, new CellNotificationEventArgs() { DeathType = removedcells[cell] });
+                    this.CellRemoved(this, new CellNotificationEventArgs(eventType:removedcells[cell], oldCell:cell, newCell:null));
                 }
             }
             removedcells.Clear();
@@ -259,7 +263,7 @@ namespace WPF_Chemotaxis.Simulations {
         /// <param name="ct">The CellType for the new cell</param>
         /// <param name="x">The micrometer x position of the new cell</param>
         /// <param name="y">The micrometer y position of the new cell</param>
-        public void AddCell(CellType ct, double x, double y)
+        public void AddCell(CellType ct, double x, double y, CellEventType addedHow)
         {
             lock (newCells)
             {
@@ -267,7 +271,7 @@ namespace WPF_Chemotaxis.Simulations {
                 newCells.Add(cell);
                 if (CellAdded != null)
                 {
-                    CellAdded(this, cell, new CellNotificationEventArgs());
+                    CellAdded(this, new CellNotificationEventArgs(eventType:addedHow,oldCell:null, newCell:cell));
                 }
             }
         }
@@ -277,9 +281,20 @@ namespace WPF_Chemotaxis.Simulations {
         /// </summary>
         /// <param name="c">The cell to remove</param>
         /// <param name="deathType">Specified deathtype, which may be used by other components to initiate custom behaviour.</param>
-        public void RemoveCell(Cell c, CellDeathType deathType)
+        public void RemoveCell(Cell c, CellEventType deathType)
         {
             removedcells.TryAdd(c, deathType);
+        }
+
+        public void ReplaceCell(CellType newCellType, Cell oldCell)
+        {
+            Cell newCell = new Cell(newCellType, oldCell.Id, oldCell.X, oldCell.Y, this);
+            removedcells.TryAdd(oldCell, CellEventType.DIFFERENTIATED);
+            newCells.Add(newCell);
+            if (this.CellReplaced != null)
+            {
+                this.CellReplaced(this, new CellNotificationEventArgs(CellEventType.DIFFERENTIATED, oldCell, newCell));
+            }
         }
 
         // We might consider referring movement back to the cell upon error, this isn't very SOLID.

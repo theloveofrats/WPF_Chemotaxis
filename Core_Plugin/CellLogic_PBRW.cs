@@ -49,24 +49,20 @@ namespace WPF_Chemotaxis.CorePlugin
         {                                                                                           // need to before anything happens. I this case, I use it to:
             paramRefs.Clear();                                                                      //      A) react to user changes of parameter values (here, run the local function UpdateParams()) 
             this.PropertyChanged += (s, e) => UpdateParams(this, sim);                              //      B) put all cells in the register for looking up individual parameter values during the run.
-            foreach(Cell cell in sim.Cells)
-            {
-                RegisterCell(sim, cell);
-            }
-            sim.CellAdded += (s, c, args) => this.RegisterCell(s, c);
+            sim.CellAdded += this.RegisterCell;
         }
 
-        private void RegisterCell(Simulation sim, Cell cell)                                        // This function just puts cells in the look-up list if they're not already there.  
+        private void RegisterCell(Simulation sim, CellNotificationEventArgs e)                                        // This function just puts cells in the look-up list if they're not already there.  
         {
-            if (cell.CellType.components.Contains(this))
+            if (e.NewCell.CellType.components.Contains(this))
             {
                 lock (paramRefs)                                                                        // The list is lockedwhile this happens to stop simultaneous access by different threads (because it's generally
                 {                                                                                       // bad to change the numbers you're calculating with halfway through a calculation!)
-                    if (!paramRefs.ContainsKey(cell))
+                    if (!paramRefs.ContainsKey(e.NewCell))
                     {
-                        PBRWParams par = new PBRWParams(cell.Id);
+                        PBRWParams par = new PBRWParams(e.NewCell.Id);
                         par.Update(this, sim);
-                        paramRefs.Add(cell, par);
+                        paramRefs.Add(e.NewCell, par);
                     }
                 }
             }

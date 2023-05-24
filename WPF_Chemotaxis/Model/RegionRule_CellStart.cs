@@ -68,11 +68,11 @@ namespace WPF_Chemotaxis.Model
 
                 if (ct == null)
                 {
-                    sim.AddCell(draw[i], x,y);
+                    sim.AddCell(draw[i], x,y, CellEventType.JUST_APPEARED);
                 }
                 else
                 {
-                    sim.AddCell(ct,x,y);
+                    sim.AddCell(ct,x,y, CellEventType.JUST_APPEARED);
                 }
             }
         }

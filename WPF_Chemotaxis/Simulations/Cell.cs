@@ -236,15 +236,8 @@ namespace WPF_Chemotaxis.Simulations
             this.radius = cellType.radius.RandomInRange;
         }
 
-        public Cell(CellType cellType, int cellNumber, double x, double y, Simulation sim)
+        private void Init()
         {
-            this.cellType = cellType;
-            this.x = x;
-            this.y = y;
-            this.vx = 0;
-            this.vy = 0;
-            this.id = cellNumber;
-
             Application.Current.Dispatcher.Invoke((Action)delegate {
                 series = new()
                 {
@@ -268,30 +261,18 @@ namespace WPF_Chemotaxis.Simulations
                 receptorWeights.Add(crr.Receptor, crr.Weight.RandomInRange);
                 receptorActivities.Add(crr.Receptor, 0);
             }
+        }
 
-            /*
-             * UUUGH- NOT CLEAR HOW WE REMOVE THESE AT DISPOSE. DO WE NEED A REF TO SIMULATION?? Irritating!
-            Simulation.SimulationNotification finalWrite = (s, e, c) => {
-                string output = s.Settings.SaveDirectory+"\\CellRangeValueSnapshots.csv";
+        public Cell(CellType cellType, int cellNumber, double x, double y, Simulation sim)
+        {
+            this.cellType = cellType;
+            this.x = x;
+            this.y = y;
+            this.vx = 0;
+            this.vy = 0;
+            this.id = cellNumber;
 
-                // This makes it clear that the current form of caching values isn't any good- we want to be able to record them, so we need the range classes to keep an instance value.
-                // Or we need some way of referring to the range they came from on the object they came from to reflect the label that lets the parameters be set.
-                using (var writer = new StreamWriter(output)) {
-                    
-                    if (!File.Exists(output))
-                    {
-                        File.Create(output);
-                    }
-                    string line = string.Format("{0}, {1}", cellType.Name, id);
-
-                    foreach (Receptor r in this.receptorWeights.Keys)
-                    {
-                        line += string.Format(", {0:0.00}", receptorWeights[r]);
-                    }
-                }
-            };
-            */
-
+            Init();
             if (this.cellType.drawHandler == null)
             {
                 this.cellType.drawHandler = Activator.CreateInstance(typeof(CellDrawHandler_BasicCircle)) as ICellDrawHandler;
@@ -329,7 +310,7 @@ namespace WPF_Chemotaxis.Simulations
         /// Caches the local coordinate list for this iteration/update
         /// </summary>
         /// <param name="environment">the Environment from which to read available points</param>
-        private void UpdateLocalRegion(Environment environment)
+        protected virtual void UpdateLocalRegion(Environment environment)
         {
             double x = X;
             double y = Y;
@@ -365,7 +346,7 @@ namespace WPF_Chemotaxis.Simulations
         /// Caches the receptor occupancy/activity/differences for this iteration/update
         /// </summary>
         /// <param name="environment">the Environment from which to read ligand concentrations</param>
-        private void UpdateReceptorState(Environment environment)
+        protected virtual void UpdateReceptorState(Environment environment)
         {
             double x = Centre[0];
             double y = Centre[1];
@@ -403,7 +384,7 @@ namespace WPF_Chemotaxis.Simulations
         /// <param name="environment">the Environment from which to read ligand concentrations within the cell</param>
         /// <param name="fluidModel"> the fluid model describing local advection (currently not implemented!)</param>
         /// <param name="dt"> the timestep</param>
-        public void UpdateInformation(Simulation sim, Environment environment, IFluidModel fluidModel, double dt)
+        public virtual void UpdateInformation(Simulation sim, Environment environment, IFluidModel fluidModel, double dt)
         {
             UpdateLocalRegion(environment);
             UpdateReceptorState(environment);
@@ -418,7 +399,7 @@ namespace WPF_Chemotaxis.Simulations
         /// <param name="environment">the Environment from which to read ligand concentrations within the cell</param>
         /// <param name="fluidModel"> the fluid model describing local advection (currently not implemented!)</param>
         /// <param name="dt"> the timestep</param>
-        public void PerformInteractions(Environment environment, IFluidModel fluidModel, double dt) {
+        public virtual void PerformInteractions(Environment environment, IFluidModel fluidModel, double dt) {
             foreach (CellLigandRelation clr in CellType.ligandInteractions)
             {
                 clr.DoUpdateAction(environment, this, dt);

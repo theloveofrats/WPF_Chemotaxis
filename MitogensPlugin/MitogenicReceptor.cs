@@ -41,9 +41,8 @@ namespace WPF_Chemotaxis.MitogensPlugin
         public void Initialise(Simulation sim) //Initialise is a required part of a cell component.
                                                //Called once when the simulation starts.
         {
-            RegisterCell = (sim, cell, args) => RegisterNewCell(sim, cell); // We have used it to subscribe to the
-                                                                      // "Cell Added" event in the simulation.
-            sim.CellAdded += RegisterCell;
+            sim.CellAdded += (sim, e) => RegisterNewCell(sim, e.NewCell); // We have used it to subscribe to the
+                                                                          // "Cell Added" event in the simulation.
         }
 
         // Update called every dt!
@@ -66,7 +65,8 @@ namespace WPF_Chemotaxis.MitogensPlugin
                         // Add a cell and set our time since mitosis to 0;
                         sim.AddCell(
                             cell.CellType, cell.X+2.0*cell.radius*(rnd.value-0.5), 
-                            cell.Y+2.0 * cell.radius * (rnd.value - 0.5)
+                            cell.Y+2.0 * cell.radius * (rnd.value - 0.5),
+                            CellEventType.MITOTIC
                         ); 
                         this.lastMitosis[cell] = 0;
                     }

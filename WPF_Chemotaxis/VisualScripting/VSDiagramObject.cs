@@ -152,6 +152,26 @@ namespace WPF_Chemotaxis.VisualScripting
             (Parent as Canvas).Children.Remove(this);
         }
 
+        public async Task ResetLabels()
+        {
+            await Task.Delay(10);
+            foreach(var child in this.Children)
+            {
+                var textbox = child as TextBox;
+                if(textbox!=null)
+                {
+                    textbox.TransformToAncestor(_mainCanvas);
+                    RotateTransform gt = textbox.TransformToAncestor(_mainCanvas) as RotateTransform;
+                    RotateTransform rt = textbox.RenderTransform as RotateTransform;
+
+                    if(gt!=null && rt != null)
+                    {
+                        rt.Angle = gt.Angle;
+                    }
+                }
+            }
+        }
+
         //Manages docking an object and hooking up listeners.
         public void DockToVSObject(VSDiagramObject  dockParent, double dockDistance, ILinkable impliedLink)
         {
@@ -167,6 +187,7 @@ namespace WPF_Chemotaxis.VisualScripting
                 Canvas oldParent = Parent as Canvas;
                 oldParent?.Children.Remove(this);
                 dockParent.Children.Add(this);
+                ResetLabels();
                 
             }
             _mainCanvas.InvalidateVisual();

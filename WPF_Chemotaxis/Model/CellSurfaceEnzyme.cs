@@ -33,7 +33,7 @@ namespace WPF_Chemotaxis.Model
         }
 
         [ElementAdder(label = "Add Substrate", type = typeof(Ligand))]
-        public void AddSigand(Ligand ligand)
+        public void AddLigand(Ligand ligand)
         {
             System.Diagnostics.Debug.Print(String.Format("Invoked {0} to AddSubstrate {1}", this.Name, ligand.Name));
             foreach (var inter in substrateInteractions)
@@ -41,7 +41,7 @@ namespace WPF_Chemotaxis.Model
                 if (inter.Ligand.Equals(ligand)) return;
             }
             System.Diagnostics.Debug.Print(String.Format("Not curent substrate, so creating new enzyme relation..."));
-            new EnzymeLigandRelation(this, ligand);
+            this.substrateInteractions.Add(new EnzymeLigandRelation(this, ligand));
             System.Diagnostics.Debug.Print(String.Format("Created ENZYME-LIGAND LINK"));
         }
 
@@ -114,12 +114,14 @@ namespace WPF_Chemotaxis.Model
 
         public void Update(Cell cell, Simulation sim, Simulations.Environment env, IFluidModel flow, double weight)
         {
+            
             foreach (Point p in cell.localPoints)
             {
                 foreach (EnzymeLigandRelation elr in this.substrateInteractions)
                 {
                     double rate = weight*elr.vMax / cell.localPoints.Count;
-                    GetOccupancyFraction(elr, env, p.X, p.Y);
+                    rate*=GetOccupancyFraction(elr, env, p.X, p.Y);
+                   
                     //Offload to a proper solver later!
                     env.DegradeAtRate(elr.Ligand, elr.ProductLigand, p.X, p.Y, rate, elr.multiplier, sim.Settings.dt);
                 }

@@ -4,11 +4,11 @@ using WPF_Chemotaxis.Simulations;
 using WPF_Chemotaxis.UX;
 using Newtonsoft.Json;
 using System.Collections.Generic;
-using WPF_Chemotaxis;
 using System.Windows;
 
 namespace WPF_Chemotaxis.CorePlugin
 {
+
     public class StimulatedRelease : LabelledLinkable, ICellComponent // Labelled linkable already does the heavy
                                                             // lifting to put this in the GUI. ICellComponent means
                                                             // it can be added to a cell to do extra logic.
@@ -60,9 +60,8 @@ namespace WPF_Chemotaxis.CorePlugin
         public void Initialise(Simulation sim) //Initialise is a required part of a cell component.
                                                //Called once when the simulation starts.
         {
-            RegisterCell = (sim, cell, args) => RegisterNewCell(sim, cell); // We have used it to subscribe to the
-                                                                            // "Cell Added" event in the simulation.
-            sim.CellAdded += RegisterCell;
+            sim.CellAdded += RegisterNewCell; // We have used it to subscribe to the
+                                                                            // "Cell Added" event in the simulation
         }
 
         // Update called every dt!
@@ -108,9 +107,10 @@ namespace WPF_Chemotaxis.CorePlugin
             }
         }
 
-        private void RegisterNewCell(Simulation sim, Cell cell)
+        private void RegisterNewCell(Simulation sim, CellNotificationEventArgs e)
         {
-            if (!lastPulse.ContainsKey(cell)) lastPulse.Add(cell, 0);
+            
+            if (!lastPulse.ContainsKey(e.NewCell)) lastPulse.Add(e.NewCell, 0);
         }
     }
 }

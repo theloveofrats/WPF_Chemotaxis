@@ -76,25 +76,32 @@ namespace WPF_Chemotaxis.Model
         }
 
         private Dictionary<Cell, double> expressionWeights;
+
+        protected void RegisterCell(Cell newCell)
+        {
+            lock (expressionWeights)
+            {
+                double val = Weight.RandomInRange;
+                expressionWeights.Add(newCell, val);
+            }
+        }
         public void Update(Cell simCell, Simulation sim, Simulations.Environment env, IFluidModel flow)
         {
             double val;
             if (expressionWeights.TryGetValue(simCell, out val))
             {
-                
+                this.enzyme.Update(simCell, sim, env, flow, val);
             }
             else
             {
-                val = Weight.RandomInRange;
-                expressionWeights.Add(simCell, val);
+                RegisterCell(simCell);
+                this.enzyme.Update(simCell, sim, env, flow, expressionWeights[simCell]);
             }
-            this.enzyme.Update(simCell, sim, env, flow, val);
         }
 
         public void Initialise(Simulation sim)
         {
             this.expressionWeights = new();
-
         }
 
         [JsonIgnore]
