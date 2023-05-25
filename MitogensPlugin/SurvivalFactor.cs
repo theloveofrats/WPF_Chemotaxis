@@ -41,7 +41,7 @@ namespace WPF_Chemotaxis.MitogensPlugin
         }
 
         // Update called every dt!
-        public void Update(Cell cell, Simulation sim, WPF_Chemotaxis.Simulations.Environment env, IFluidModel flow)
+        public void Update(Cell cell, Simulation sim, WPF_Chemotaxis.Simulations.Environment env)
         {
             if (cell.ReceptorActivity(this.Input) > threshold && inverse
                || cell.ReceptorActivity(this.Input) < threshold && !inverse){

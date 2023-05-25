@@ -85,17 +85,17 @@ namespace WPF_Chemotaxis.Model
                 expressionWeights.Add(newCell, val);
             }
         }
-        public void Update(Cell simCell, Simulation sim, Simulations.Environment env, IFluidModel flow)
+        public void Update(Cell simCell, Simulation sim, Simulations.Environment env)
         {
             double val;
             if (expressionWeights.TryGetValue(simCell, out val))
             {
-                this.enzyme.Update(simCell, sim, env, flow, val);
+                this.enzyme.Update(simCell, sim, env, val);
             }
             else
             {
                 RegisterCell(simCell);
-                this.enzyme.Update(simCell, sim, env, flow, expressionWeights[simCell]);
+                this.enzyme.Update(simCell, sim, env, expressionWeights[simCell]);
             }
         }
 

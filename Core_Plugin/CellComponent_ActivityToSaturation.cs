@@ -55,7 +55,7 @@ namespace Core_Plugin
             //System.Diagnostics.Debug.Print(string.Format("rgb_in::({0},{1},{2})->HSL::({3:0.00}{4:0.00}{5:0.00})     activity::{6:0.00}       HSL::HSL::({7:0.00}{8:0.00}{9:0.00})->rbg_out::({10},{11},{12})", base_primary.R, base_primary.G, base_primary.B, hsl.H, hsl.S, hsl.L, mean, newHSL.H, newHSL.S, newHSL.L, modified_primary.R, modified_primary.G, modified_primary.B));
         }
 
-        public void Update(Cell cell, Simulation sim, WPF_Chemotaxis.Simulations.Environment env, IFluidModel flow)
+        public void Update(Cell cell, Simulation sim, WPF_Chemotaxis.Simulations.Environment env)
         {
            
         }

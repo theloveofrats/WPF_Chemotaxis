@@ -80,7 +80,7 @@ namespace WPF_Chemotaxis
         {
             this.simulation = simulation;
             this.InitialiseIntensities();
-            this.simulation.Redraw += (s, e, c) => this.UpdateSourceData(e, c);
+            this.simulation.Redraw += (s, e, c) => this.UpdateSourceData(e);
             this.simulation.Close += (s,e,c) => this.FinishSimulation();
             this.InitialiseImages();
             this.selector = new OverlaySelector(simulation);
@@ -222,7 +222,7 @@ namespace WPF_Chemotaxis
                 }
             }
         }
-        private void UpdateSourceData(Simulations.Environment environment, IEnumerable<Cell> cells)
+        private void UpdateSourceData(Simulations.Environment environment)
         {
             FetchIntensities(environment);
         }
@@ -261,7 +261,7 @@ namespace WPF_Chemotaxis
         private void RedrawOverlay()
         { 
             bmp_overlay.Clear(Colors.Transparent);
-            ICollection<Cell> cells = simulation.Cells;
+            IReadOnlyCollection<Cell> cells = simulation.Cells;
             double dx = simulation.Environment.settings.DX;
 
             using (bmp_overlay.GetBitmapContext())
@@ -299,10 +299,8 @@ namespace WPF_Chemotaxis
 
         private Point ScreenToSimulation(Image clicked, Point clickPoint)
         {
-
             double x = clickPoint.X * simulation.Environment.settings.DX * simulation.Environment.Width / clicked.ActualWidth;
             double y = clickPoint.Y * simulation.Environment.settings.DX * simulation.Environment.Width / clicked.ActualWidth;
-
 
             return new Point(x, y);
         }

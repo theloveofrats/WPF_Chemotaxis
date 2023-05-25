@@ -25,7 +25,7 @@ namespace WPF_Chemotaxis.Model
         /// <param name="sim">The running Simulation, of which cell is a part/</param>
         /// <param name="env">The Environment that sim is acting in, which contains the ligand grids and motion/diffusion rules.</param>
         /// <param name="flow">The IFluidModel describing advection in env. Currently unimplemented!</param>
-        public void Update(Cell cell, Simulation sim, Simulations.Environment env, IFluidModel flow);
+        public void Update(Cell cell, Simulation sim, Simulations.Environment env);
         /// <summary>
         /// Called when Simulation sim starts. Use this to perform any required set-up for the component,
         /// e.g. subscribing to "Cell added" and "Cell removed" events.

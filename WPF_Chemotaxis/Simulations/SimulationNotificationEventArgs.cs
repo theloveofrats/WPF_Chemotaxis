@@ -6,8 +6,13 @@ using System.Threading.Tasks;
 
 namespace WPF_Chemotaxis.Simulations
 {
-    internal class SimulationNotificationEventArgs
-    {
 
+    public class SimulationNotificationEventArgs
+    {
+        public double dt { get; private set; }
+        public SimulationNotificationEventArgs(double dt)
+        {
+            this.dt = dt;
+        }
     }
 }

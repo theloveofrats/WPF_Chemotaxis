@@ -64,7 +64,7 @@ namespace WPF_Chemotaxis.Simulations
         private bool paused = true;
         private bool cancelled = false;
 
-        public delegate void SimulationNotification(Simulation sim, Environment e, IEnumerable<Cell> cells);
+        public delegate void SimulationNotification(Simulation sim, Environment env, SimulationNotificationEventArgs e);
         public delegate void CellNotificationHandler(Simulation sim, CellNotificationEventArgs e);
 
         public event CellNotificationHandler CellAdded;
@@ -73,17 +73,23 @@ namespace WPF_Chemotaxis.Simulations
 
         public event SimulationNotification Redraw;
         public event SimulationNotification EarlyUpdate;
+        public event SimulationNotification Update;
         public event SimulationNotification LateUpdate;
         public event SimulationNotification WriteToFile;
         public event SimulationNotification Close;
 
         private HashSet<Cell> cells = new();
+        public  IReadOnlyCollection<Cell> Cells { get
+            {
+                return cells;
+            } 
+        }
         private HashSet<Cell> newCells = new();
         private Dictionary<Cell, CellEventType> removedcells = new();
         private Environment environment;
 
         private Stopwatch draw_watch = new();
-
+        private SimulationNotificationEventArgs defaultEventArgs;
 
         private IFluidModel fluid;
         private bool disposedValue;
@@ -118,7 +124,7 @@ namespace WPF_Chemotaxis.Simulations
 
             this.settings.Pause += pauseSub;
             this.settings.Resume += resumeSub;
-
+            this.defaultEventArgs = new(settings.dt) { };
             this.environment = new Environment(envSettings);
             Initialise(targetDirectory??"");
         }
@@ -153,7 +159,7 @@ namespace WPF_Chemotaxis.Simulations
             }
             if (this.Close != null)
             {
-                this.Close(this,environment,cells);
+                this.Close(this,environment, new SimulationNotificationEventArgs(dt:settings.dt));
             }
             watch.Stop();
             System.Diagnostics.Debug.Print(string.Format("Duration: {0}", watch.Elapsed.ToString(@"mm\:ss\:ff")));
@@ -188,22 +194,13 @@ namespace WPF_Chemotaxis.Simulations
         private void Iterate()
         {
             //Early update. Any preparatory activity needed.
-            if(this.EarlyUpdate!=null) EarlyUpdate(this,this.environment, cells);
+            if(this.EarlyUpdate!=null) EarlyUpdate(this,this.environment, defaultEventArgs);
 
             //Main update. Most things happen here. 
             environment.Update(settings.dt);
-            
-            Parallel.ForEach(cells, c =>
-            {
-                c.UpdateInformation(this, this.environment, this.fluid, settings.dt);
-            });
 
-
+            if (this.Update != null) Update(this, this.environment, defaultEventArgs);
             // THIS NEEDS TO BE DEPRECATED ONCE THE ALTERNATIVES ARE ADDED!
-            Parallel.ForEach(cells, c =>
-            {
-                c.PerformInteractions(this.environment, this.fluid, settings.dt);
-            });
             
             foreach (Cell c in cells)
             {
@@ -212,7 +209,7 @@ namespace WPF_Chemotaxis.Simulations
             if (Redraw != null) {
                 if (draw_watch.ElapsedTicks > 300000)
                 {
-                    Redraw(this, this.environment, this.cells);
+                    Redraw(this, this.environment, defaultEventArgs);
                     draw_watch.Restart();
                 }
             }
@@ -228,7 +225,7 @@ namespace WPF_Chemotaxis.Simulations
             removedcells.Clear();
 
             //Late update- clearing up, depenent calculations &c.
-            if (this.LateUpdate != null) LateUpdate(this, this.environment, cells);
+            if (this.LateUpdate != null) LateUpdate(this, this.environment, defaultEventArgs);
 
             time += settings.dt;
             if (settings.out_freq > 0)
@@ -238,13 +235,13 @@ namespace WPF_Chemotaxis.Simulations
                     WriteCellPositionData();
                     if (this.WriteToFile != null)
                     {
-                        WriteToFile(this, this.environment, this.cells);
+                        WriteToFile(this, this.environment, defaultEventArgs);
                     }
                 }
             }
             foreach (Cell cell in newCells)
             {
-                Cells.Add(cell);
+                cells.Add(cell);
             }
             newCells.Clear();
         }
@@ -323,16 +320,7 @@ namespace WPF_Chemotaxis.Simulations
             cell.UpdatePosition(cell.X+cell.vx, cell.Y +cell.vy);
             return true;
         }
-        /// <summary>
-        /// The currently active Cell instance collection.
-        /// </summary>
-        public ICollection<Cell> Cells
-        {
-            get
-            {
-                return cells;
-            }
-        }
+
 
         protected virtual void Dispose(bool disposing)
         {

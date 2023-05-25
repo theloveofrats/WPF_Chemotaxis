@@ -65,7 +65,7 @@ namespace WPF_Chemotaxis.CorePlugin
         }
 
         // Update called every dt!
-        public void Update(Cell cell, Simulation sim, WPF_Chemotaxis.Simulations.Environment env, IFluidModel flow) 
+        public void Update(Cell cell, Simulation sim, WPF_Chemotaxis.Simulations.Environment env) 
         {
             if (lastPulse[cell] < wavelength)
             {

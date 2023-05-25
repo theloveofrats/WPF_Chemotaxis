@@ -112,7 +112,7 @@ namespace WPF_Chemotaxis.Model
             }
         }
 
-        public void Update(Cell cell, Simulation sim, Simulations.Environment env, IFluidModel flow, double weight)
+        public void Update(Cell cell, Simulation sim, Simulations.Environment env, double weight)
         {
             
             foreach (Point p in cell.localPoints)

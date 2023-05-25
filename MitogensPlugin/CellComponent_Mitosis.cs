@@ -69,7 +69,7 @@ namespace WPF_Chemotaxis.MitogensPlugin
         }
 
 
-        public virtual void Update(Cell cell, Simulations.Simulation sim, Simulations.Environment env, IFluidModel flow)       // Update is called every time-step and is where the core logic goes. 
+        public virtual void Update(Cell cell, Simulations.Simulation sim, Simulations.Environment env)       // Update is called every time-step and is where the core logic goes. 
         {
 
             MitosisParams mitParams;

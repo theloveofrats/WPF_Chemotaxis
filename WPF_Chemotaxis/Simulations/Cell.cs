@@ -272,6 +272,9 @@ namespace WPF_Chemotaxis.Simulations
             this.vy = 0;
             this.id = cellNumber;
 
+            sim.EarlyUpdate += this.UpdateInformation;
+            sim.Update += this.PerformInteractions;
+
             Init();
             if (this.cellType.drawHandler == null)
             {
@@ -384,13 +387,13 @@ namespace WPF_Chemotaxis.Simulations
         /// <param name="environment">the Environment from which to read ligand concentrations within the cell</param>
         /// <param name="fluidModel"> the fluid model describing local advection (currently not implemented!)</param>
         /// <param name="dt"> the timestep</param>
-        public virtual void UpdateInformation(Simulation sim, Environment environment, IFluidModel fluidModel, double dt)
+        public virtual void UpdateInformation(Simulation sim, Environment environment, SimulationNotificationEventArgs e)
         {
             UpdateLocalRegion(environment);
             UpdateReceptorState(environment);
             currentTime = sim.Time;
             //TODO- the comps should subscribe to event they want to be part of, really.
-            foreach (ICellComponent comp in CellType.components) comp.Update(this, sim, environment, fluidModel);
+            foreach (ICellComponent comp in CellType.components) comp.Update(this, sim, environment);
         }
         /// <summary>
         /// Cell early update. Updates local region and receptor state. 
@@ -399,10 +402,10 @@ namespace WPF_Chemotaxis.Simulations
         /// <param name="environment">the Environment from which to read ligand concentrations within the cell</param>
         /// <param name="fluidModel"> the fluid model describing local advection (currently not implemented!)</param>
         /// <param name="dt"> the timestep</param>
-        public virtual void PerformInteractions(Environment environment, IFluidModel fluidModel, double dt) {
+        public virtual void PerformInteractions(Simulation sim, Environment environment, SimulationNotificationEventArgs e) {
             foreach (CellLigandRelation clr in CellType.ligandInteractions)
             {
-                clr.DoUpdateAction(environment, this, dt);
+                clr.DoUpdateAction(environment, this, e.dt);
             }
         }
 
