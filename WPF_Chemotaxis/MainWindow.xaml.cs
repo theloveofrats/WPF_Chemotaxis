@@ -705,7 +705,7 @@ namespace WPF_Chemotaxis
             if (Simulation.Current == null)
             {
                 Simulation newSim = Simulation.StartSimulation(sim, env, newTargetDirectory);
-                newSim.Redraw += (s, e, m) => UpdateTime(newSim.Time);
+                newSim.Redraw += (s, e, m) => UpdateTime(s.Time);
                 newSim.Start();
             }
             AddDisplayView(Simulation.Current);

@@ -72,9 +72,13 @@ namespace WPF_Chemotaxis.Simulations
         public event CellNotificationHandler CellReplaced;
 
         public event SimulationNotification Redraw;
+        //Update before mass transport equations
         public event SimulationNotification EarlyUpdate;
+        //Main update
         public event SimulationNotification Update;
+        //Update after collision detection?- this isn't in yet!
         public event SimulationNotification LateUpdate;
+
         public event SimulationNotification WriteToFile;
         public event SimulationNotification Close;
 
@@ -133,7 +137,6 @@ namespace WPF_Chemotaxis.Simulations
         /// </summary>
         public void Start()
         {
-           
             Thread thread = new Thread(new ThreadStart(this.Run)); 
             thread.Start();
         }
@@ -143,6 +146,7 @@ namespace WPF_Chemotaxis.Simulations
         }
         private void Run()
         {
+            Iterate();
             draw_watch.Start();
             var watch = System.Diagnostics.Stopwatch.StartNew();
             while (time<settings.duration && !cancelled)
