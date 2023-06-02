@@ -198,13 +198,26 @@ namespace WPF_Chemotaxis.Simulations
         private void Iterate()
         {
             //Early update. Any preparatory activity needed.
-            if(this.EarlyUpdate!=null) EarlyUpdate(this,this.environment, defaultEventArgs);
-
+            if (this.EarlyUpdate != null)
+            {
+                Parallel.ForEach(EarlyUpdate.GetInvocationList(), action =>
+                {
+                    (action as SimulationNotification).Invoke(this, environment, defaultEventArgs);
+                });
+                //EarlyUpdate(this, this.environment, defaultEventArgs);
+            }
             //Main update. Most things happen here. 
             environment.Update(settings.dt);
 
-            if (this.Update != null) Update(this, this.environment, defaultEventArgs);
-            // THIS NEEDS TO BE DEPRECATED ONCE THE ALTERNATIVES ARE ADDED!
+            if (this.Update != null)
+            {
+                Parallel.ForEach(Update.GetInvocationList(), action =>
+                {
+                    (action as SimulationNotification).Invoke(this, environment, defaultEventArgs);
+                });
+                //Update(this, this.environment, defaultEventArgs);
+
+            }
             
             foreach (Cell c in cells)
             {
@@ -229,9 +242,16 @@ namespace WPF_Chemotaxis.Simulations
             removedcells.Clear();
 
             //Late update- clearing up, depenent calculations &c.
-            if (this.LateUpdate != null) LateUpdate(this, this.environment, defaultEventArgs);
+            if (this.LateUpdate != null)
+            {
+                Parallel.ForEach(LateUpdate.GetInvocationList(), action =>
+                {
+                    (action as SimulationNotification).Invoke(this, environment, defaultEventArgs);
+                });
+                //Update(this, this.environment, defaultEventArgs);}
 
-            time += settings.dt;
+                time += settings.dt;
+            }
             if (settings.out_freq > 0)
             {
                 if (time % settings.out_freq < settings.dt)
