@@ -42,7 +42,10 @@ namespace WPF_Chemotaxis.Model
         [Param(Name = "Efficacy (0 to 1)")]
         public double eff { get; set; } = 1;
 
-        public LigandReceptorRelation() : base() { }
+        public LigandReceptorRelation() : base() 
+        {
+            Init();
+        }
         public LigandReceptorRelation(string label) : base(label) { }
 
         public LigandReceptorRelation(Ligand ligand,Receptor receptor) : base() {

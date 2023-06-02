@@ -51,6 +51,7 @@ namespace WPF_Chemotaxis.VisualScripting
         {
             if(this.targetCanvas==null) this.targetCanvas = targetCanvas;
             this.factory = new(targetCanvas);
+            ParseOnLoad();
         }
 
         /*
@@ -86,7 +87,7 @@ namespace WPF_Chemotaxis.VisualScripting
             if (!ui_model_multimap.Contains(element))
             {
                 //Create model part programatically here
-                Point newPoint = new Point(10 + (targetCanvas.ActualWidth-20) * rnd.NextDouble(), 10 + (targetCanvas.ActualHeight-20) * rnd.NextDouble());
+                Point newPoint = new Point(20 + Math.Max(600, targetCanvas.ActualWidth-40) * rnd.NextDouble(), 20 + Math.Max(500, targetCanvas.ActualHeight-40) * rnd.NextDouble());
                 VSDiagramObject createdUIElement;
                 System.Diagnostics.Debug.Print(String.Format("Trying to create UI element for new {0}", element.DisplayType));
                 if (factory.TryCreateUIForExtantModelElement(element, newPoint, out createdUIElement))
@@ -174,35 +175,149 @@ namespace WPF_Chemotaxis.VisualScripting
 
         private bool TryAddRelationshipMarker(ILinkable relationalLink, VSRelationAttribute relation)
         {
-       
             Type linkType = relationalLink.GetType();
             ILinkable parent = linkType.GetField(relation.parentFieldName, BindingFlags.NonPublic | BindingFlags.Instance).GetValue(relationalLink) as ILinkable;
             ILinkable child  = linkType.GetField(relation.childFieldName, BindingFlags.NonPublic | BindingFlags.Instance).GetValue(relationalLink) as ILinkable;
 
+            // If we have both model links.
             if(parent!=null && child != null)
             {
-                System.Diagnostics.Debug.Print(String.Format("Found parent {0} and child {1} objects", parent.Name, child.Name));
                 List<VSDiagramObject> parentUISet, childUISet;
                 
+                //And we have at least one visual element for each...
                 if(ui_model_multimap.TryGetValues(parent, out parentUISet) && ui_model_multimap.TryGetValues(child, out childUISet)){
-                    System.Diagnostics.Debug.Print(String.Format("Fetched UI elements for the ends of the relations...", parent.Name, child.Name));
-
-
-                    // SO HERE IS A PROBLEM! WE ARE ADDING RELATIONSHIPS BASED ON A LISTENER- WE NEED THE NEW RELATION LINK UI THAT WAS GENERATED BUT DON'T KNOW WHICH- HOWEVER WE DO KNOW THAT IT'S UNDOCKED!
-                    // AN UNDOCKED COPY IS EITHER THE ONLY ONE, OR IT IS NEW, SO WE FIND THE UNDOCKED ONE AND WE PASS IN THAT!
-
-                    //However- none of this applies to lines, so we might have to work around that here...
-
-                    foreach(var childUI in childUISet)
+                    if (relation.forcedPositionType != ForcedPositionType.NONE)
                     {
-                        if (!childUI.Docked)
+                        //We check thsat, for every parentUI, we have a versio of the child. 
+                        foreach (var parentUI in parentUISet)
                         {
-                            AddUIChildToUIParent(parentUISet[0], childUI, relation, relationalLink);
-                            return true;
+                            bool attached = false;
+                            foreach (var childUI in childUISet)
+                            {
+                                //If the parentUI contains this child, it's a docked child, so tick off this parent from the list
+                                if (parentUI.Children.Contains(childUI))
+                                {
+                                    attached = true;
+                                    break;
+                                }
+                            }
+                            if (!attached)
+                            {
+                                foreach (var childUI in childUISet)
+                                {
+                                    if (!childUI.Docked)
+                                    {
+                                        AddUIChildToUIParent(parentUI, childUI, relation, relationalLink);
+                                        attached = true;
+                                        break;
+                                    }
+                                }
+                                if (!attached)
+                                {
+
+                                    //Or, add a copy I guess?
+                                    System.Diagnostics.Debug.Print(String.Format("COPY {0} TO ADD TO PARENT {1}", child.Name, parent.Name));
+                                    var copy = childUISet[0].Duplicate();
+                                    AddUIChildToUIParent(parentUI, copy, relation, relationalLink);
+                                    TryAdd(copy, (copy as VSUIElement).LinkedModelPart);
+                                    attached = true;
+                                }
+                            }
                         }
                     }
-                    AddUIChildToUIParent(parentUISet[0], childUISet[0], relation, relationalLink);
+                    //If we're here, we still haven't made an attchment, whivch meant there was no extra UI element. 
+                    //var copy = childUISet[0].Duplicate();
+                    //TryAdd(copy, (copy as VSUIElement).LinkedModelPart);
+                    //if (TryConnectElements(parentUISet[0] as VSUIElement, copy as VSUIElement))
+                    //{
+                    //    return true;
+                    else
+                    {
+                        AddUIChildToUIParent(parentUISet[0], childUISet[0], relation, relationalLink);
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        private void ParseOnLoad()
+        {
+            List<VSDiagramObject> el;
+            foreach (CellType newCellType in Model.Model.MasterElementList.OfType<CellType>())
+            {
+                if(ui_model_multimap.TryGetValues(newCellType, out el))
+                {
+                    // If it already has a representative, don't add it!
+
+                }
+                else
+                {
+                    TryAddNewILinkable(newCellType);
+                }
+            }
+            foreach(Receptor newReceptor in Model.Model.MasterElementList.OfType<Receptor>())
+            {
+                if (ui_model_multimap.TryGetValues(newReceptor, out el))
+                {
+                    
+                }
+                else
+                {
+                    TryAddNewILinkable(newReceptor);
+                }
+            }
+            foreach (Ligand newLigand in Model.Model.MasterElementList.OfType<Ligand>())
+            {
+                if (ui_model_multimap.TryGetValues(newLigand, out el))
+                {
+
+                }
+                else
+                {
+                    TryAddNewILinkable(newLigand);
+                }
+            }
+
+            var remaining = from element in Model.Model.MasterElementList 
+                            where !element.GetType().IsAssignableTo(typeof(CellType))
+                            &&    !element.GetType().IsAssignableTo(typeof(Receptor))
+                            &&    !element.GetType().IsAssignableTo(typeof(Ligand))
+                            select element;
+
+            foreach (var link in remaining)
+            {
+                if (ui_model_multimap.TryGetValues(link, out el))
+                {
+
+                }
+                else
+                {
+                    TryAddNewILinkable(link);
+                }
+            }
+        }
+
+        private bool TryAddNewILinkable(ILinkable item)
+        {
+            if (item != null)
+            {
+                // If an element that can be added via menu has been added elsewhere...
+                VSElementAttribute itemAttribute = item.GetType().GetCustomAttribute<VSElementAttribute>();
+                if (itemAttribute != null)
+                {
+                    AddDetectedMainElement(item);
                     return true;
+                }
+                else
+                {
+                    VSRelationAttribute relationAttribute = item.GetType().GetCustomAttribute<VSRelationAttribute>();
+                    if (relationAttribute != null)
+                    {
+                        System.Diagnostics.Debug.Print(String.Format("Found relation attribute of type {0}", item.Name));
+                        TryAddRelationshipMarker(item, relationAttribute);
+                        return true;
+                    }
                 }
             }
             return false;
@@ -220,24 +335,7 @@ namespace WPF_Chemotaxis.VisualScripting
                 foreach(var uncastitem in e.NewItems)
                 {
                     ILinkable item = uncastitem as ILinkable;
-                    if (item != null)
-                    {
-                        // If an element that can be added via menu has been added elsewhere...
-                        VSElementAttribute itemAttribute = item.GetType().GetCustomAttribute<VSElementAttribute>();
-                        if (itemAttribute != null)
-                        {
-                            AddDetectedMainElement(item);
-                        }
-                        else
-                        {
-                            VSRelationAttribute relationAttribute = item.GetType().GetCustomAttribute<VSRelationAttribute>();
-                            if (relationAttribute != null)
-                            {
-                                System.Diagnostics.Debug.Print(String.Format("Found relation attribute of type {0}", item.Name));
-                                TryAddRelationshipMarker(item, relationAttribute);
-                            }
-                        }
-                    }
+                    TryAddNewILinkable(item);
                 }
             }
 
