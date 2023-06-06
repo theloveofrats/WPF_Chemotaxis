@@ -296,6 +296,59 @@ namespace WPF_Chemotaxis.VisualScripting
                     TryAddNewILinkable(link);
                 }
             }
+
+            AutoarrangeChildren();
+        }
+
+
+        private async Task AutoarrangeChildren()
+        {
+            await Task.Delay(100);
+
+            var modelElements = targetCanvas.Children.OfType<VSUIElement>();
+            
+            var cellUIs = (from element in modelElements 
+                          where element.LinkedModelPart.GetType()==typeof(CellType) 
+                          select element).ToList();
+
+            var ligandUIs = (from element in modelElements
+                           where element.LinkedModelPart.GetType() == typeof(Ligand)
+                           select element).ToList();
+
+            var otherUIs = modelElements.Except(cellUIs.Union(ligandUIs)).ToList();
+
+            double iWidth =  Math.Max(targetCanvas.ActualWidth, 1050);
+            double iHeight = Math.Max(targetCanvas.ActualHeight, 600);
+
+            double rows = 0;
+            if (otherUIs.Count > 0) rows+=0.5;
+            if (cellUIs.Count > 0) rows+=2;
+            if (ligandUIs.Count > 0) rows+=0.5;
+
+            double hStep = iHeight /(rows+1);
+            double row = 0;
+
+            if (otherUIs.Count > 0) row += 0.5;
+            for (int i = 1; i <= otherUIs.Count; i++)
+            {
+                var otherUI = otherUIs[i-1];
+                otherUI.SetPosition(i * iWidth / (otherUIs.Count + 1), row*hStep);
+            }
+
+            if (cellUIs.Count > 0) row += 1;
+            for (int i = 1; i <= cellUIs.Count; i++)
+            {
+                var cellUI = cellUIs[i-1];
+                cellUI.SetPosition(i * iWidth / (cellUIs.Count + 1), row * hStep);
+            }
+            if (cellUIs.Count > 0) row += 1;
+
+            if (ligandUIs.Count > 0) row += 0.5;
+            for (int i = 1; i <= ligandUIs.Count; i++)
+            {
+                var ligandUI = ligandUIs[i-1];
+                ligandUI.SetPosition(i * iWidth / (ligandUIs.Count + 1), row * hStep);
+            }
         }
 
         private bool TryAddNewILinkable(ILinkable item)

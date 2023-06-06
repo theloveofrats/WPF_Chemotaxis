@@ -949,6 +949,9 @@ namespace WPF_Chemotaxis
             VisualScriptingSelectionManager.Current.EndDrag();
         }
 
-
+        private void TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            (MainTabControl.SelectedItem as TabItem).UpdateLayout();
+        }
     }
 }

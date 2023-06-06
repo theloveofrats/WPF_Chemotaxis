@@ -360,5 +360,13 @@ namespace WPF_Chemotaxis.VisualScripting
         {
             System.Diagnostics.Debug.Print(String.Format("Right-click at position {0}:{1}", e.GetPosition(this).X, e.GetPosition(this).Y));
         }
+
+        protected override void OnRender(DrawingContext dc)
+        {
+            OnPropertyChanged("Position", 1);
+            OnPropertyChanged("AbsolutePosition", 1);
+            OnPropertyChanged("Rotation", 1);
+            base.OnRender(dc);
+        }
     }
 }
