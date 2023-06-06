@@ -24,7 +24,6 @@ namespace WPF_Chemotaxis.VisualScripting
         private Dictionary<VSDiagramObject, List<VSDiagramObject>> arrow_child_elements = new();
         private Canvas targetCanvas;
         private VisualModelElementFactory factory;
-        private VisualScriptingSelectionManager selectionManager;
         private SciRand rnd;
         private bool _islistening = true;
 
@@ -43,15 +42,20 @@ namespace WPF_Chemotaxis.VisualScripting
 
         private VSModelManager()
         { 
-            Model.Model.Current.OnModelChanged += this.HandleModelChanges;
-            this.selectionManager = VisualScriptingSelectionManager.Current;
             this.rnd = new();
         }
         public void Init(Canvas targetCanvas)
         {
             if(this.targetCanvas==null) this.targetCanvas = targetCanvas;
             this.factory = new(targetCanvas);
+            Model.Model.Current.OnModelChanged += this.HandleModelChanges;
             ParseOnLoad();
+        }
+
+        public void Clear()
+        {
+            ui_model_multimap?.Clear();
+            targetCanvas?.Children.Clear();
         }
 
         /*
@@ -83,9 +87,11 @@ namespace WPF_Chemotaxis.VisualScripting
 
         private void AddDetectedMainElement(ILinkable element)
         {
+            System.Diagnostics.Debug.Print(String.Format("Adding element {0}", element.Name));
             //If an item that could be picked from the menu isn't listed in the visual componenet dictionary, make it and place it.
-            if (!ui_model_multimap.Contains(element))
+            if (ui_model_multimap!=null && !ui_model_multimap.Contains(element))
             {
+                if(targetCanvas==null) System.Diagnostics.Debug.Print(String.Format("NO CANVAS SOMEHOW, FUCKING HELL"));
                 //Create model part programatically here
                 Point newPoint = new Point(20 + Math.Max(600, targetCanvas.ActualWidth-40) * rnd.NextDouble(), 20 + Math.Max(500, targetCanvas.ActualHeight-40) * rnd.NextDouble());
                 VSDiagramObject createdUIElement;
@@ -225,12 +231,6 @@ namespace WPF_Chemotaxis.VisualScripting
                             }
                         }
                     }
-                    //If we're here, we still haven't made an attchment, whivch meant there was no extra UI element. 
-                    //var copy = childUISet[0].Duplicate();
-                    //TryAdd(copy, (copy as VSUIElement).LinkedModelPart);
-                    //if (TryConnectElements(parentUISet[0] as VSUIElement, copy as VSUIElement))
-                    //{
-                    //    return true;
                     else
                     {
                         AddUIChildToUIParent(parentUISet[0], childUISet[0], relation, relationalLink);
@@ -246,7 +246,7 @@ namespace WPF_Chemotaxis.VisualScripting
             List<VSDiagramObject> el;
             foreach (CellType newCellType in Model.Model.MasterElementList.OfType<CellType>())
             {
-                if(ui_model_multimap.TryGetValues(newCellType, out el))
+                if(ui_model_multimap!=null && ui_model_multimap.TryGetValues(newCellType, out el))
                 {
                     // If it already has a representative, don't add it!
 

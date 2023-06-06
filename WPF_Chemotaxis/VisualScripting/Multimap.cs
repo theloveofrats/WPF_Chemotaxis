@@ -137,5 +137,11 @@ namespace WPF_Chemotaxis.VisualScripting
         {
             return _forewardmap.Keys.ToList();
         }
+
+        public void Clear()
+        {
+            _forewardmap.Clear();
+            _backwardmap.Clear();
+        }
     }
 }

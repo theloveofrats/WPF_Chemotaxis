@@ -427,6 +427,7 @@ namespace WPF_Chemotaxis
 
             RegionType.ClearRegions();
             OnMazeFileChosen("");
+            VSModelManager.Current?.Clear();
         }
 
         // Generates buttons for all current elements of the type elementListFilterType, and links them to the MethodInfo method. These methods MUST take a single argument of the correct type! 

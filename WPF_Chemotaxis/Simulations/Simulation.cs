@@ -197,25 +197,25 @@ namespace WPF_Chemotaxis.Simulations
 
         private void Iterate()
         {
-            //Early update. Any preparatory activity needed.
+            //Early update. Any preparatory activity needed. Cells are 
             if (this.EarlyUpdate != null)
             {
                 Parallel.ForEach(EarlyUpdate.GetInvocationList(), action =>
                 {
                     (action as SimulationNotification).Invoke(this, environment, defaultEventArgs);
                 });
-                //EarlyUpdate(this, this.environment, defaultEventArgs);
             }
-            //Main update. Most things happen here. 
-            environment.Update(settings.dt);
 
+            // Environment update / mass transport happens separately to events so that both the early update (logging receptor stimuli)
+            // and the main update (calculating rates of reaction) happen correctly. 
+            environment.Update(settings.dt);
+            //Main update. Most things happen here. Cells log their rates of reaction for example. 
             if (this.Update != null)
             {
                 Parallel.ForEach(Update.GetInvocationList(), action =>
                 {
                     (action as SimulationNotification).Invoke(this, environment, defaultEventArgs);
                 });
-                //Update(this, this.environment, defaultEventArgs);
 
             }
             
