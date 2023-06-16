@@ -15,7 +15,7 @@ namespace WPF_Chemotaxis.Model
     /// Relational class for cell-ligand direct interactions (rather than receptor-mediated interactions).
     /// </summary>
 
-    [VSRelationAttribute(forcedPositionType = ForcedPositionType.NONE, childFieldName = "_enzyme", parentFieldName = "_inputLigand")]
+    [VSRelationAttribute(forcedPositionType = ForcedPositionType.NONE, childFieldName = "_inputLigand", parentFieldName = "_enzyme")]
     public class EnzymeLigandRelation : LabelledLinkable
     {
         [JsonProperty]
@@ -31,6 +31,7 @@ namespace WPF_Chemotaxis.Model
 
         [JsonProperty]
         [InstanceChooser(label = "Input ligand")]
+        [VisualLine(lineType =LineType.ARROW_FROM)]
         private Ligand _inputLigand;
         public Ligand Ligand
         {
@@ -40,6 +41,7 @@ namespace WPF_Chemotaxis.Model
         }
 
         [JsonProperty]
+        [VisualLine(lineType = LineType.ARROW_TO)]
         [InstanceChooser(label = "Product ligand")]
         private Ligand _outputLigand;
         public Ligand ProductLigand

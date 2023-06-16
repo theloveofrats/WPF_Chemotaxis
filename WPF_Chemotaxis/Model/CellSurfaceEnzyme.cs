@@ -20,6 +20,7 @@ namespace WPF_Chemotaxis.Model
         public string label = "Receptor";
 
         [LinkAttribute]
+        [VisualLineAttribute()]
         public List<EnzymeLigandRelation> substrateInteractions = new();
 
         public CellSurfaceEnzyme() : base()

@@ -13,6 +13,7 @@ using System.Collections.Specialized;
 using System.Windows.Media;
 using System.Windows.Input;
 using System.Windows.Shapes;
+using System.Xml.Linq;
 
 namespace WPF_Chemotaxis.VisualScripting
 {
@@ -105,25 +106,19 @@ namespace WPF_Chemotaxis.VisualScripting
             }
         }
 
-        private void AddChildLineUI(VSDiagramObject parent, VSDiagramObject child, ILinkable relationLink)
+        private void AddChildLineUI(ILinkable parentModelElement, ILinkable childModelElement, ILinkable relationLink)
         {
             //If there are duplicates to make, we need to know
-            ILinkable parentModelElement, childModelElement;
-            if (ui_model_multimap.TryGetValue(parent, out parentModelElement) && ui_model_multimap.TryGetValue(child, out childModelElement))
-            {
-                List<VSDiagramObject> parentDuplicates, childDuplicates;
-                if (ui_model_multimap.TryGetValues(parentModelElement, out parentDuplicates) && ui_model_multimap.TryGetValues(childModelElement, out childDuplicates)){
-
-                    foreach (var par in parentDuplicates)
-                    {
-                        foreach (var chi in childDuplicates)
-                        {
-                            VSRelationElement relation = new VSRelationElement(par, chi, relationLink, targetCanvas);
-                            ui_model_multimap.TryAdd(relation, relation.ModelReation);
-                        }
-                    }
-                    targetCanvas.InvalidateVisual();
+            
+            List<VSDiagramObject> parentDuplicates, childDuplicates;
+            if (ui_model_multimap.TryGetValues(parentModelElement, out parentDuplicates) && ui_model_multimap.TryGetValues(childModelElement, out childDuplicates)){
+                System.Diagnostics.Debug.Print(String.Format("Both {0} and {1} have UI elements in the database", parentModelElement.Name, childModelElement.Name));
+                foreach (var par in parentDuplicates)
+                {
+                    VSRelationElement relation = new VSRelationElement(par, relationLink, targetCanvas);
+                    ui_model_multimap.TryAdd(relation, relation.ModelReation);
                 }
+                targetCanvas.InvalidateVisual();
             }
         }
 
@@ -134,8 +129,7 @@ namespace WPF_Chemotaxis.VisualScripting
             {
                 case ForcedPositionType.NONE:
 
-                    AddChildLineUI(child, parent, relationalModelLink);
-                    List<VSDiagramObject> lineChildren;
+                    
                     
                     /*if (radial_child_elements.TryGetValue(parent, out lineChildren))
                     {
@@ -186,12 +180,13 @@ namespace WPF_Chemotaxis.VisualScripting
             ILinkable child  = linkType.GetField(relation.childFieldName, BindingFlags.NonPublic | BindingFlags.Instance).GetValue(relationalLink) as ILinkable;
 
             // If we have both model links.
-            if(parent!=null && child != null)
+            if (parent!=null && child != null)
             {
                 List<VSDiagramObject> parentUISet, childUISet;
-                
+                System.Diagnostics.Debug.Print(String.Format("Adding relationship marker {0} for child {1} and parent {2}", relationalLink.Name, child.Name, parent.Name));
+
                 //And we have at least one visual element for each...
-                if(ui_model_multimap.TryGetValues(parent, out parentUISet) && ui_model_multimap.TryGetValues(child, out childUISet)){
+                if (ui_model_multimap.TryGetValues(parent, out parentUISet) && ui_model_multimap.TryGetValues(child, out childUISet)){
                     if (relation.forcedPositionType != ForcedPositionType.NONE)
                     {
                         //We check thsat, for every parentUI, we have a versio of the child. 
@@ -233,7 +228,13 @@ namespace WPF_Chemotaxis.VisualScripting
                     }
                     else
                     {
-                        AddUIChildToUIParent(parentUISet[0], childUISet[0], relation, relationalLink);
+                        System.Diagnostics.Debug.Print(String.Format("No forced position..."));
+
+                        AddChildLineUI(child, parent, relationalLink);
+                        List<VSDiagramObject> lineChildren;
+
+
+                        //AddUIChildToUIParent(parentUISet[0], childUISet[0], relation, relationalLink);
                         return true;
                     }
                 }
