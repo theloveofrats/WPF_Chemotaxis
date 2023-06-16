@@ -129,33 +129,14 @@ namespace WPF_Chemotaxis.VisualScripting
             {
                 case ForcedPositionType.NONE:
 
-                    
-                    
-                    /*if (radial_child_elements.TryGetValue(parent, out lineChildren))
-                    {
-                        lineChildren.Add(child);
-                    }
-                    else
-                    {
-                        lineChildren = new List<VSDiagramObject>() { child };
-                        radial_child_elements.Add(parent, lineChildren);
-                    }*/
+              
 
                     break;
                 case ForcedPositionType.RADIUS:
 
                     child.DockToVSObject(parent, relationParams.forcePositionDistance, relationalModelLink); 
 
-                    /*
-                    List<VSDiagramObject> radialChildren;
-                    if(radial_child_elements.TryGetValue(parent, out radialChildren)){
-                        radialChildren.Add(child);
-                    }
-                    else
-                    {
-                        radialChildren = new List<VSDiagramObject>() {child};
-                        radial_child_elements.Add(parent, radialChildren);
-                    }*/
+                 
 
                     break;
 
@@ -232,9 +213,6 @@ namespace WPF_Chemotaxis.VisualScripting
 
                         AddChildLineUI(child, parent, relationalLink);
                         List<VSDiagramObject> lineChildren;
-
-
-                        //AddUIChildToUIParent(parentUISet[0], childUISet[0], relation, relationalLink);
                         return true;
                     }
                 }
