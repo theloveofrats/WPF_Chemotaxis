@@ -9,7 +9,7 @@ using WPF_Chemotaxis.VisualScripting;
 
 namespace WPF_Chemotaxis.CorePlugin
 {
-    [VSElement(symbolResourcePath = "Resources/DirectionModuleIcon.png", symbolSize = 7.0, ui_TypeLabel = "Cell Direction Logic", tagX = 25, tagY = 0, tagCentre = false)]
+    [VSElement(symbolResourcePath = "Core_Plugin;component/Resources/DirectionModuleIcon.png", symbolSize = 7.0, ui_TypeLabel = "Cell Direction Logic", tagX = 25, tagY = 0, tagCentre = false)]
     public class CellLogic_PBRW: LabelledLinkable, ICellComponent
     {
         private string name = "Persistent Biased Walker";                                           // This is the field where the display name is stored

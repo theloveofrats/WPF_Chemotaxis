@@ -65,7 +65,10 @@ namespace WPF_Chemotaxis.Model
         [Param(Name = "kM")]
         public double kM { get; set; } = 0.5;
 
-        public EnzymeLigandRelation() { }
+        public EnzymeLigandRelation() : base() 
+        {
+            Init();
+        }
 
         public EnzymeLigandRelation(CellSurfaceEnzyme enzyme, Ligand ligand) : base()
         {

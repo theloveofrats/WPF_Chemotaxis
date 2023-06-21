@@ -44,7 +44,10 @@ namespace WPF_Chemotaxis.Model
         {
             Init();
         }
-        public CellEnzymeRelation(string label) : base(label) { }
+        public CellEnzymeRelation(string label) : base(label) 
+        {
+            Init();
+        }
 
         public CellEnzymeRelation(CellType cell, CellSurfaceEnzyme enzyme) : base()
         {

@@ -49,7 +49,7 @@ namespace WPF_Chemotaxis.VisualScripting
         {
             if(this.targetCanvas==null) this.targetCanvas = targetCanvas;
             this.factory = new(targetCanvas);
-            Model.Model.Current.OnModelChanged += this.HandleModelChanges;
+            Model.Model.Current.ModelChanged += this.HandleModelChanges;
             ParseOnLoad();
         }
 
@@ -92,7 +92,7 @@ namespace WPF_Chemotaxis.VisualScripting
             //If an item that could be picked from the menu isn't listed in the visual componenet dictionary, make it and place it.
             if (ui_model_multimap!=null && !ui_model_multimap.Contains(element))
             {
-                if(targetCanvas==null) System.Diagnostics.Debug.Print(String.Format("NO CANVAS SOMEHOW, FUCKING HELL"));
+                if(targetCanvas==null) System.Diagnostics.Debug.Print(String.Format("NO CANVAS SOMEHOW"));
                 //Create model part programatically here
                 Point newPoint = new Point(20 + Math.Max(600, targetCanvas.ActualWidth-40) * rnd.NextDouble(), 20 + Math.Max(500, targetCanvas.ActualHeight-40) * rnd.NextDouble());
                 VSDiagramObject createdUIElement;
@@ -157,7 +157,14 @@ namespace WPF_Chemotaxis.VisualScripting
         private bool TryAddRelationshipMarker(ILinkable relationalLink, VSRelationAttribute relation)
         {
             Type linkType = relationalLink.GetType();
-            ILinkable parent = linkType.GetField(relation.parentFieldName, BindingFlags.NonPublic | BindingFlags.Instance).GetValue(relationalLink) as ILinkable;
+            ILinkable parent;
+            if (relation.parentFieldName == null)
+            {
+                parent = relationalLink;
+            }
+            else {
+                parent = linkType.GetField(relation.parentFieldName, BindingFlags.NonPublic | BindingFlags.Instance).GetValue(relationalLink) as ILinkable;
+            }
             ILinkable child  = linkType.GetField(relation.childFieldName, BindingFlags.NonPublic | BindingFlags.Instance).GetValue(relationalLink) as ILinkable;
 
             // If we have both model links.
@@ -211,7 +218,7 @@ namespace WPF_Chemotaxis.VisualScripting
                     {
                         System.Diagnostics.Debug.Print(String.Format("No forced position..."));
 
-                        AddChildLineUI(child, parent, relationalLink);
+                        AddChildLineUI(parent, child, relationalLink);
                         List<VSDiagramObject> lineChildren;
                         return true;
                     }
@@ -341,15 +348,12 @@ namespace WPF_Chemotaxis.VisualScripting
                     AddDetectedMainElement(item);
                     return true;
                 }
-                else
+                VSRelationAttribute relationAttribute = item.GetType().GetCustomAttribute<VSRelationAttribute>();
+                if (relationAttribute != null)
                 {
-                    VSRelationAttribute relationAttribute = item.GetType().GetCustomAttribute<VSRelationAttribute>();
-                    if (relationAttribute != null)
-                    {
-                        System.Diagnostics.Debug.Print(String.Format("Found relation attribute of type {0}", item.Name));
-                        TryAddRelationshipMarker(item, relationAttribute);
-                        return true;
-                    }
+                    System.Diagnostics.Debug.Print(String.Format("Found relation attribute of type {0}", item.Name));
+                    TryAddRelationshipMarker(item, relationAttribute);
+                    return true;
                 }
             }
             return false;

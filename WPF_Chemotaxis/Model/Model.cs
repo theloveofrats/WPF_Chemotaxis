@@ -71,8 +71,16 @@ namespace WPF_Chemotaxis.Model
             }
         }
 
-        public event EventHandler<NotifyCollectionChangedEventArgs> OnModelChanged;
+        public event EventHandler<NotifyCollectionChangedEventArgs> ModelChanged;
         public event PropertyChangedEventHandler PropertyChanged;
+        
+        private void OnModelChanged(object sender, NotifyCollectionChangedEventArgs e)
+        {
+            if (ModelChanged != null)
+            {
+                ModelChanged(sender, e);
+            }
+        }
 
         private void NotifyPropertyChanged(string info)
         {
@@ -87,21 +95,25 @@ namespace WPF_Chemotaxis.Model
         {
             current = this;
             focusHistory.Add(this);
-            masterElementList.CollectionChanged += FireModelChangeEvent;
+            masterElementList.CollectionChanged += OnModelChanged;
         }
 
-        private void FireModelChangeEvent(object sender, NotifyCollectionChangedEventArgs e)
+        public void AddElement(ILinkable element)
         {
-            if (OnModelChanged != null)
-            {
-                OnModelChanged(sender, e);
-            }
+            if (this.masterElementList.Contains(element)) return;
+            masterElementList.Add(element);
+
+            // All elements should tell the main model if they update parameters. That way,
+            // anything that needs to know about changes, like the VS system, can be notified.
+            // If the element doesn't implement INotifyPropertyChanged, it's probably not 
+            // relevant to watch it!
+            var castEl = (element as INotifyPropertyChanged);
+            if(castEl!=null) castEl.PropertyChanged += (s,e) => this.NotifyPropertyChanged("Update");        
         }
 
         public void RemoveElement(ILinkable element, ILinkable replacement=null)
         {
             if(this.masterElementList.Contains(element)) this.masterElementList.Remove(element);
-
             List<ILinkable> temp = masterElementList.ToList();
 
             foreach(ILinkable link in temp)

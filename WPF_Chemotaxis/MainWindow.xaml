@@ -207,7 +207,7 @@
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <Border Background="Gray">
-                                                <Image Name="VSElementImage"  Source="{Binding IconResourcePath}" MouseLeftButtonDown="VSMenuItem_LeftMouseDown"/>
+                                                <Image Name="VSElementImage"  Source="{Binding IconSource}" MouseLeftButtonDown="VSMenuItem_LeftMouseDown"/>
                                             </Border>
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>

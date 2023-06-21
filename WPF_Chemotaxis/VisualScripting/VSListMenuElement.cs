@@ -23,7 +23,13 @@ namespace WPF_Chemotaxis.VisualScripting
         private static Color[] colors = new Color[] { Color.FromRgb(217,85,85),   Color.FromRgb(255, 122, 0), Color.FromRgb(253,245,103),
                                                       Color.FromRgb(100,177,242), Color.FromRgb(107,120,149), Color.FromRgb(80,141,93),
                                                       Color.FromRgb(107,120,149), Color.FromRgb(121,88,181),  Color.FromRgb(164,79,153)};
-
+        public Uri IconSource
+        {
+            get 
+            {
+                return new Uri(@"pack://application:,,,/" + this.IconResourcePath);
+            } 
+        }
 
 
         public VSListMenuElement(string UIDisplayLabel, string IconResourcePath, double IconSize, Type TargetType, Point NametagOffset, bool tagAlignCentre)
@@ -49,6 +55,11 @@ namespace WPF_Chemotaxis.VisualScripting
         {
             Image image = new TransparentPassthroughImage();
             var bmp = new BitmapImage();
+
+            //var resource = Application.Current.FindResource(IconResourcePath);
+            
+
+
             bmp.BeginInit();
             bmp.UriSource = new Uri(@"pack://application:,,,/"+this.IconResourcePath);
             bmp.EndInit();

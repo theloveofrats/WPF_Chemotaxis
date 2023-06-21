@@ -39,7 +39,12 @@ namespace WPF_Chemotaxis.VisualScripting
         {
             this.ModelReation = modelRelation;
             this.primary = primary;
+            //if(this.Parent == null)
+            //{
+            //    _mainCanvas.Children.Add(this);
+            //}
             MakeLines();
+
         }
         public override void Dispose()
         {
@@ -52,7 +57,7 @@ namespace WPF_Chemotaxis.VisualScripting
             ILinkable checkLinkDebug;
 
             if (VSModelManager.Current.TryGetModelElementFromVisual(primary, out checkLinkDebug)) {
-                System.Diagnostics.Debug.Print(string.Format("Making lines from primary handle {0}", checkLinkDebug.Name));
+               
             }
             else
             {
@@ -70,6 +75,7 @@ namespace WPF_Chemotaxis.VisualScripting
                     {
                         if (VSModelManager.Current.TryGetUIListFromLink(lineLink, out lineTargetUIs))
                         {
+                            System.Diagnostics.Debug.Print(string.Format("Model part {0} has {1} UIs to link lines to", lineLink.Name, lineTargetUIs.Count()));
                             foreach (var lineTarget in lineTargetUIs)
                             {
                                 MakeLine(lineTarget, vla);
@@ -90,9 +96,14 @@ namespace WPF_Chemotaxis.VisualScripting
             if (_lines == null) _lines = new();
             if (_lineTargets == null) _lineTargets = new();
 
+            System.Diagnostics.Debug.Print(string.Format("Making line from primary handle to target"));
+
             Line newLine = new();
+
             newLine.Stroke = Brushes.Blue;
             newLine.StrokeThickness = 4;
+            newLine.StrokeStartLineCap = annotation.lineType == LineType.ARROW_FROM ? PenLineCap.Triangle : PenLineCap.Square;
+            newLine.StrokeEndLineCap   = annotation.lineType == LineType.ARROW_TO ?   PenLineCap.Triangle : PenLineCap.Square;
 
             _mainCanvas.Children.Add(newLine);
             Canvas.SetZIndex(newLine, -1);
@@ -110,10 +121,16 @@ namespace WPF_Chemotaxis.VisualScripting
             bindingX1.Path = new PropertyPath("AbsolutePosition.X");
             bindingY1.Path = new PropertyPath("AbsolutePosition.Y");
 
+            System.Diagnostics.Debug.Print(string.Format("Absolute position of primary handle ({0:0.0}:{1:0.0}).", primary.AbsolutePosition.X, primary.AbsolutePosition.Y));
+
             bindingX2.Source = lineTarget;
             bindingY2.Source = lineTarget;
             bindingX2.Path = new PropertyPath("AbsolutePosition.X");
             bindingY2.Path = new PropertyPath("AbsolutePosition.Y");
+
+            System.Diagnostics.Debug.Print(string.Format("Absolute position of secondary handle ({0:0.0}:{1:0.0}).", lineTarget.AbsolutePosition.X, lineTarget.AbsolutePosition.Y));
+
+            System.Diagnostics.Debug.Print(string.Format("Recorded positions at StackTrace:: {0}", Environment.StackTrace));
 
             bindingX1.Mode = BindingMode.TwoWay;
             bindingY1.Mode = BindingMode.TwoWay;

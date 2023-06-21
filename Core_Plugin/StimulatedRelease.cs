@@ -5,25 +5,29 @@ using WPF_Chemotaxis.UX;
 using Newtonsoft.Json;
 using System.Collections.Generic;
 using System.Windows;
+using WPF_Chemotaxis.VisualScripting;
+using ILGPU.Runtime.Cuda;
 
 namespace WPF_Chemotaxis.CorePlugin
 {
+    [VSElement(ui_TypeLabel = "Ligand release", symbolResourcePath = "Core_Plugin;component/Resources/ChannelIcon.png", symbolSize = 6.0, tagX = 12, tagY = -12, tagCentre = false)]
+    [VSRelation(childFieldName = "Output", parentFieldName = null, forcedPositionType = ForcedPositionType.NONE)]
 
     public class StimulatedRelease : LabelledLinkable, ICellComponent // Labelled linkable already does the heavy
-                                                            // lifting to put this in the GUI. ICellComponent means
-                                                            // it can be added to a cell to do extra logic.
+                                                                      // lifting to put this in the GUI. ICellComponent means
+                                                                      // it can be added to a cell to do extra logic.
     {
         private Dictionary<Cell, double> lastPulse = new(); // Record of how long since each cell last split. 
         private SciRand rnd = new();
 
-        [JsonProperty]      // This makes the dropdown selection saveable.
+        [JsonProperty]                              // This makes the dropdown selection saveable.
         [InstanceChooser(label = "Input receptor")] // This creates a dropdown of all instances of the type
                                                     // (Receptor here), so you can choose the one to plug in.
         public Receptor Input;
 
-        [JsonProperty]      // This makes the dropdown selection saveable.
-        [InstanceChooser(label = "Second input")] // This creates a dropdown of all instances of the type
-                                                  // (Receptor here), so you can choose the one to plug in.
+        [JsonProperty]                              // This makes the dropdown selection saveable.
+        [InstanceChooser(label = "Second input")]   // This creates a dropdown of all instances of the type
+                                                    // (Receptor here), so you can choose the one to plug in.
         public Receptor Second_Input;
 
         [Param(Name = "First input weight", Min = 0, Max = 1)]
@@ -32,11 +36,11 @@ namespace WPF_Chemotaxis.CorePlugin
         [Param(Name = "Second input weight", Min = 0)]
         public double second_weight { get; set; } = 0.5;
 
+        [VisualLine(lineStartDistance = 1.0, lineType = LineType.ARROW_TO)]
         [JsonProperty]      // This makes the dropdown selection saveable.
         [InstanceChooser(label = "Output ligand")] // This creates a dropdown of all instances of the type
-                                                    // (Receptor here), so you can choose the one to plug in.
+                                                   // (Receptor here), so you can choose the one to plug in.
         public Ligand Output;
-
 
 
         [Param(Name = "Threshold occupancy", Min = 0, Max = 1)]
@@ -50,6 +54,7 @@ namespace WPF_Chemotaxis.CorePlugin
 
         [Param(Name = "Pulse amplitude", Min = 0, Max = 1)]
         public double amplitude { get; set; } = 0.025;
+
 
         private Simulation.CellNotificationHandler RegisterCell; // We don't know how many components cells will have,
                                                           // or how many cells a simulation will have, so we

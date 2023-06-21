@@ -13,27 +13,29 @@ namespace WPF_Chemotaxis.Model
     /// Defines the relationship between a given ligand and a given receptor type. 
     /// Parameters fro kD and efficacy are exposed to the UI for modification.
     /// </summary>
-    [VSRelationAttribute(forcedPositionType = ForcedPositionType.NONE, childFieldName = "receptor", parentFieldName = "ligand")]
+    [VSRelationAttribute(forcedPositionType = ForcedPositionType.NONE, childFieldName = "_ligand", parentFieldName = "_receptor")]
     public class LigandReceptorRelation : LabelledLinkable
     {
         [JsonPropertyAttribute]
         [LinkAttribute]
-        private Receptor receptor;
+        private Receptor _receptor;
         public Receptor Receptor
         {
             get
             {
-                return receptor;
+                return _receptor;
             }
         }
+
+        [VisualLine(lineType = LineType.LINE)]
         [JsonPropertyAttribute]
         [LinkAttribute] 
-        private Ligand ligand;
+        private Ligand _ligand;
         public Ligand Ligand
         {
             get
             {
-                return ligand;
+                return _ligand;
             }
         }
 
@@ -50,28 +52,28 @@ namespace WPF_Chemotaxis.Model
 
         public LigandReceptorRelation(Ligand ligand,Receptor receptor) : base() {
 
-            this.ligand = ligand;
-            this.receptor = receptor;
+            this._ligand = ligand;
+            this._receptor = receptor;
 
-            this.ligand.receptorInteractions.Add(this);
-            this.receptor.ligandInteractions.Add(this);
+            this._ligand.receptorInteractions.Add(this);
+            this._receptor.ligandInteractions.Add(this);
             Init();
         }
 
         public void SetReceptor(Receptor r)
         {
-            this.receptor = r;
-            if (!this.receptor.ligandInteractions.Contains(this))
+            this._receptor = r;
+            if (!this._receptor.ligandInteractions.Contains(this))
             {
-                this.receptor.ligandInteractions.Add(this);
+                this._receptor.ligandInteractions.Add(this);
             }
         }
         public void SetLigand(Ligand l)
         {
-            this.ligand = l;
-            if (!this.ligand.receptorInteractions.Contains(this))
+            this._ligand = l;
+            if (!this._ligand.receptorInteractions.Contains(this))
             {
-                this.ligand.receptorInteractions.Add(this);
+                this._ligand.receptorInteractions.Add(this);
             }
 
         }
@@ -81,19 +83,19 @@ namespace WPF_Chemotaxis.Model
             if(element is Receptor)
             {
                 Receptor r = (Receptor)element;
-                if (this.receptor == r)
+                if (this._receptor == r)
                 {
-                    this.receptor = (Receptor) replacement;
-                    if(this.receptor==null) Model.Current.RemoveElement(this);
+                    this._receptor = (Receptor) replacement;
+                    if(this._receptor==null) Model.Current.RemoveElement(this);
                 }
             }
             else if (element is Ligand)
             {
                 Ligand l = (Ligand)element;
-                if (this.ligand == l)
+                if (this._ligand == l)
                 {
-                    this.ligand = (Ligand)replacement;
-                    if(this.ligand==null) Model.Current.RemoveElement(this);
+                    this._ligand = (Ligand)replacement;
+                    if(this._ligand==null) Model.Current.RemoveElement(this);
                 }
             }
         }
@@ -103,8 +105,8 @@ namespace WPF_Chemotaxis.Model
         {
             get
             {
-                if (receptor == null || ligand == null) return "Broken Ligand Receptor Link";
-                return string.Format("{0}<->{1} interactions",receptor.Name,ligand.Name);
+                if (_receptor == null || _ligand == null) return "Broken Ligand Receptor Link";
+                return string.Format("{0}<->{1} interactions",_receptor.Name,_ligand.Name);
             }
             set
             {

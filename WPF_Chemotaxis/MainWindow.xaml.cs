@@ -237,7 +237,7 @@ namespace WPF_Chemotaxis
                         }
                         if (admit)
                         {
-                            Model.Model.MasterElementList.Add(link);
+                            Model.Model.Current.AddElement(link);
                             // Do we need a trigger here that connects missing links to names with the correct names in the new setup? #
                             // Perhaps a Re-link function that points all your current referees to a new ILinkable? 
                             foreach (ILinkable connection in link.LinkList)
@@ -771,8 +771,9 @@ namespace WPF_Chemotaxis
          */
         private VSModelManager modelManager;
 
-        private void SetUpVisualScriptingWindow()
+        private async Task SetUpVisualScriptingWindow()
         {
+            await Task.Delay(500);
             //VSCanvas.KeyDown += (s,e) => KeyDownHandler(s,e);
             VSCanvas.KeyDown += KeyDownHandler;
             SetVSElementsDisplaySource();
