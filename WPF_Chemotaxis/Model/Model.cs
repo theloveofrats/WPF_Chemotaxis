@@ -46,12 +46,17 @@ namespace WPF_Chemotaxis.Model
                 current.freezeAdditions = value;
             }
         }
-        public static ObservableCollection<ILinkable> MasterElementList
+        public static ReadOnlyCollection<ILinkable> MasterElementList
         {
             get
             {
-                return current.masterElementList;
+                return new ReadOnlyCollection<ILinkable>(current.masterElementList);
             }
+        }
+
+        public void Clear()
+        {
+            masterElementList.Clear();
         }
 
         private static List<ILinkable> focusHistory = new();
@@ -67,13 +72,14 @@ namespace WPF_Chemotaxis.Model
             {
 
                 listFocus = value;
-                NotifyPropertyChanged("ListFocus");
+                OnFocusModelElement();
             }
         }
 
         public event EventHandler<NotifyCollectionChangedEventArgs> ModelChanged;
         public event PropertyChangedEventHandler PropertyChanged;
-        
+        public event EventHandler<EventArgs> FocusModelElement;
+
         private void OnModelChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
             if (ModelChanged != null)
@@ -84,11 +90,12 @@ namespace WPF_Chemotaxis.Model
 
         private void NotifyPropertyChanged(string info)
         {
-            if (PropertyChanged != null)
-            {
-                System.Diagnostics.Debug.Print("Property Changed Firing!");
-                PropertyChanged(this, new PropertyChangedEventArgs(info));
-            }
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(info));
+        }
+
+        private void OnFocusModelElement()
+        {
+            FocusModelElement?.Invoke(this, new EventArgs());
         }
 
         public Model()
@@ -108,18 +115,27 @@ namespace WPF_Chemotaxis.Model
             // If the element doesn't implement INotifyPropertyChanged, it's probably not 
             // relevant to watch it!
             var castEl = (element as INotifyPropertyChanged);
-            if(castEl!=null) castEl.PropertyChanged += (s,e) => this.NotifyPropertyChanged("Update");        
+            if(castEl!=null) castEl.PropertyChanged += this.NotifyModelElementPropertyChanged;        
+        }
+
+        private void NotifyModelElementPropertyChanged(object source, PropertyChangedEventArgs e)
+        {
+            PropertyChanged?.Invoke(source, e);
         }
 
         public void RemoveElement(ILinkable element, ILinkable replacement=null)
         {
-            if(this.masterElementList.Contains(element)) this.masterElementList.Remove(element);
+            var castEl = (element as INotifyPropertyChanged);
+            if (castEl != null) castEl.PropertyChanged -= this.NotifyModelElementPropertyChanged;
+
+            if (this.masterElementList.Contains(element)) this.masterElementList.Remove(element);
             List<ILinkable> temp = masterElementList.ToList();
 
             foreach(ILinkable link in temp)
             {
                 link.RemoveElement(element, replacement);
             }
+            
         }
 
         public static ILinkable CurrentFocus
@@ -164,7 +180,7 @@ namespace WPF_Chemotaxis.Model
 
         string ILinkable.DisplayType => "Model Structure";
 
-        ObservableCollection<ILinkable> ILinkable.LinkList => MasterElementList;
+        ObservableCollection<ILinkable> ILinkable.LinkList => masterElementList;
 
         [ElementAdder(label = "Cell", type =typeof(CellType))]
         public void AddCell(CellType cell)

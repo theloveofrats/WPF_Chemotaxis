@@ -278,7 +278,7 @@ namespace WPF_Chemotaxis.Simulations
             Init();
             if (this.cellType.drawHandler == null)
             {
-                this.cellType.drawHandler = Activator.CreateInstance(typeof(CellDrawHandler_BasicCircle)) as ICellDrawHandler;
+                this.cellType.SetDrawHandler(Activator.CreateInstance(typeof(CellDrawHandler_BasicCircle)) as ICellDrawHandler);
             }
         }
 

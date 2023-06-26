@@ -14,6 +14,8 @@ using System.Windows.Media;
 using System.Windows.Input;
 using System.Windows.Shapes;
 using System.Xml.Linq;
+using System.Windows.Forms.Design;
+using static System.Windows.Forms.LinkLabel;
 
 namespace WPF_Chemotaxis.VisualScripting
 {
@@ -55,6 +57,10 @@ namespace WPF_Chemotaxis.VisualScripting
 
         public void Clear()
         {
+            foreach (var uiobj in ui_model_multimap.MultipleItemsList())
+            {
+                uiobj.Clean();
+            }
             ui_model_multimap?.Clear();
             targetCanvas?.Children.Clear();
         }
@@ -68,7 +74,7 @@ namespace WPF_Chemotaxis.VisualScripting
             _islistening = false;
             try
             {
-                System.Diagnostics.Debug.Print(string.Format("About to create object of type {0}, but with listening={0}", fromMenu.TargetType.Name, _islistening));
+                System.Diagnostics.Debug.Print(string.Format("About to create object of type {0}, but with listening={1}", fromMenu.TargetType.Name, _islistening));
                 ILinkable newModelElement = (ILinkable) Activator.CreateInstance(fromMenu.TargetType);
                 System.Diagnostics.Debug.Print("Created object of type " + newModelElement.GetType().Name);
                 newModelElement.Name = "New " + newModelElement.DisplayType;
@@ -112,11 +118,9 @@ namespace WPF_Chemotaxis.VisualScripting
             
             List<VSDiagramObject> parentDuplicates, childDuplicates;
             if (ui_model_multimap.TryGetValues(parentModelElement, out parentDuplicates) && ui_model_multimap.TryGetValues(childModelElement, out childDuplicates)){
-                System.Diagnostics.Debug.Print(String.Format("Both {0} and {1} have UI elements in the database", parentModelElement.Name, childModelElement.Name));
                 foreach (var par in parentDuplicates)
                 {
                     VSRelationElement relation = new VSRelationElement(par, relationLink, targetCanvas);
-                    ui_model_multimap.TryAdd(relation, relation.ModelReation);
                 }
                 targetCanvas.InvalidateVisual();
             }
@@ -128,44 +132,57 @@ namespace WPF_Chemotaxis.VisualScripting
             switch(relationParams.forcedPositionType)
             {
                 case ForcedPositionType.NONE:
-
-              
-
                     break;
                 case ForcedPositionType.RADIUS:
-
-                    child.DockToVSObject(parent, relationParams.forcePositionDistance, relationalModelLink); 
-
-                 
-
+                    child.DockToVSObject(parent, relationParams.forcePositionDistance, relationalModelLink);
                     break;
-
-                case ForcedPositionType.LIST:
-                    break;
-                case ForcedPositionType.WORKERCLASS:
-                    break;
-
             }
         }
 
         public List<VSRelationElement> GetConnections(VSDiagramObject handle)
         {
-            var connections = (from sel in ui_model_multimap.MultipleItemsList().OfType<VSRelationElement>() where sel.HasHandle(handle) select sel);
-            return connections.ToList();
+            /*ILinkable link;
+            if(ui_model_multimap.TryGetValue(handle, out link)){
+                System.Diagnostics.Debug.Print(string.Format("Getting connections for {0}", link.Name));
+            }
+            System.Diagnostics.Debug.Print(string.Format(""));
+            var connections = from sel in ui_model_multimap.MultipleItemsList().OfType<VSRelationElement>() select sel;
+            System.Diagnostics.Debug.Print(string.Format("XXXXXXXX There are {0} RelationElements in the list", connections.Count()));
+            foreach (var sel in connections)
+            {
+                ILinkable relationlink;
+                if (ui_model_multimap.TryGetValue(sel, out relationlink))
+                {
+                    System.Diagnostics.Debug.Print(string.Format("Checking relation {0}", relationlink.Name));
+                }
+                if (sel.HasHandle(handle))
+                {
+                    System.Diagnostics.Debug.Print(string.Format("Has connection to {0}", link.Name));
+                }
+            }*/
+            var connections2 = (from sel in ui_model_multimap.MultipleItemsList().OfType<VSRelationElement>() where sel.HasHandle(handle) select sel);
+            return connections2.ToList();
         }
 
         private bool TryAddRelationshipMarker(ILinkable relationalLink, VSRelationAttribute relation)
         {
             Type linkType = relationalLink.GetType();
             ILinkable parent;
-            if (relation.parentFieldName == null)
+
+            if (relation.parentPropertyName == null)
             {
                 parent = relationalLink;
             }
             else {
-                parent = linkType.GetField(relation.parentFieldName, BindingFlags.NonPublic | BindingFlags.Instance).GetValue(relationalLink) as ILinkable;
+                System.Diagnostics.Debug.Print(String.Format("Parent property name is {0}, child property name is {1}", relation.parentPropertyName, relation.childPropertyName));
+                parent = linkType.GetProperty(relation.parentPropertyName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).GetValue(relationalLink) as ILinkable;
             }
-            ILinkable child  = linkType.GetField(relation.childFieldName, BindingFlags.NonPublic | BindingFlags.Instance).GetValue(relationalLink) as ILinkable;
+
+            ILinkable child  = linkType.GetProperty(relation.childPropertyName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).GetValue(relationalLink) as ILinkable;
+
+            if (parent == null) System.Diagnostics.Debug.Print("Null parent");
+            if (child == null) System.Diagnostics.Debug.Print("Null child");
+
 
             // If we have both model links.
             if (parent!=null && child != null)
@@ -219,7 +236,6 @@ namespace WPF_Chemotaxis.VisualScripting
                         System.Diagnostics.Debug.Print(String.Format("No forced position..."));
 
                         AddChildLineUI(parent, child, relationalLink);
-                        List<VSDiagramObject> lineChildren;
                         return true;
                     }
                 }
@@ -269,9 +285,23 @@ namespace WPF_Chemotaxis.VisualScripting
                             where !element.GetType().IsAssignableTo(typeof(CellType))
                             &&    !element.GetType().IsAssignableTo(typeof(Receptor))
                             &&    !element.GetType().IsAssignableTo(typeof(Ligand))
+                            &&    !element.GetType().IsAssignableTo(typeof(ICellComponent))
                             select element;
 
             foreach (var link in remaining)
+            {
+                if (ui_model_multimap.TryGetValues(link, out el))
+                {
+
+                }
+                else
+                {
+                    TryAddNewILinkable(link);
+                }
+            }
+
+            //Logic components last, or they don't attach things properly!
+            foreach (ILinkable link in Model.Model.MasterElementList.Where(l=>l.GetType().IsAssignableTo(typeof(ICellComponent))))
             {
                 if (ui_model_multimap.TryGetValues(link, out el))
                 {
@@ -351,7 +381,7 @@ namespace WPF_Chemotaxis.VisualScripting
                 VSRelationAttribute relationAttribute = item.GetType().GetCustomAttribute<VSRelationAttribute>();
                 if (relationAttribute != null)
                 {
-                    System.Diagnostics.Debug.Print(String.Format("Found relation attribute of type {0}", item.Name));
+                    System.Diagnostics.Debug.Print(String.Format("Found relation attribute named {0}", item.Name));
                     TryAddRelationshipMarker(item, relationAttribute);
                     return true;
                 }
@@ -411,30 +441,39 @@ namespace WPF_Chemotaxis.VisualScripting
             }
             return false;
         }*/
-        public bool TryDeleteVisual(VSDiagramObject byDiagramObject)
+        public bool TryDeleteVisual(VSDiagramObject deletedVisual)
         {
-            //var targetObject = byDiagramObject as VSUIElement;
-            if (byDiagramObject != null)
+            if (deletedVisual != null)
             {
-                var iter = byDiagramObject.Children.OfType<VSDiagramObject>().ToList();
+                System.Diagnostics.Debug.Print("DELETING VISUAL"); 
+                var iter = deletedVisual.Children.OfType<VSDiagramObject>().ToList();
                 foreach (var child in iter)
                 {
                     TryDeleteVisual(child);
                 }
-                var cnx = GetConnections(byDiagramObject);
+                var cnx = GetConnections(deletedVisual);
                 foreach (var connection in cnx)
                 {
                     TryDeleteVisual(connection);
                 }
+                if (deletedVisual.Docked)
+                {
+                    deletedVisual.Undock();
+                }
+                deletedVisual.Clean();
+                RemoveElementFromVisualTree(deletedVisual);
 
                 ILinkable link;
-                ui_model_multimap.Remove(byDiagramObject, out link);
+                ui_model_multimap.Remove(deletedVisual, out link);
+                System.Diagnostics.Debug.Print(string.Format("DELETED VISUAL FOR {0} FROM MULTIMAP", link.Name));
 
                 if (!ui_model_multimap.Contains(link))
                 {
+                    System.Diagnostics.Debug.Print(string.Format("{0} NOW DELETED FROM WHOLE MODEL", link.Name));
                     Model.Model.Current.RemoveElement(link);
                 }
-                RemoveElementFromVisualTree(byDiagramObject);
+                
+                System.Diagnostics.Debug.Print(string.Format("DISPOSED VISUAL. RETURNING true"));
                 return true;
             }
             return false;
@@ -443,7 +482,6 @@ namespace WPF_Chemotaxis.VisualScripting
         private void RemoveElementFromVisualTree(VSDiagramObject element)
         {
             element.Dispose();
-            
         }
 
         public bool TryAdd(VSDiagramObject visual, ILinkable link)
@@ -496,7 +534,7 @@ namespace WPF_Chemotaxis.VisualScripting
             }
             else
             {
-                System.Diagnostics.Debug.Print(String.Format("Method found to add child of type {0}", childLink.GetType()));
+                System.Diagnostics.Debug.Print(String.Format("Method {1} found to add child of type {0} to parent {2}", childLink.GetType(), method.Name, parentLink.Name));
                 method.Invoke(parentLink, new object[] { childLink });
                 return true;
             }

@@ -15,7 +15,7 @@ namespace WPF_Chemotaxis.Model
     /// and exposed to the UI for modification.
     /// </summary>
 
-    [VSElementAttribute(ui_TypeLabel="Cell", symbolResourcePath = "Resources/CircleIcon.png", symbolSize = 25.0, tagX =-40, tagY = -50, tagCentre = true)] 
+    [VSElement(ui_TypeLabel="Cell", symbolResourcePath = "Resources/CircleIcon.png", symbolSize = 25.0, tagX =-40, tagY = -50, tagCentre = true)] 
     public class CellType : LabelledLinkable
     {
         public string label = "New Cell Type"; 
@@ -25,19 +25,24 @@ namespace WPF_Chemotaxis.Model
         [Param(Name = "Radius (um)", Min = 0)]
         public CenteredDoubleRange radius { get; set; } = new CenteredDoubleRange(6,0);
 
-        public static List<CellType> cellTypes = new();
+        public static List<CellType> cellTypes { get; private set; } = new();
 
         [Link]
-        public List<CellReceptorRelation> receptorTypes = new();
+        public List<CellReceptorRelation> receptorTypes { get; private set; } = new();
         [Link]
-        public List<CellLigandRelation> ligandInteractions = new();
+        public List<CellLigandRelation> ligandInteractions { get; private set; } = new();
 
         [Link(overrideName = "Movement logic")]
-        public List<ICellComponent> components = new();
+        public List<ICellComponent> components { get; private set;  } = new();
 
         [Link(overrideName = "Draw handler")]
         [ClassChooser(label = "Draw handler", baseType = typeof(ICellDrawHandler))]
-        public ICellDrawHandler drawHandler;
+        public ICellDrawHandler drawHandler { get; private set; }
+
+        public void SetDrawHandler(ICellDrawHandler drawHandler)
+        {
+            this.drawHandler = drawHandler;
+        }
 
         public CellType() : base()
         {
@@ -122,7 +127,7 @@ namespace WPF_Chemotaxis.Model
             if (component.GetType().IsAssignableTo(typeof(ILinkable)))
             {
                 ILinkable link = (ILinkable)component;
-                if (!Model.MasterElementList.Contains(link)) Model.MasterElementList.Add(link);
+                Model.Current.AddElement(link);
             }
             this.components.Add(component);
         }

@@ -12,8 +12,8 @@ namespace WPF_Chemotaxis.VisualScripting
     {
         public ForcedPositionType forcedPositionType; 
         public double forcePositionDistance = 0;
-        public string parentFieldName;
-        public string childFieldName;
+        public string parentPropertyName;
+        public string childPropertyName;
         public string workerClassName = "";
     }
 

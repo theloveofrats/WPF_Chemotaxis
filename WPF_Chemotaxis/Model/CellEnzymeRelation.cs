@@ -13,29 +13,15 @@ namespace WPF_Chemotaxis.Model
     /// <summary>
     /// Class quantifying the relationship between a cell type and a receptor type.
     /// </summary>
-    [VSRelationAttribute(forcedPositionType = ForcedPositionType.RADIUS, forcePositionDistance = 125, childFieldName = "enzyme", parentFieldName = "cell")]
+    [VSRelation(forcedPositionType = ForcedPositionType.RADIUS, forcePositionDistance = 125, childPropertyName = "Enzyme", parentPropertyName = "Cell")]
     public class CellEnzymeRelation : LabelledLinkable, ICellComponent
     {
         [JsonProperty]
         [Link]
-        private CellSurfaceEnzyme enzyme;
-        public CellSurfaceEnzyme Enzyme
-        {
-            get
-            {
-                return enzyme;
-            }
-        }
+        public CellSurfaceEnzyme Enzyme { get; private set; }
         [JsonProperty]
         [Link]
-        private CellType cell;
-        public CellType Cell
-        {
-            get
-            {
-                return cell;
-            }
-        }
+        public CellType Cell { get; private set; }
 
         [Param(Name = "Enzyme expression weight", Min = 0)]
         public CenteredDoubleRange Weight { get; set; } = new CenteredDoubleRange(1, 0);
@@ -51,8 +37,8 @@ namespace WPF_Chemotaxis.Model
 
         public CellEnzymeRelation(CellType cell, CellSurfaceEnzyme enzyme) : base()
         {
-            this.cell = cell;
-            this.enzyme = enzyme;
+            this.Cell = cell;
+            this.Enzyme = enzyme;
             Init();
         }
 
@@ -61,19 +47,19 @@ namespace WPF_Chemotaxis.Model
             if (element is CellSurfaceEnzyme)
             {
                 CellSurfaceEnzyme enz = (CellSurfaceEnzyme)element;
-                if (this.enzyme == enz)
+                if (this.Enzyme == enz)
                 {
-                    this.enzyme = (CellSurfaceEnzyme)replacement;
-                    if (this.enzyme == null) Model.Current.RemoveElement(this);
+                    this.Enzyme = (CellSurfaceEnzyme)replacement;
+                    if (this.Enzyme == null) Model.Current.RemoveElement(this);
                 }
             }
             else if (element is CellType)
             {
                 CellType ct = (CellType)element;
-                if (this.cell == ct)
+                if (this.Cell == ct)
                 {
-                    this.cell = (CellType)replacement;
-                    if (this.cell == null) Model.Current.RemoveElement(this);
+                    this.Cell = (CellType)replacement;
+                    if (this.Cell == null) Model.Current.RemoveElement(this);
                 }
             }
         }
@@ -93,12 +79,12 @@ namespace WPF_Chemotaxis.Model
             double val;
             if (expressionWeights.TryGetValue(simCell, out val))
             {
-                this.enzyme.Update(simCell, sim, env, val);
+                this.Enzyme.Update(simCell, sim, env, val);
             }
             else
             {
                 RegisterCell(simCell);
-                this.enzyme.Update(simCell, sim, env, expressionWeights[simCell]);
+                this.Enzyme.Update(simCell, sim, env, expressionWeights[simCell]);
             }
         }
 
@@ -112,8 +98,8 @@ namespace WPF_Chemotaxis.Model
         {
             get
             {
-                if (cell == null || enzyme == null) return "Broken Cell-Enzyme Link";
-                return string.Format("{0} expression of {1}", cell.Name, enzyme.Name);
+                if (Cell == null || Enzyme == null) return "Broken Cell-Enzyme Link";
+                return string.Format("{0} expression of {1}", Cell.Name, Enzyme.Name);
             }
             set
             {

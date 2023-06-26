@@ -29,8 +29,8 @@ namespace WPF_Chemotaxis.Model
         [Param(Name = "Kill rate (uM/um^2/min)")]
         public double KillRate { get; set; } = 0;
 
-        [LinkAttribute]
-        public List<LigandReceptorRelation> receptorInteractions = new();
+        [Link]
+        public List<LigandReceptorRelation> receptorInteractions { get; private set; } = new();
 
         public Ligand() : base() 
         {
@@ -40,8 +40,6 @@ namespace WPF_Chemotaxis.Model
         {
             Init();
         }
-
-
 
 
         //Specifically the parts of the class that are IHeatMapSource related.

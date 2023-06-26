@@ -17,8 +17,8 @@ namespace WPF_Chemotaxis.Model
     {
         public string label = "Receptor";
 
-        [LinkAttribute]
-        public List<LigandReceptorRelation> ligandInteractions = new();
+        [Link]
+        public List<LigandReceptorRelation> ligandInteractions { get; private set; } = new();
 
         public Receptor() : base()
         {
@@ -35,7 +35,7 @@ namespace WPF_Chemotaxis.Model
         {
             foreach(LigandReceptorRelation inter in ligandInteractions)
             {
-                if (inter.Ligand.Equals(ligand)) return;
+                if (inter.Ligand==ligand) return;
             }
             new LigandReceptorRelation(ligand, this);
         }

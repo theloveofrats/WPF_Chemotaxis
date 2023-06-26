@@ -99,39 +99,9 @@ namespace WPF_Chemotaxis.VisualScripting
             SelectedMenuItem = null;
         }
 
-        private void UnrotateTextLabels(Canvas parentObject, RotateTransform toUndo)
-        {
-            foreach (var child in parentObject.Children)
-            {
-                TextBox label = child as TextBox;
-                if (label != null)
-                {
-                    label.RenderTransform = (Transform)toUndo.Inverse;
-                }
-                else
-                {
-                    Canvas childCanvas = child as Canvas;
-                    if (childCanvas != null)
-                    {
-                        UnrotateTextLabels(childCanvas, toUndo);
-                    }
-                }
-            }
-        }
-
         public void RotateSelected(double degrees)
         {
-
-            RotateTransform current = SelectedElement?.RenderTransform as RotateTransform;
-
-            if (current == null)
-            {
-                SelectedElement.RenderTransform = new RotateTransform();
-                current = SelectedElement.RenderTransform as RotateTransform;
-            }
-            current.Angle += degrees;
-
-            UnrotateTextLabels(SelectedElement, current);
+            SelectedElement?.NudgeRotation(degrees);
         }
 
         // Point clickPsn is always relative to the base canvas!
@@ -141,10 +111,14 @@ namespace WPF_Chemotaxis.VisualScripting
             {
                 UIElement parent = VisualTreeHelper.GetParent(SelectedElement) as UIElement;
                 dragOffset = baseCanvas.TransformToDescendant(SelectedElement).Transform(dragFrom);
-
-                dragGhost = new DragAdorner(parent, SelectedElement,dragOffset);
+                if (parent != baseCanvas)
+                {
+                    dragOffset.X -= Canvas.GetLeft(parent);
+                    dragOffset.Y -= Canvas.GetTop(parent);
+                }
+                dragGhost = new DragAdorner(baseCanvas, SelectedElement,dragOffset);
                 dragGhost.IsHitTestVisible = false;
-                AdornerLayer.GetAdornerLayer(parent).Add(dragGhost);
+                AdornerLayer.GetAdornerLayer(baseCanvas).Add(dragGhost);
             }
         }
 
@@ -159,7 +133,7 @@ namespace WPF_Chemotaxis.VisualScripting
             {
                 if (!breakDock)
                 {
-                    SelectedElement.SetPosition(newPsn.X - dragOffset.X, newPsn.Y - dragOffset.Y);
+                    SelectedElement.SetPosition(newPsn.X, newPsn.Y);
                     SelectedElement.SetToDockedPosition();
                     return;
                 }
@@ -177,10 +151,10 @@ namespace WPF_Chemotaxis.VisualScripting
                             {
                                 //Undock the one we just detached, chuck away its lines and delete it
                                 SelectedElement.Undock();
-                                foreach(var line in VSModelManager.Current.GetConnections(SelectedElement))
+                                /*foreach(var line in VSModelManager.Current.GetConnections(SelectedElement))
                                 {
                                     VSModelManager.Current.TryDeleteVisual(line);
-                                }
+                                }*/
                                 VSModelManager.Current.TryDeleteVisual(selectedVS);
 
                                 return;
@@ -188,7 +162,7 @@ namespace WPF_Chemotaxis.VisualScripting
                         }
                     }
 
-                    SelectedElement.SetPosition(newPsn.X - dragOffset.X+SelectedElement.DockedTo.Position.X, newPsn.Y - dragOffset.Y+SelectedElement.DockedTo.Position.Y);
+                    SelectedElement.SetPosition(newPsn.X - dragOffset.X, newPsn.Y - dragOffset.Y);
                     SelectedElement.Undock();
                     return;
                 }
@@ -206,6 +180,7 @@ namespace WPF_Chemotaxis.VisualScripting
             preDrag = true;
         }
 
+        //New pos is relative to the base canvas.
         public void UpdateDrag(Point newPos)
         {
             dragTo = newPos;
@@ -227,30 +202,35 @@ namespace WPF_Chemotaxis.VisualScripting
                 {
                     bool breakDock;
                     double rotation;
+
+                    //var newPosBase = SelectedElement.TransformToAncestor(baseCanvas).Transform(newPos);
+
+
                     Point ghostPos = GetPredictedDragPosition(newPos, out rotation, out breakDock, true);
                     dragGhost.SetPositionAndRotation(ghostPos, rotation);
                 }
             }
         }
 
+        //input is relative to canvas. Adorner is applied to canvas. Rotated parents are causing wrong position to be reported.
         Point GetPredictedDragPosition(Point input, out double rotation, out bool breakDock, bool dragCorrect=false)
         {
             breakDock = false;
             rotation = 0;
             if (SelectedElement.Docked)
             {
-                double sqDist = (input.X - SelectedElement.DockedTo.AbsolutePosition.X) * (input.X - SelectedElement.DockedTo.AbsolutePosition.X) + (input.Y - SelectedElement.AbsolutePosition.Y) * (input.Y - SelectedElement.AbsolutePosition.Y);
+                double sqDist = (input.X - SelectedElement.DockedTo.AbsolutePosition.X) * (input.X - SelectedElement.DockedTo.AbsolutePosition.X) + (input.Y - SelectedElement.DockedTo.AbsolutePosition.Y) * (input.Y - SelectedElement.DockedTo.AbsolutePosition.Y);
                 if (sqDist < BREAK_DOCK_SQ_DIST)
                 {
                     Point found = SelectedElement.GetDockPosition(new Point(input.X, input.Y), out rotation);
-                    var rotator = (SelectedElement.RenderTransform as RotateTransform);
-                    if(rotator!=null) rotation -= rotator.Angle;
+                    //var rotator = (SelectedElement.RenderTransform as RotateTransform);
+                    //if(rotator!=null) rotation -= rotator.Angle;
                     
                     //THIS NEEDS FIXING AFTER WE GET THE LABELS TO KEEP ORIGINAL ROTATION!
                     if (dragCorrect)
                     {
-                        found.X -= 18;
-                        found.Y -= 18;
+                    //    found.X -= 18;
+                    //    found.Y -= 18;
                     }
                     return found;
                 }

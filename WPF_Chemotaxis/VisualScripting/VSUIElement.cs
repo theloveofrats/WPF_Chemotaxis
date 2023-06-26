@@ -101,7 +101,7 @@ namespace WPF_Chemotaxis.VisualScripting
                 VSRelationElement dupeLink;
                 if (connection.DuplicateWithNewHandle(this, newEl, out dupeLink))
                 {
-                    VSModelManager.Current.TryAdd(dupeLink, dupeLink.ModelReation);
+                    VSModelManager.Current.TryAdd(dupeLink, dupeLink.ModelRelation);
                 }
             }
        

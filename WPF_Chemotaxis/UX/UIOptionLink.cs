@@ -35,7 +35,7 @@ namespace WPF_Chemotaxis.UX
         }
         protected string label;
         protected object target;
-        protected FieldInfo field;
+        protected PropertyInfo prop;
         protected Type type;
 
         protected bool nullable;
@@ -48,13 +48,13 @@ namespace WPF_Chemotaxis.UX
             }
         }
 
-        public UIOptionLink(string label, object target, FieldInfo field, bool nullable)
+        public UIOptionLink(string label, object target, PropertyInfo prop, bool nullable)
         {
             this.label = label;
             this.target = target;
-            this.field = field;
+            this.prop = prop;
             this.nullable = nullable;
-            this.type = field.FieldType;
+            this.type = prop.PropertyType;
         }
     }
 }

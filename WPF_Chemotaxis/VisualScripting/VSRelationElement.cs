@@ -11,6 +11,8 @@ using System.Windows.Data;
 using System.Windows.Media;
 using System.Windows.Shapes;
 using WPF_Chemotaxis.UX;
+using ILGPU.IR.Values;
+using System.Windows.Media.Imaging;
 
 namespace WPF_Chemotaxis.VisualScripting
 {
@@ -19,9 +21,9 @@ namespace WPF_Chemotaxis.VisualScripting
 
         VSDiagramObject primary;
 
-        private List<Line> _lines;
-        private Dictionary<Line, VSDiagramObject> _lineTargets;
-        public IReadOnlyCollection<Line> RelationLines
+        private List<VSLine> _lines = new();
+        private Dictionary<VSDiagramObject, VSLine> _lineTargets = new();
+        public IReadOnlyCollection<VSLine> RelationLines
         {
             get
             {
@@ -29,7 +31,8 @@ namespace WPF_Chemotaxis.VisualScripting
             }
         }
         //public Line RelationLine { get; private set; }
-        public ILinkable ModelReation { get; private set; }
+        public ILinkable ModelRelation { get; private set; }
+        private List<PropertyInfo> lineProps; 
 
         public VSRelationElement(Canvas canvas) : base(canvas)
         {
@@ -37,15 +40,20 @@ namespace WPF_Chemotaxis.VisualScripting
         }
         public VSRelationElement(VSDiagramObject primary, ILinkable modelRelation, Canvas canvas) : base(canvas)
         {
-            this.ModelReation = modelRelation;
+            this.ModelRelation = modelRelation;
             this.primary = primary;
-            //if(this.Parent == null)
-            //{
-            //    _mainCanvas.Children.Add(this);
-            //}
-            MakeLines();
-
+            Model.Model.Current.PropertyChanged += (s,e) => Redraw();
+            lineProps = this.ModelRelation.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).Where((prop) => prop.GetCustomAttribute<VisualLineAttribute>() != null).ToList();
+            VSModelManager.Current.TryAdd(this, this.ModelRelation);
+            Redraw();
         }
+
+        private void Redraw()
+        {
+            CleanLines();
+            MakeLines();
+        }
+
         public override void Dispose()
         {
             CleanLines();
@@ -53,99 +61,69 @@ namespace WPF_Chemotaxis.VisualScripting
         }
         private void MakeLines()
         {
-            System.Diagnostics.Debug.Print(String.Format("Reached VSRelationElement.MakeLines()"));
-            ILinkable checkLinkDebug;
-
-            if (VSModelManager.Current.TryGetModelElementFromVisual(primary, out checkLinkDebug)) {
-               
-            }
-            else
+            System.Diagnostics.Debug.Print(string.Format("Reached VSRelationElement.MakeLines() for model relation {0}", ModelRelation.Name));
+            if (primary.Disposing)
             {
-                System.Diagnostics.Debug.Print("No model element for the parent visual!");
+                this.Clean();
+                return;
             }
-            var lineFields = this.ModelReation.GetType().GetFields(BindingFlags.Instance | BindingFlags.NonPublic).Where((field) => field.GetCustomAttribute<VisualLineAttribute>() != null);
-            if (lineFields?.Count() > 0)
+            foreach (var prop in lineProps)
             {
-                foreach (var field in lineFields)
+                VisualLineAttribute vla = prop.GetCustomAttribute<VisualLineAttribute>();
+                var lineLink = prop.GetValue(this.ModelRelation) as ILinkable;
+                    
+                if (lineLink != null)
                 {
-                    VisualLineAttribute vla = field.GetCustomAttribute<VisualLineAttribute>();
                     List<VSDiagramObject> lineTargetUIs = new List<VSDiagramObject>();
-                    var lineLink = field.GetValue(this.ModelReation) as ILinkable;
-                    if (lineLink != null)
+                    if (VSModelManager.Current.TryGetUIListFromLink(lineLink, out lineTargetUIs))
                     {
-                        if (VSModelManager.Current.TryGetUIListFromLink(lineLink, out lineTargetUIs))
+                        foreach (var lineTarget in lineTargetUIs)
                         {
-                            System.Diagnostics.Debug.Print(string.Format("Model part {0} has {1} UIs to link lines to", lineLink.Name, lineTargetUIs.Count()));
-                            foreach (var lineTarget in lineTargetUIs)
+                            if (_lineTargets.ContainsKey(lineTarget))
                             {
-                                MakeLine(lineTarget, vla);
+                                System.Diagnostics.Debug.Print("SKIPPING LINE, ALREADY CREATED.");
+                            }
+                            else
+                            {
+                                Func<Color> lineColorFunc = ()=> Colors.SlateBlue;
+                                var method = ModelRelation.GetType().GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).FirstOrDefault(m=>m.Name.Equals(vla.colorFunc));
+                                
+                                if (method != null && method.ReturnType==typeof(Color))
+                                {
+                                    System.Diagnostics.Debug.Print(string.Format("Found method {0} for {1}", method.Name, lineLink.Name));
+                                    lineColorFunc = (Func<Color>) Delegate.CreateDelegate(typeof(Func<Color>), ModelRelation, method);
+                                }
+                                MakeLine(lineTarget, vla, lineColorFunc);
                             }
                         }
                     }
-                    else
-                    {
-                        System.Diagnostics.Debug.Print(string.Format("lineLink was null- no iLinkable in the field {0} for {1}", field.Name, ModelReation.Name));
-                    }
                 }
-                System.Diagnostics.Debug.Print("Finished making lines");
+                else
+                {
+                    System.Diagnostics.Debug.Print(string.Format("lineLink was null- no iLinkable in the field {0} for {1}", prop.Name, ModelRelation.Name));
+                }
             }
+            System.Diagnostics.Debug.Print("Finished making lines");
+            
         }
 
-        private void MakeLine(VSDiagramObject lineTarget, VisualLineAttribute annotation) {
-
-            if (_lines == null) _lines = new();
-            if (_lineTargets == null) _lineTargets = new();
+        private void MakeLine(VSDiagramObject lineTarget, VisualLineAttribute annotation, Func<Color> colorFunc) {
 
             System.Diagnostics.Debug.Print(string.Format("Making line from primary handle to target"));
 
-            Line newLine = new();
-
-            newLine.Stroke = Brushes.Blue;
-            newLine.StrokeThickness = 4;
-            newLine.StrokeStartLineCap = annotation.lineType == LineType.ARROW_FROM ? PenLineCap.Triangle : PenLineCap.Square;
-            newLine.StrokeEndLineCap   = annotation.lineType == LineType.ARROW_TO ?   PenLineCap.Triangle : PenLineCap.Square;
-
-            _mainCanvas.Children.Add(newLine);
-            Canvas.SetZIndex(newLine, -1);
+            VSLine newLine = new(this.primary, lineTarget, this._mainCanvas,
+                                 annotation.parentAnchorDistance, annotation.childAnchorDistance,
+                                 annotation.parentAnchor, annotation.childAnchor,
+                                 annotation.parentArrowHead, annotation.childArrowHead, colorFunc);
 
             _lines.Add(newLine);
-            _lineTargets.Add(newLine, lineTarget);
+            _lineTargets.Add(lineTarget, newLine);
+        }
 
-            Binding bindingX1 = new();
-            Binding bindingX2 = new();
-            Binding bindingY1 = new();
-            Binding bindingY2 = new();
-
-            bindingX1.Source = primary;
-            bindingY1.Source = primary;
-            bindingX1.Path = new PropertyPath("AbsolutePosition.X");
-            bindingY1.Path = new PropertyPath("AbsolutePosition.Y");
-
-            System.Diagnostics.Debug.Print(string.Format("Absolute position of primary handle ({0:0.0}:{1:0.0}).", primary.AbsolutePosition.X, primary.AbsolutePosition.Y));
-
-            bindingX2.Source = lineTarget;
-            bindingY2.Source = lineTarget;
-            bindingX2.Path = new PropertyPath("AbsolutePosition.X");
-            bindingY2.Path = new PropertyPath("AbsolutePosition.Y");
-
-            System.Diagnostics.Debug.Print(string.Format("Absolute position of secondary handle ({0:0.0}:{1:0.0}).", lineTarget.AbsolutePosition.X, lineTarget.AbsolutePosition.Y));
-
-            System.Diagnostics.Debug.Print(string.Format("Recorded positions at StackTrace:: {0}", Environment.StackTrace));
-
-            bindingX1.Mode = BindingMode.TwoWay;
-            bindingY1.Mode = BindingMode.TwoWay;
-            bindingX2.Mode = BindingMode.TwoWay;
-            bindingY2.Mode = BindingMode.TwoWay;
-
-            bindingX1.UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged;
-            bindingY1.UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged;
-            bindingX2.UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged;
-            bindingY2.UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged;
-
-            BindingOperations.SetBinding(newLine, Line.X1Property, bindingX1);
-            BindingOperations.SetBinding(newLine, Line.Y1Property, bindingY1);
-            BindingOperations.SetBinding(newLine, Line.X2Property, bindingX2);
-            BindingOperations.SetBinding(newLine, Line.Y2Property, bindingY2);
+        public override void Clean()
+        {
+            CleanLines();
+            base.Clean();
         }
 
         public bool DuplicateWithNewHandle(VSDiagramObject oldHandle, VSDiagramObject newHandle, out VSRelationElement dupe)
@@ -157,13 +135,12 @@ namespace WPF_Chemotaxis.VisualScripting
             }
             if (oldHandle == this.primary) // i.e. if the primary was duplicated, we create a new relation object
             {
-                dupe = new VSRelationElement(newHandle, this.ModelReation, _mainCanvas);
+                dupe = new VSRelationElement(newHandle, this.ModelRelation, _mainCanvas);
                 return true;
             }
             else  // Otherwise, we add it to the lines needed here from the original primary...
             {
-                CleanLines();
-                MakeLines();
+                Redraw();
                 dupe = null;
                 return false;
             }            
@@ -178,13 +155,23 @@ namespace WPF_Chemotaxis.VisualScripting
         }
         public bool HasHandle(VSDiagramObject handle)
         {
-            return (primary == handle || _lineTargets.Values.Contains(handle));
+            return (primary == handle || _lineTargets.Keys.Contains(handle));
         }
         private void CleanLines()
         {
-            foreach (var line in _lines)
+            if (_lines == null)
             {
-                _mainCanvas.Children.Remove(line);
+                _lines = new();
+                _lineTargets = new();
+                System.Diagnostics.Debug.Print(string.Format("CALLED CLEAN LINES WITH NULL LINES"));
+            }
+            else
+            {
+                System.Diagnostics.Debug.Print(string.Format("CALLED CLEAN LINES WITH LENGTH OF LINES {0}", _lines.Count()));
+                foreach (var line in _lines)
+                {
+                    line.Clean();
+                }
             }
             _lines.Clear();
             _lineTargets.Clear();

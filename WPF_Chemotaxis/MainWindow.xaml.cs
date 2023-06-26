@@ -176,7 +176,7 @@ namespace WPF_Chemotaxis
             btn_NewSim.IsEnabled = (File.Exists(env.ImagePath));
             SetUpVisualScriptingWindow();
 
-            Model.Model.Current.PropertyChanged += (s, e) => this.DisplayLink();
+            Model.Model.Current.FocusModelElement += (s, e) => this.DisplayLink();
         }
 
         private void DeserialiseAutosave(string autosavePath, bool clean=true)
@@ -220,14 +220,13 @@ namespace WPF_Chemotaxis
                     foreach (ILinkable link in autosave.ModelElements)
                     {
                         //Delete this whole bundle!
-                        System.Diagnostics.Debug.Print("Checking added ILinkable named "+link.Name);
-
+                        
                         bool admit = true;
                         foreach(var currentLink in Model.Model.MasterElementList)
                         {
                             if (currentLink.Name != null)
                             {
-                                System.Diagnostics.Debug.Print(String.Format("Comparing {0} {1} and {2} {3}::{4}", link.DisplayType, link.Name, currentLink.DisplayType, currentLink.Name, ((currentLink.Name == link.Name) && (currentLink.DisplayType == link.DisplayType)).ToString()));
+                                //System.Diagnostics.Debug.Print(String.Format("Comparing {0} {1} and {2} {3}::{4}", link.DisplayType, link.Name, currentLink.DisplayType, currentLink.Name, ((currentLink.Name == link.Name) && (currentLink.DisplayType == link.DisplayType)).ToString()));
                             }
                             if ((currentLink.Name == link.Name) && (currentLink.DisplayType == link.DisplayType))
                             {
@@ -423,7 +422,7 @@ namespace WPF_Chemotaxis
                 
                 // Could do with an obj.Clean() function to mop up in case of mutual references causing memory leak.
             }
-            Model.Model.MasterElementList.Clear();
+            Model.Model.Current.Clear();
 
             RegionType.ClearRegions();
             OnMazeFileChosen("");
@@ -895,8 +894,6 @@ namespace WPF_Chemotaxis
         private void VSCanvas_LeftMouseUp(object sender, MouseButtonEventArgs e)
         {
             if (e.Handled) return;
-
-            System.Diagnostics.Debug.Print("Canvas LMB up detected.");
 
             VSListMenuElement selectedSidebarItem = (visualElementList.SelectedItem as VSListMenuElement);
             Point clickPsn = e.GetPosition(VSCanvas);

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Media;
 
@@ -17,7 +18,7 @@ namespace WPF_Chemotaxis.VisualScripting
         private Point offset;
         private double baseAngle = 0;
         private double targetAngle = 0;
-        public DragAdorner(UIElement adorned, UIElement brushImg, Point internalOffset) : base(adorned)
+        public DragAdorner(UIElement adorned,UIElement brushImg, Point internalOffset) : base(adorned)
         {
             vBrush = new VisualBrush(brushImg);
 
@@ -35,7 +36,7 @@ namespace WPF_Chemotaxis.VisualScripting
             Rect totalBounds = VisualTreeHelper.GetDescendantBounds(brushImg);
             Rect innerBounds = VisualTreeHelper.GetContentBounds(brushImg);
 
-            offset = new Point(internalOffset.X + innerBounds.X - totalBounds.X, internalOffset.Y + innerBounds.Y - totalBounds.Y);
+            offset = new Point(5+internalOffset.X + innerBounds.X - totalBounds.X, -15+internalOffset.Y + innerBounds.Y - totalBounds.Y);
         }
 
         public void SetPosition(Point position)
@@ -46,19 +47,23 @@ namespace WPF_Chemotaxis.VisualScripting
         public void SetPositionAndRotation(Point position, double newAngle)
         {
             this.targetAngle = newAngle - baseAngle;
-            this.location = new Point(position.X - (offset.X + 20), position.Y - (offset.Y + 20));
+            //TransformGroup trans = new();
+            //trans.Children.Add(new RotateTransform(targetAngle));
+            //trans.Children.Add(new TranslateTransform(-offset.X, -offset.Y));
+            //this.RenderTransform = trans;
+            
+            this.location = new Point(position.X, position.Y);
             this.InvalidateVisual();
         }
 
-        /*public override GeneralTransform GetDesiredTransform(GeneralTransform transform)
+        public override GeneralTransform GetDesiredTransform(GeneralTransform transform)
         {
-            if(targetAngle==0) return base.GetDesiredTransform(transform);
-                       
-            GeneralTransformGroup target = new();
-            target.Children.Add(new RotateTransform(targetAngle)); 
-            target.Children.Add(base.GetDesiredTransform(transform));
-            return target;
-        }*/
+            GeneralTransformGroup group = new();
+            //group.Children.Add(new RotateTransform(targetAngle));
+            group.Children.Add(new TranslateTransform(-offset.X, -offset.Y));
+            
+            return group;
+        }
 
         protected override void OnRender(DrawingContext dc)
         {

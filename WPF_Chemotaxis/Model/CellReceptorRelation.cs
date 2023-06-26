@@ -12,27 +12,15 @@ namespace WPF_Chemotaxis.Model
     /// <summary>
     /// Class quantifying the relationship between a cell type and a receptor type.
     /// </summary>
-    [VSRelationAttribute(forcedPositionType = ForcedPositionType.RADIUS, forcePositionDistance = 125, childFieldName = "receptor", parentFieldName = "cell")]
+    [VSRelation(forcedPositionType = ForcedPositionType.RADIUS, forcePositionDistance = 125, childPropertyName = "Receptor", parentPropertyName = "Cell")]
     public class CellReceptorRelation : LabelledLinkable
     {
         [JsonProperty]
         [Link]
-        private Receptor receptor;
-        public Receptor Receptor { 
-            get {
-                return receptor;    
-            } 
-        }
+        public Receptor Receptor { get; private set; }
         [JsonProperty]
         [Link]
-        private CellType cell;
-        public CellType Cell
-        {
-            get
-            {
-                return cell;
-            }
-        }
+        public CellType Cell { get; private set; }
 
         [Param(Name = "Receptor weight", Min = 0)]
         public CenteredDoubleRange Weight { get; set; } = new CenteredDoubleRange(1,0);
@@ -45,10 +33,9 @@ namespace WPF_Chemotaxis.Model
 
         public CellReceptorRelation(CellType cell, Receptor receptor) : base()
         {
-
-            this.cell = cell;
-            this.receptor = receptor;
-            if (!this.cell.receptorTypes.Contains(this)) this.cell.receptorTypes.Add(this);
+            this.Cell = cell;
+            this.Receptor = receptor;
+            if (!this.Cell.receptorTypes.Contains(this)) this.Cell.receptorTypes.Add(this);
             Init();
         }
 
@@ -57,19 +44,19 @@ namespace WPF_Chemotaxis.Model
             if (element is Receptor)
             {
                 Receptor r = (Receptor)element;
-                if (this.receptor == r)
+                if (this.Receptor == r)
                 {
-                    this.receptor = (Receptor) replacement;
-                    if(this.receptor==null) Model.Current.RemoveElement(this);
+                    this.Receptor = (Receptor) replacement;
+                    if(this.Receptor ==null) Model.Current.RemoveElement(this);
                 }
             }
             else if (element is CellType)
             {
                 CellType ct = (CellType) element;
-                if (this.cell == ct)
+                if (this.Cell == ct)
                 {
-                    this.cell = (CellType) replacement;
-                    if(this.cell==null) Model.Current.RemoveElement(this);
+                    this.Cell = (CellType) replacement;
+                    if(this.Cell==null) Model.Current.RemoveElement(this);
                 }
             }
         }
@@ -79,8 +66,8 @@ namespace WPF_Chemotaxis.Model
         {
             get
             {
-                if (cell == null || receptor == null) return "Broken Cell-Receptor Link";
-                return string.Format("{0}<->{1} interactions", cell.Name, receptor.Name);
+                if (Cell == null || Receptor == null) return "Broken Cell-Receptor Link";
+                return string.Format("{0}<->{1} interactions", Cell.Name, Receptor.Name);
             }
             set
             {

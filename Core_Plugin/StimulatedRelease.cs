@@ -11,7 +11,7 @@ using ILGPU.Runtime.Cuda;
 namespace WPF_Chemotaxis.CorePlugin
 {
     [VSElement(ui_TypeLabel = "Ligand release", symbolResourcePath = "Core_Plugin;component/Resources/ChannelIcon.png", symbolSize = 6.0, tagX = 12, tagY = -12, tagCentre = false)]
-    [VSRelation(childFieldName = "Output", parentFieldName = null, forcedPositionType = ForcedPositionType.NONE)]
+    [VSRelation(childPropertyName = "Output", parentPropertyName = null, forcedPositionType = ForcedPositionType.NONE)]
 
     public class StimulatedRelease : LabelledLinkable, ICellComponent // Labelled linkable already does the heavy
                                                                       // lifting to put this in the GUI. ICellComponent means
@@ -36,7 +36,7 @@ namespace WPF_Chemotaxis.CorePlugin
         [Param(Name = "Second input weight", Min = 0)]
         public double second_weight { get; set; } = 0.5;
 
-        [VisualLine(lineStartDistance = 1.0, lineType = LineType.ARROW_TO)]
+        [VisualLine(parentAnchor = LineAnchorType.ANCHOR_FORWARD, childAnchor = LineAnchorType.ANCHOR_CENTRE, parentAnchorDistance = 25.0, childAnchorDistance = 10.0)]
         [JsonProperty]      // This makes the dropdown selection saveable.
         [InstanceChooser(label = "Output ligand")] // This creates a dropdown of all instances of the type
                                                    // (Receptor here), so you can choose the one to plug in.

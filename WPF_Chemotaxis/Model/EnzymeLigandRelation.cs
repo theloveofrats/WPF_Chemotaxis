@@ -15,42 +15,23 @@ namespace WPF_Chemotaxis.Model
     /// Relational class for cell-ligand direct interactions (rather than receptor-mediated interactions).
     /// </summary>
 
-    [VSRelationAttribute(forcedPositionType = ForcedPositionType.NONE, childFieldName = "_inputLigand", parentFieldName = "_enzyme")]
+    [VSRelationAttribute(forcedPositionType = ForcedPositionType.NONE, childPropertyName = "Ligand", parentPropertyName = "Enzyme")]
     public class EnzymeLigandRelation : LabelledLinkable
     {
         [JsonProperty]
         [Link]
-        CellSurfaceEnzyme _enzyme;
-        public CellSurfaceEnzyme Enzyme
-        {
-            get
-            {
-                return _enzyme;
-            }
-        }
+        public CellSurfaceEnzyme Enzyme { get; private set; }
 
         [JsonProperty]
         [InstanceChooser(label = "Input ligand")]
-        [VisualLine(lineType =LineType.ARROW_FROM)]
-        private Ligand _inputLigand;
-        public Ligand Ligand
-        {
-            get {
-                return _inputLigand;
-            }
-        }
+        [VisualLine(parentAnchor = LineAnchorType.ANCHOR_FORWARD, childAnchor = LineAnchorType.ANCHOR_CENTRE, parentAnchorDistance = 25.0, childAnchorDistance = 12.0, parentArrowHead = LineHeadType.ARROW)]
+
+        public Ligand Ligand { get; private set; }
 
         [JsonProperty]
-        [VisualLine(lineType = LineType.ARROW_TO)]
+        [VisualLine(parentAnchor = LineAnchorType.ANCHOR_FORWARD, childAnchor = LineAnchorType.ANCHOR_CENTRE, parentAnchorDistance = 25.0, childAnchorDistance = 18.0, childArrowHead = LineHeadType.ARROW)]
         [InstanceChooser(label = "Product ligand")]
-        private Ligand _outputLigand;
-        public Ligand ProductLigand
-        {
-            get
-            {
-                return _outputLigand;
-            }
-        }
+        public Ligand ProductLigand{ get; private set; }
 
 
         //DEBUG REMOVE!
@@ -72,18 +53,18 @@ namespace WPF_Chemotaxis.Model
 
         public EnzymeLigandRelation(CellSurfaceEnzyme enzyme, Ligand ligand) : base()
         {
-            this._enzyme = enzyme;
-            this._inputLigand = ligand;
+            this.Enzyme = enzyme;
+            this.Ligand = ligand;
             Init();
         }
 
         public void SetLigand(Ligand newLigand)
         {
-            this._inputLigand = newLigand;
+            this.Ligand = newLigand;
         }
         public void SetProduct(Ligand newLigand)
         {
-            this._outputLigand = newLigand;
+            this.ProductLigand = newLigand;
         }
 
         public override void RemoveElement(ILinkable element, ILinkable replacement = null)
@@ -91,15 +72,15 @@ namespace WPF_Chemotaxis.Model
             if (element is Ligand)
             {
                 Ligand l = (Ligand)element;
-                if (this._inputLigand == l)
+                if (this.Ligand == l)
                 {
-                    this._inputLigand = (Ligand)replacement;
+                    this.Ligand = (Ligand)replacement;
                 }
-                if (this._outputLigand == l)
+                if (this.ProductLigand == l)
                 {
-                    this._outputLigand = (Ligand)replacement;
+                    this.ProductLigand = (Ligand)replacement;
                 }
-                if (this._inputLigand == null)
+                if (this.Ligand == null)
                 {
                     Model.Current.RemoveElement(this);
                 }
@@ -107,11 +88,11 @@ namespace WPF_Chemotaxis.Model
             else if (element is CellSurfaceEnzyme)
             {
                 CellSurfaceEnzyme enz = (CellSurfaceEnzyme)element;
-                if (this._enzyme == enz)
+                if (this.Enzyme == enz)
                 {
-                    this._enzyme = (CellSurfaceEnzyme)replacement;
+                    this.Enzyme = (CellSurfaceEnzyme)replacement;
 
-                    if (this._enzyme == null) Model.Current.RemoveElement(this);
+                    if (this.Enzyme == null) Model.Current.RemoveElement(this);
                 }
             }
         }
@@ -124,9 +105,9 @@ namespace WPF_Chemotaxis.Model
             get
             {
                 if (name != null) return name;
-                else if (_enzyme == null || Ligand == null) return "Broken Enzyme-Ligand interaction";
-                else if (_outputLigand == null) return string.Format("New {0}-{1} interaction", _enzyme.Name, _inputLigand.Name);
-                else return string.Format("New {0}->{1}->{2} reaction", Ligand.Name, _enzyme.Name, _outputLigand.Name);
+                else if (Enzyme == null || Ligand == null) return "Broken Enzyme-Ligand interaction";
+                else if (ProductLigand == null) return string.Format("New {0}-{1} interaction", Enzyme.Name, Ligand.Name);
+                else return string.Format("New {0}->{1}->{2} reaction", Ligand.Name, Enzyme.Name, ProductLigand.Name);
             }
             set
             {

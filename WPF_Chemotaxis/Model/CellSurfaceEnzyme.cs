@@ -19,9 +19,9 @@ namespace WPF_Chemotaxis.Model
     {
         public string label = "Receptor";
 
-        [LinkAttribute]
-        [VisualLineAttribute()]
-        public List<EnzymeLigandRelation> substrateInteractions = new();
+        [Link]
+        [VisualLine(parentAnchor = LineAnchorType.ANCHOR_FORWARD, childAnchor = LineAnchorType.ANCHOR_CENTRE, parentAnchorDistance = 5.0, childAnchorDistance = 5.0)]
+        public List<EnzymeLigandRelation> substrateInteractions { get; private set; } = new();
 
         public CellSurfaceEnzyme() : base()
         {
@@ -36,12 +36,13 @@ namespace WPF_Chemotaxis.Model
         [ElementAdder(label = "Add Substrate", type = typeof(Ligand))]
         public void AddLigand(Ligand ligand)
         {
-            System.Diagnostics.Debug.Print(String.Format("Invoked {0} to AddSubstrate {1}", this.Name, ligand.Name));
+            System.Diagnostics.Debug.Print(String.Format("Invoked {0} to add substrate {1}", this.Name, ligand.Name));
             foreach (var inter in substrateInteractions)
             {
-                if (inter.Ligand.Equals(ligand)) return;
+                System.Diagnostics.Debug.Print(String.Format("Checking interaction of {0} with {1}", this.Name, ligand.Name));
+                if (inter.Ligand==ligand) return;
             }
-            System.Diagnostics.Debug.Print(String.Format("Not curent substrate, so creating new enzyme relation..."));
+            System.Diagnostics.Debug.Print(String.Format("Not current substrate, so creating new enzyme relation..."));
             this.substrateInteractions.Add(new EnzymeLigandRelation(this, ligand));
             System.Diagnostics.Debug.Print(String.Format("Created ENZYME-LIGAND LINK"));
         }

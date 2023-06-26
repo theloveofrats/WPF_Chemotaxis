@@ -10,6 +10,7 @@ using System.Windows.Media;
 using System.Windows.Input;
 using System.Windows.Threading;
 using WPF_Chemotaxis.UX;
+using System.Reflection.Metadata;
 
 namespace WPF_Chemotaxis.VisualScripting
 {
@@ -19,13 +20,13 @@ namespace WPF_Chemotaxis.VisualScripting
         {
             get
             {
-                return new Point(Canvas.GetLeft(this), Canvas.GetTop(this));
+                return new Point(Canvas.GetLeft(this)-0.5*this.ActualWidth, Canvas.GetTop(this)-0.5*this.ActualHeight);
             }
             private set
             {
                 Point target = value;
-                Canvas.SetTop(this, target.Y);
-                Canvas.SetLeft(this, target.X);
+                Canvas.SetTop(this, target.Y+0.5*this.ActualWidth);
+                Canvas.SetLeft(this, target.X+0.5*this.ActualHeight);
             }
         }
         public Point AbsolutePosition
@@ -42,6 +43,7 @@ namespace WPF_Chemotaxis.VisualScripting
                 }
             }
         }
+        public bool Disposing { get; private set; }
         public double Rotation { get; private set; }
 
         public bool Docked
@@ -77,13 +79,6 @@ namespace WPF_Chemotaxis.VisualScripting
         public virtual void SetPosition(Point pt)
         {
             Position = pt;
-            OnPropertyChanged("Position", 20);
-            OnPropertyChanged("AbsolutePosition", 20);
-            foreach (var child in this.Children)
-            {
-                var diagramChild = child as VSDiagramObject;
-                diagramChild?.SetPosition(diagramChild.Position);
-            }
         }
         public virtual void SetAbsolutePosition(Point pt)
         {
@@ -110,19 +105,52 @@ namespace WPF_Chemotaxis.VisualScripting
             {
                 gt.Angle = Rotation;
             }
-            OnPropertyChanged("Rotation", 20);
+            UnrotateLabels();
         }
+
+        private double GetRelativeRotation(Canvas relativeTo)
+        {
+            double angle = 0;
+            if (relativeTo.IsAncestorOf(this))
+            {
+                Canvas current = this;
+                do
+                {
+                    var rt = (current.RenderTransform as RotateTransform);
+                    if(rt!=null) angle += rt.Angle;
+                    
+                    current = current.Parent as Canvas;
+                } 
+                while (current!=null && current!=relativeTo);
+            }
+            return angle;
+        }
+
+        private void UnrotateLabels()
+        {
+            var iter = Children.OfType<TextBox>();
+            if (iter != null)
+            {
+                foreach (var label in iter)
+                {
+                   
+                    double angle = GetRelativeRotation(_mainCanvas);
+                    if (angle != 0) { 
+                        var render = (label.RenderTransform as RotateTransform);
+                        if (render == null)
+                        {
+                            render = new RotateTransform();
+                        }
+                        render.Angle = -angle;
+                        label.RenderTransform = render;
+                    }
+                }
+            }
+        }
+
         public void NudgeRotation(double plusRotation)
         {
-            Rotation += plusRotation;
-            RotateTransform gt = this.RenderTransform as RotateTransform;
-            if (gt == null)
-            {
-                gt = new RotateTransform();
-            }
-            gt.Angle = Rotation;
-            this.RenderTransform = gt as Transform;
-            OnPropertyChanged("Rotation", 20);
+            SetRotation(Rotation+plusRotation);
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -130,7 +158,6 @@ namespace WPF_Chemotaxis.VisualScripting
         {
             await Task.Delay(msDelay);
             var castElement = this as VSUIElement;
-            //if(castElement!=null) System.Diagnostics.Debug.Print(string.Format("Just got a property change of {0} for {1}",name, castElement.LinkedModelPart.Name));
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
         }
 
@@ -142,13 +169,15 @@ namespace WPF_Chemotaxis.VisualScripting
             }
             else if (e.PropertyName.Equals("Rotation"))
             {
-                await OnPropertyChanged("AbsolutePosition", 20);
-                await OnPropertyChanged("Rotation", 20);
+                SetAbsolutePosition(AbsolutePosition);
+                SetRotation(Rotation);
+              
             }
         }
 
         public virtual void Dispose()
         {
+            Disposing = true;
             (Parent as Canvas).Children.Remove(this);
         }
 
@@ -197,14 +226,17 @@ namespace WPF_Chemotaxis.VisualScripting
         {
             if (!Docked)
             {
+                //Not docked, so return the drop position- which is already relative to canvas.
                 rotationAngle = (RenderTransform as RotateTransform).Angle;
                 return fromDropPosition;
             }
             Vector currentRelative = Point.Subtract(fromDropPosition, DockedTo.AbsolutePosition);
             double targetAngleRadians = Math.Atan2(currentRelative.Y, currentRelative.X);
             rotationAngle = 90d + 180d * targetAngleRadians / Math.PI;
-             Point targetPoint = new Point(dockDistance * Math.Cos(targetAngleRadians), dockDistance * Math.Sin(targetAngleRadians));
-         
+            
+            //POsition relative to DockedTo.
+            Point targetPoint = new Point(dockDistance * Math.Cos(targetAngleRadians), dockDistance * Math.Sin(targetAngleRadians));
+
             return targetPoint;
         }
 
@@ -213,6 +245,14 @@ namespace WPF_Chemotaxis.VisualScripting
             double angle;
             Point newPos = GetDockPosition(AbsolutePosition, out angle);
             //_mainCanvas.TransformToDescendant(dockedTo).Transform(
+            RotateTransform rt = DockedTo.RenderTransform as RotateTransform;
+            if (rt != null)
+            {
+                newPos = rt.Inverse.Transform(newPos);
+                newPos = rt.Inverse.Transform(newPos);
+                angle -= 2.0*rt.Angle;
+            }
+
             this.SetPosition(newPos);
             this.SetRotation(angle);
             
@@ -240,6 +280,14 @@ namespace WPF_Chemotaxis.VisualScripting
             _mainCanvas.Children.Add(this);
             DockedTo = null;
             dockDistance = -1;
+        }
+
+        public virtual void Clean()
+        {
+            if (DockedTo != null)
+            {
+                DockedTo.PropertyChanged -= this.ParentPropertyChanged;
+            }
         }
 
         protected bool HasDaughter(ILinkable link)
@@ -311,10 +359,6 @@ namespace WPF_Chemotaxis.VisualScripting
         protected virtual void SingleClickLeft(object sender, MouseButtonEventArgs e)
         {
             if (e == null) return;
-            
-            //If there's no selection, select sender
-            
-            System.Diagnostics.Debug.Print(String.Format("Left click at position {0}:{1}", e.GetPosition(this).X, e.GetPosition(this).Y));
         }
 
         //Needs to only handle drags! So we mark the click as handled if it is a mouse up on the selected element.
@@ -331,7 +375,7 @@ namespace WPF_Chemotaxis.VisualScripting
 
         protected virtual void DoubleClickLeft(object sender, MouseButtonEventArgs e)
         {
-            System.Diagnostics.Debug.Print(String.Format("Double click at position {0}:{1}", e.GetPosition(this).X, e.GetPosition(this).Y));
+            //System.Diagnostics.Debug.Print(String.Format("Double click at position {0}:{1}", e.GetPosition(this).X, e.GetPosition(this).Y));
         }
 
         protected virtual void SingleClickMiddle(object sender, MouseButtonEventArgs e)
@@ -363,9 +407,9 @@ namespace WPF_Chemotaxis.VisualScripting
 
         protected override void OnRender(DrawingContext dc)
         {
-            OnPropertyChanged("Position", 1);
-            OnPropertyChanged("AbsolutePosition", 1);
-            OnPropertyChanged("Rotation", 1);
+            //OnPropertyChanged("Position", 2);
+            //OnPropertyChanged("AbsolutePosition", 2);
+            //OnPropertyChanged("Rotation", 2);
             base.OnRender(dc);
         }
     }
