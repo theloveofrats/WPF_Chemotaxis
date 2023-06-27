@@ -22,6 +22,7 @@ namespace WPF_Chemotaxis.VisualScripting
         VSDiagramObject primary;
 
         private List<VSLine> _lines = new();
+        private bool separateModelPart;
         private Dictionary<VSDiagramObject, VSLine> _lineTargets = new();
         public IReadOnlyCollection<VSLine> RelationLines
         {
@@ -38,13 +39,14 @@ namespace WPF_Chemotaxis.VisualScripting
         {
 
         }
-        public VSRelationElement(VSDiagramObject primary, ILinkable modelRelation, Canvas canvas) : base(canvas)
+        public VSRelationElement(VSDiagramObject primary, ILinkable modelRelation, bool separateModelPart, Canvas canvas) : base(canvas)
         {
             this.ModelRelation = modelRelation;
+            this.separateModelPart = separateModelPart;
             this.primary = primary;
             Model.Model.Current.PropertyChanged += (s,e) => Redraw();
             lineProps = this.ModelRelation.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).Where((prop) => prop.GetCustomAttribute<VisualLineAttribute>() != null).ToList();
-            VSModelManager.Current.TryAdd(this, this.ModelRelation);
+            if(separateModelPart) VSModelManager.Current.TryAdd(this, this.ModelRelation);
             Redraw();
         }
 
@@ -135,7 +137,7 @@ namespace WPF_Chemotaxis.VisualScripting
             }
             if (oldHandle == this.primary) // i.e. if the primary was duplicated, we create a new relation object
             {
-                dupe = new VSRelationElement(newHandle, this.ModelRelation, _mainCanvas);
+                dupe = new VSRelationElement(newHandle, this.ModelRelation, this.separateModelPart, _mainCanvas);
                 return true;
             }
             else  // Otherwise, we add it to the lines needed here from the original primary...

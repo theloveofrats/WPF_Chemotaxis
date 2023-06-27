@@ -15,7 +15,7 @@ namespace WPF_Chemotaxis.Model
     /// Relational class for cell-ligand direct interactions (rather than receptor-mediated interactions).
     /// </summary>
 
-    [VSRelationAttribute(forcedPositionType = ForcedPositionType.NONE, childPropertyName = "Ligand", parentPropertyName = "Enzyme")]
+    [LineConnector(parentPropertyName = "Enzyme")]
     public class EnzymeLigandRelation : LabelledLinkable
     {
         [JsonProperty]

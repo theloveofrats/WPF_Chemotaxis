@@ -12,7 +12,7 @@ namespace WPF_Chemotaxis.Model
     /// <summary>
     /// Class quantifying the relationship between a cell type and a receptor type.
     /// </summary>
-    [VSRelation(forcedPositionType = ForcedPositionType.RADIUS, forcePositionDistance = 125, childPropertyName = "Receptor", parentPropertyName = "Cell")]
+    [Dockable(parentPropertyName = "Cell", childPropertyName = "Receptor")]
     public class CellReceptorRelation : LabelledLinkable
     {
         [JsonProperty]

@@ -85,7 +85,11 @@ namespace WPF_Chemotaxis.MitogensPlugin
                     mitParams.ConfirmSplit();
                 }
             }
-        }                                                                                                                     
-                                                                                                                              
+        }
+
+        public void ConnectToCellType(CellType ct)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

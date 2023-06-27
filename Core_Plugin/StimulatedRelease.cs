@@ -11,8 +11,7 @@ using ILGPU.Runtime.Cuda;
 namespace WPF_Chemotaxis.CorePlugin
 {
     [VSElement(ui_TypeLabel = "Ligand release", symbolResourcePath = "Core_Plugin;component/Resources/ChannelIcon.png", symbolSize = 6.0, tagX = 12, tagY = -12, tagCentre = false)]
-    [VSRelation(childPropertyName = "Output", parentPropertyName = null, forcedPositionType = ForcedPositionType.NONE)]
-
+    [LineConnector]
     public class StimulatedRelease : LabelledLinkable, ICellComponent // Labelled linkable already does the heavy
                                                                       // lifting to put this in the GUI. ICellComponent means
                                                                       // it can be added to a cell to do extra logic.
@@ -36,11 +35,11 @@ namespace WPF_Chemotaxis.CorePlugin
         [Param(Name = "Second input weight", Min = 0)]
         public double second_weight { get; set; } = 0.5;
 
-        [VisualLine(parentAnchor = LineAnchorType.ANCHOR_FORWARD, childAnchor = LineAnchorType.ANCHOR_CENTRE, parentAnchorDistance = 25.0, childAnchorDistance = 10.0)]
+        [VisualLine(parentAnchor = LineAnchorType.ANCHOR_FORWARD, childAnchor = LineAnchorType.ANCHOR_CENTRE, parentAnchorDistance = 25.0, childAnchorDistance = 18.0, childArrowHead = LineHeadType.ARROW)]
         [JsonProperty]      // This makes the dropdown selection saveable.
         [InstanceChooser(label = "Output ligand")] // This creates a dropdown of all instances of the type
                                                    // (Receptor here), so you can choose the one to plug in.
-        public Ligand Output;
+        public Ligand Output { get; set; }
 
 
         [Param(Name = "Threshold occupancy", Min = 0, Max = 1)]
@@ -54,6 +53,24 @@ namespace WPF_Chemotaxis.CorePlugin
 
         [Param(Name = "Pulse amplitude", Min = 0, Max = 1)]
         public double amplitude { get; set; } = 0.025;
+
+        public StimulatedRelease () : base() 
+        {
+            Init();
+        }
+        public StimulatedRelease (string name) : base(name)
+        {
+            Init();
+        }
+
+        [ElementAdder(label = "Add Ligand", type = typeof(Ligand))]
+        public void AddLigand(Ligand ligand)
+        {
+            if (Output != ligand)
+            {
+                Output = ligand;
+            }
+        }
 
 
         private Simulation.CellNotificationHandler RegisterCell; // We don't know how many components cells will have,
@@ -116,6 +133,11 @@ namespace WPF_Chemotaxis.CorePlugin
         {
             
             if (!lastPulse.ContainsKey(e.NewCell)) lastPulse.Add(e.NewCell, 0);
+        }
+
+        public void ConnectToCellType(CellType ct)
+        {
+            new ExpressionCoupler(this, ct);
         }
     }
 }

@@ -52,6 +52,12 @@ namespace WPF_Chemotaxis.CorePlugin
             sim.CellAdded += this.RegisterCell;
         }
 
+        public void ConnectToCellType(CellType ct)
+        {
+            
+        }
+        
+
         private void RegisterCell(Simulation sim, CellNotificationEventArgs e)                                        // This function just puts cells in the look-up list if they're not already there.  
         {
             if (e.NewCell.CellType.components.Contains(this))

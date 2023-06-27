@@ -13,7 +13,7 @@ namespace WPF_Chemotaxis.Model
     /// <summary>
     /// Class quantifying the relationship between a cell type and a receptor type.
     /// </summary>
-    [VSRelation(forcedPositionType = ForcedPositionType.RADIUS, forcePositionDistance = 125, childPropertyName = "Enzyme", parentPropertyName = "Cell")]
+    [Dockable(parentPropertyName = "Cell", childPropertyName = "Enzyme")]
     public class CellEnzymeRelation : LabelledLinkable, ICellComponent
     {
         [JsonProperty]
@@ -91,6 +91,11 @@ namespace WPF_Chemotaxis.Model
         public void Initialise(Simulation sim)
         {
             this.expressionWeights = new();
+        }
+
+        public void ConnectToCellType(CellType ct)
+        {
+           
         }
 
         [JsonIgnore]

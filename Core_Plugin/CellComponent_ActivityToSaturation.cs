@@ -25,6 +25,11 @@ namespace Core_Plugin
         [Param(Name = "Max. Activity")]
         public double maxActivity { get; set; } = 0.5;
 
+        public void ConnectToCellType(CellType ct)
+        {
+
+        }
+
         public void Initialise(Simulation sim)
         {
 

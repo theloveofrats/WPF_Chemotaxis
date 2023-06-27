@@ -112,138 +112,110 @@ namespace WPF_Chemotaxis.VisualScripting
             }
         }
 
-        private void AddChildLineUI(ILinkable parentModelElement, ILinkable childModelElement, ILinkable relationLink)
-        {
-            //If there are duplicates to make, we need to know
-            
-            List<VSDiagramObject> parentDuplicates, childDuplicates;
-            if (ui_model_multimap.TryGetValues(parentModelElement, out parentDuplicates) && ui_model_multimap.TryGetValues(childModelElement, out childDuplicates)){
-                foreach (var par in parentDuplicates)
-                {
-                    VSRelationElement relation = new VSRelationElement(par, relationLink, targetCanvas);
-                }
-                targetCanvas.InvalidateVisual();
-            }
-        }
 
-
-        private void AddUIChildToUIParent(VSDiagramObject parent, VSDiagramObject child, VSRelationAttribute relationParams, ILinkable relationalModelLink)
-        {
-            switch(relationParams.forcedPositionType)
-            {
-                case ForcedPositionType.NONE:
-                    break;
-                case ForcedPositionType.RADIUS:
-                    child.DockToVSObject(parent, relationParams.forcePositionDistance, relationalModelLink);
-                    break;
-            }
-        }
 
         public List<VSRelationElement> GetConnections(VSDiagramObject handle)
         {
-            /*ILinkable link;
-            if(ui_model_multimap.TryGetValue(handle, out link)){
-                System.Diagnostics.Debug.Print(string.Format("Getting connections for {0}", link.Name));
-            }
-            System.Diagnostics.Debug.Print(string.Format(""));
-            var connections = from sel in ui_model_multimap.MultipleItemsList().OfType<VSRelationElement>() select sel;
-            System.Diagnostics.Debug.Print(string.Format("XXXXXXXX There are {0} RelationElements in the list", connections.Count()));
-            foreach (var sel in connections)
-            {
-                ILinkable relationlink;
-                if (ui_model_multimap.TryGetValue(sel, out relationlink))
-                {
-                    System.Diagnostics.Debug.Print(string.Format("Checking relation {0}", relationlink.Name));
-                }
-                if (sel.HasHandle(handle))
-                {
-                    System.Diagnostics.Debug.Print(string.Format("Has connection to {0}", link.Name));
-                }
-            }*/
-            var connections2 = (from sel in ui_model_multimap.MultipleItemsList().OfType<VSRelationElement>() where sel.HasHandle(handle) select sel);
-            return connections2.ToList();
+            var connections = (from sel in ui_model_multimap.MultipleItemsList().OfType<VSRelationElement>() where sel.HasHandle(handle) select sel);
+            return connections.ToList();
         }
 
-        private bool TryAddRelationshipMarker(ILinkable relationalLink, VSRelationAttribute relation)
+        private bool TryAddDockedRelationship(ILinkable dockableLink, DockableAttribute dock)
         {
-            Type linkType = relationalLink.GetType();
-            ILinkable parent;
+            System.Diagnostics.Debug.Print(string.Format("Trying to make dockable link {0}", dockableLink.Name));
 
-            if (relation.parentPropertyName == null)
+            Type linkType = dockableLink.GetType();
+            bool separateDock = true;
+            ILinkable parent, child;
+            parent = linkType.GetProperty(dock.parentPropertyName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).GetValue(dockableLink) as ILinkable;
+
+            if (dock.childPropertyName==null || dock.childPropertyName == "")
             {
-                parent = relationalLink;
+                separateDock = false; // Keep track of whether the dock needs recording as its own model object.
+                child = dockableLink; // Assume that dockable link is the dockable element if it doesn't specify.
             }
-            else {
-                System.Diagnostics.Debug.Print(String.Format("Parent property name is {0}, child property name is {1}", relation.parentPropertyName, relation.childPropertyName));
-                parent = linkType.GetProperty(relation.parentPropertyName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).GetValue(relationalLink) as ILinkable;
-            }
-
-            ILinkable child  = linkType.GetProperty(relation.childPropertyName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).GetValue(relationalLink) as ILinkable;
-
-            if (parent == null) System.Diagnostics.Debug.Print("Null parent");
-            if (child == null) System.Diagnostics.Debug.Print("Null child");
-
-
-            // If we have both model links.
-            if (parent!=null && child != null)
+            else 
             {
-                List<VSDiagramObject> parentUISet, childUISet;
-                System.Diagnostics.Debug.Print(String.Format("Adding relationship marker {0} for child {1} and parent {2}", relationalLink.Name, child.Name, parent.Name));
+                child = linkType.GetProperty(dock.childPropertyName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).GetValue(dockableLink) as ILinkable;
+            }
+            if (parent == null || child == null) return false;
 
-                //And we have at least one visual element for each...
-                if (ui_model_multimap.TryGetValues(parent, out parentUISet) && ui_model_multimap.TryGetValues(child, out childUISet)){
-                    if (relation.forcedPositionType != ForcedPositionType.NONE)
+            System.Diagnostics.Debug.Print(string.Format("Making docking connection for {0} and {1}", parent.Name, child.Name));
+
+            List<VSDiagramObject> parentUISet, childUISet;     
+            //If we have a parent, a child and UIs for both...
+            if (ui_model_multimap.TryGetValues(parent, out parentUISet) && ui_model_multimap.TryGetValues(child, out childUISet)){
+                System.Diagnostics.Debug.Print(string.Format("Fetched UIs for both..."));
+                //We check that, for every parentUI, we have a version of the child. 
+                foreach (var parentUI in parentUISet)
+                {
+                    bool attached = false;
+                    foreach (var childUI in childUISet)
                     {
-                        //We check thsat, for every parentUI, we have a versio of the child. 
-                        foreach (var parentUI in parentUISet)
+                        //If the parentUI contains this child, it's a docked child, so tick off this parent from the list
+                        if (parentUI.Children.Contains(childUI))
                         {
-                            bool attached = false;
-                            foreach (var childUI in childUISet)
+                            System.Diagnostics.Debug.Print(string.Format("Found parent UI attached to child"));
+                            attached = true;
+                            break;
+                        }
+                    }
+                    if (!attached)
+                    {
+                        //We have a parent without a child. If there's a child UI that's NOT docked, dock it to the parent.
+                        System.Diagnostics.Debug.Print(string.Format("Found parent UI without child"));
+                        foreach (var childUI in childUISet)
+                        {
+                            if (!childUI.Docked)
                             {
-                                //If the parentUI contains this child, it's a docked child, so tick off this parent from the list
-                                if (parentUI.Children.Contains(childUI))
-                                {
-                                    attached = true;
-                                    break;
-                                }
-                            }
-                            if (!attached)
-                            {
-                                foreach (var childUI in childUISet)
-                                {
-                                    if (!childUI.Docked)
-                                    {
-                                        AddUIChildToUIParent(parentUI, childUI, relation, relationalLink);
-                                        attached = true;
-                                        break;
-                                    }
-                                }
-                                if (!attached)
-                                {
-
-                                    //Or, add a copy I guess?
-                                    System.Diagnostics.Debug.Print(String.Format("COPY {0} TO ADD TO PARENT {1}", child.Name, parent.Name));
-                                    var copy = childUISet[0].Duplicate();
-                                    AddUIChildToUIParent(parentUI, copy, relation, relationalLink);
-                                    TryAdd(copy, (copy as VSUIElement).LinkedModelPart);
-                                    attached = true;
-                                }
+                                System.Diagnostics.Debug.Print(string.Format("Attempting to dock child UI to the parent..."));
+                                childUI.DockToVSObject(parentUI, dock.dockDistance);
+                                attached = true;
+                                break;
                             }
                         }
                     }
-                    else
+                    //If there's still no child UI, make a copy and dock it.
+                    if (!attached)
                     {
-                        System.Diagnostics.Debug.Print(String.Format("No forced position..."));
-
-                        AddChildLineUI(parent, child, relationalLink);
-                        return true;
-                    }
+                        System.Diagnostics.Debug.Print(string.Format("No free child UIs- Docking a copy of the first UI to the parent."));
+                        var copy = childUISet[0].Duplicate();
+                        copy.DockToVSObject(parentUI, dock.dockDistance);
+                        //if(separateDock) ui_model_multimap.TryAdd(copy, (copy as VSUIElement).LinkedModelPart);
+                        attached = true;
+                    }    
                 }
             }
             return false;
         }
 
-        private void ParseOnLoad()
+        private bool TryAddLineRelationship(ILinkable lineConnectorLink, LineConnectorAttribute cnx)
+        {
+            Type linkType = lineConnectorLink.GetType();
+            bool isSeparateModelPart = true;
+            ILinkable parent;
+            if(cnx.parentPropertyName==null || cnx.parentPropertyName == "")
+            {
+                isSeparateModelPart = false; // Keep track of whether the dock needs recording as its own model object.
+                parent = lineConnectorLink; // Assume that dockable link is the dockable element if it doesn't specify.
+            }
+            else parent = linkType.GetProperty(cnx.parentPropertyName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).GetValue(lineConnectorLink) as ILinkable;
+            if (parent == null) return false;
+
+            List<VSDiagramObject> parentDuplicates;
+            if (ui_model_multimap.TryGetValues(parent, out parentDuplicates))
+            {
+                foreach (var par in parentDuplicates)
+                {
+                    new VSRelationElement(par, lineConnectorLink, isSeparateModelPart, targetCanvas);
+                }
+                targetCanvas.InvalidateVisual();
+                return true;
+            }
+            return false;
+        }
+
+            private void ParseOnLoad()
         {
             List<VSDiagramObject> el;
             foreach (CellType newCellType in Model.Model.MasterElementList.OfType<CellType>())
@@ -285,6 +257,7 @@ namespace WPF_Chemotaxis.VisualScripting
                             where !element.GetType().IsAssignableTo(typeof(CellType))
                             &&    !element.GetType().IsAssignableTo(typeof(Receptor))
                             &&    !element.GetType().IsAssignableTo(typeof(Ligand))
+                            &&    !element.GetType().IsAssignableTo(typeof(ExpressionCoupler))
                             &&    !element.GetType().IsAssignableTo(typeof(ICellComponent))
                             select element;
 
@@ -310,6 +283,17 @@ namespace WPF_Chemotaxis.VisualScripting
                 else
                 {
                     TryAddNewILinkable(link);
+                }
+            }
+            foreach (ExpressionCoupler coup in Model.Model.MasterElementList.OfType<ExpressionCoupler>())
+            {
+                if (ui_model_multimap.TryGetValues(coup, out el))
+                {
+
+                }
+                else
+                {
+                    TryAddNewILinkable(coup);
                 }
             }
 
@@ -371,20 +355,31 @@ namespace WPF_Chemotaxis.VisualScripting
         {
             if (item != null)
             {
-                // If an element that can be added via menu has been added elsewhere...
-                VSElementAttribute itemAttribute = item.GetType().GetCustomAttribute<VSElementAttribute>();
+                // Three attributes control ILinkable behaviour. It can, non-exclusively, be
+                // A) A diagram element, with its own graphic.
+                // B) dockable to something else
+                // C) drawing a line to other things.
+                VSElementAttribute     itemAttribute = item.GetType().GetCustomAttribute<VSElementAttribute>();
+                DockableAttribute      dockAttribute = item.GetType().GetCustomAttribute<DockableAttribute>();
+                LineConnectorAttribute lineAttribute = item.GetType().GetCustomAttribute<LineConnectorAttribute>();
+
                 if (itemAttribute != null)
                 {
                     AddDetectedMainElement(item);
-                    return true;
                 }
-                VSRelationAttribute relationAttribute = item.GetType().GetCustomAttribute<VSRelationAttribute>();
-                if (relationAttribute != null)
+
+                if (dockAttribute != null)
                 {
-                    System.Diagnostics.Debug.Print(String.Format("Found relation attribute named {0}", item.Name));
-                    TryAddRelationshipMarker(item, relationAttribute);
-                    return true;
+                    System.Diagnostics.Debug.Print(String.Format("Found dock attribute for {0}", item.Name));
+                    TryAddDockedRelationship(item, dockAttribute);
                 }
+
+                if (lineAttribute != null)
+                {
+                    System.Diagnostics.Debug.Print(String.Format("Found line attribute for {0}", item.Name));
+                    TryAddLineRelationship(item, lineAttribute);
+                }
+                return true;
             }
             return false;
         }
@@ -522,7 +517,7 @@ namespace WPF_Chemotaxis.VisualScripting
             foreach (MethodInfo m in methods)
             {
                 ElementAdder adder = (m.GetCustomAttribute<ElementAdder>() as ElementAdder);
-                if (adder.type == childLink.GetType())
+                if (childLink.GetType().IsAssignableTo(adder.type))
                 {
                     method = m;
                     break;

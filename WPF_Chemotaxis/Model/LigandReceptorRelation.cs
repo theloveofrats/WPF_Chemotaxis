@@ -14,7 +14,7 @@ namespace WPF_Chemotaxis.Model
     /// Defines the relationship between a given ligand and a given receptor type. 
     /// Parameters fro kD and efficacy are exposed to the UI for modification.
     /// </summary>
-    [VSRelation(forcedPositionType = ForcedPositionType.NONE, childPropertyName = "Ligand", parentPropertyName = "Receptor")]
+    [LineConnector(parentPropertyName = "Receptor")]
     public class LigandReceptorRelation : LabelledLinkable
     {
         [JsonProperty]

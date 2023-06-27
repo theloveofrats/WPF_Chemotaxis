@@ -130,6 +130,7 @@ namespace WPF_Chemotaxis.Model
                 Model.Current.AddElement(link);
             }
             this.components.Add(component);
+            component.ConnectToCellType(this);
         }
     }
 }

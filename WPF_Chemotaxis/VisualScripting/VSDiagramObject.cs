@@ -202,7 +202,7 @@ namespace WPF_Chemotaxis.VisualScripting
         }
 
         //Manages docking an object and hooking up listeners.
-        public void DockToVSObject(VSDiagramObject  dockParent, double dockDistance, ILinkable impliedLink)
+        public void DockToVSObject(VSDiagramObject  dockParent, double dockDistance)
         {
             Point cachedAbsolutePosition = AbsolutePosition;
             if (Parent == dockParent) {
@@ -217,7 +217,6 @@ namespace WPF_Chemotaxis.VisualScripting
                 oldParent?.Children.Remove(this);
                 dockParent.Children.Add(this);
                 ResetLabels();
-                
             }
             _mainCanvas.InvalidateVisual();
         }

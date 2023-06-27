@@ -34,6 +34,13 @@ namespace WPF_Chemotaxis.Model
         public void Initialise(Simulation sim);
 
         /// <summary>
+        /// Called when a component is added o a cell type.
+        /// Allows custom logic, such as hooking up receptor inputs for variable expression.
+        /// </summary>
+        /// <param name="sim">The Simulation that is initialising.</param>
+        public void ConnectToCellType(CellType ct);
+
+        /// <summary>
         /// When the occupancy difference of Receptor receptor is called, the base value calculated by Cell cell 
         /// is passed through this method on all components first, in case they need to amend the value.
         /// </summary>

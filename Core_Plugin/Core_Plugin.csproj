@@ -16,6 +16,7 @@
 
   <ItemGroup>
     <None Remove="Resources\ChannelIcon.png" />
+    <None Remove="Resources\DirectionModuleIcon.png" />
   </ItemGroup>
 
   <ItemGroup>
@@ -35,6 +36,7 @@
 
   <ItemGroup>
     <Resource Include="Resources\ChannelIcon.png" />
+    <Resource Include="Resources\DirectionModuleIcon.png" />
   </ItemGroup>
 
 </Project>

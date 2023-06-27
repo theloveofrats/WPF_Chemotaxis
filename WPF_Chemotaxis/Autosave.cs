@@ -38,6 +38,7 @@ namespace WPF_Chemotaxis
         public static Autosave ReadFromFile(string path)
         {
             string fileRead = File.ReadAllText(path);
+            System.Diagnostics.Debug.Print("Reading save from file...");
             try
             {
                 Autosave autosave = JsonConvert.DeserializeObject<Autosave>(fileRead,
@@ -49,7 +50,8 @@ namespace WPF_Chemotaxis
                         });
                 return autosave;
             }
-            catch (JsonSerializationException e) { 
+            catch (JsonSerializationException e) {
+                System.Diagnostics.Debug.Print("FAILED TO READ AUTOSAVE!");
                 Console.WriteLine(e.Message);
                 return null;
             }

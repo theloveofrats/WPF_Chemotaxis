@@ -7,10 +7,10 @@ using System.Threading.Tasks;
 namespace WPF_Chemotaxis.VisualScripting
 {
     //Annotation for creating dockable VS elements. Assumes this is child if child is not found.
-    internal class DockableAttribute : Attribute
+    public class DockableAttribute : Attribute
     {
-        public double dockDistance = 25;
-        public string parentPropertyName;
+        public double dockDistance = 125;
+        public string parentPropertyName = "";
         public string childPropertyName = "";
     }
 }

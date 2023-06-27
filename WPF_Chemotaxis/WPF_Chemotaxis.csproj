@@ -18,7 +18,6 @@
     <None Remove="Resources\Backward Arrow.png" />
     <None Remove="Resources\CircleIcon.png" />
     <None Remove="Resources\clear-all.png" />
-    <None Remove="Resources\DirectionModuleIcon.png" />
     <None Remove="Resources\EnzymeIcon.png" />
     <None Remove="Resources\Forward Arrow.png" />
     <None Remove="Resources\Home.png" />
@@ -54,7 +53,6 @@
     <Resource Include="Resources\Backward Arrow.png" />
     <Resource Include="Resources\CircleIcon.png" />
     <Resource Include="Resources\clear-all.png" />
-    <Resource Include="Resources\DirectionModuleIcon.png" />
     <Resource Include="Resources\EnzymeIcon.png">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Resource>

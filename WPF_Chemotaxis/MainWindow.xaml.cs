@@ -772,8 +772,7 @@ namespace WPF_Chemotaxis
 
         private async Task SetUpVisualScriptingWindow()
         {
-            await Task.Delay(500);
-            //VSCanvas.KeyDown += (s,e) => KeyDownHandler(s,e);
+            await Task.Delay(100);
             VSCanvas.KeyDown += KeyDownHandler;
             SetVSElementsDisplaySource();
 

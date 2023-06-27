@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace WPF_Chemotaxis.VisualScripting
 {
-    internal class LineConnectorAttribute
+    public class LineConnectorAttribute : Attribute
     {
         public string parentPropertyName;
     }
