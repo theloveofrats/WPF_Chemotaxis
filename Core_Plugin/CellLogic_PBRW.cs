@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Windows;
 using WPF_Chemotaxis.Model;
 using WPF_Chemotaxis.Simulations;
@@ -131,11 +132,12 @@ namespace WPF_Chemotaxis.CorePlugin
 
             Receptor r;
             Vector dir;
-            if (ct.receptorTypes.Count > 0)                                                                                             // Then, if the cell type has at least one receptor type
+            if (ct.receptorTypes.Count() > 0)                                                                                             // Then, if the cell type has at least one receptor type
             {
-                foreach (CellReceptorRelation crr in ct.receptorTypes)                                                                  // across all receptor types
+                foreach (ExpressionCoupler crr in ct.receptorTypes)                                                                  // across all receptor types
                 {
-                    r = crr.Receptor;
+                    r = (Receptor) crr.ChildComponent;
+                    if (r == null) continue;
 
                     mean_eff_total += cell.ReceptorActivity(r);                                                                         
 
@@ -144,9 +146,9 @@ namespace WPF_Chemotaxis.CorePlugin
                     moment_x += dir.X * cell.ReceptorWeight(r);                                                                         // and we multiply the importance of this by the receptor class's weight for this individual  cell
                     moment_y += dir.Y * cell.ReceptorWeight(r);                                                                         // individual because these are ranged values too, and can differ cell to cell)
                 }
-                mean_eff_total /= ct.receptorTypes.Count;
-                moment_x *= pwr / ct.receptorTypes.Count;                                                                               // Finally, we multiply this total receptor difference by our chemotaxis power...
-                moment_y *= pwr / ct.receptorTypes.Count;                                                                                           
+                mean_eff_total /= ct.receptorTypes.Count();
+                moment_x *= pwr / ct.receptorTypes.Count();                                                                               // Finally, we multiply this total receptor difference by our chemotaxis power...
+                moment_y *= pwr / ct.receptorTypes.Count();                                                                                           
 
                 //System.Diagnostics.Debug.Print(string.Format("moment:: ({0:0.00},{1:0.00})", moment_x, moment_y));
             }

@@ -48,7 +48,7 @@ namespace WPF_Chemotaxis.Model
            {
                 this.ChildComponent = null;
                 // Only allow like for like replacement!
-                if(element.GetType() == replacement.GetType())
+                if(replacement!=null && element.GetType() == replacement.GetType())
                 {
                     this.ChildComponent = replacement;    
                 }

@@ -39,10 +39,12 @@ namespace Core_Plugin
         {
             double mean = 0;
             double i = 0;
-            foreach(CellReceptorRelation crr in cell.CellType.receptorTypes)
+            foreach(ExpressionCoupler crr in cell.CellType.receptorTypes)
             {
+                Receptor r = crr.ChildComponent as Receptor;
+                if (r == null) continue;
                 i++;
-                mean += cell.ReceptorActivity(crr.Receptor);
+                mean += cell.ReceptorActivity(r);
             }
             if (i == 0) return;
 

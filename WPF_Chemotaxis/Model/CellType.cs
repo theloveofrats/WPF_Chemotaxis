@@ -4,9 +4,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using WPF_Chemotaxis.UX;
-using Newtonsoft.Json.Serialization;
+using Newtonsoft.Json;
 using WPF_Chemotaxis.VisualScripting;
 using System.Windows.Media;
+using System.Collections.Immutable;
+using System.Collections.ObjectModel;
 
 namespace WPF_Chemotaxis.Model
 {
@@ -28,11 +30,20 @@ namespace WPF_Chemotaxis.Model
         public static List<CellType> cellTypes { get; private set; } = new();
 
         [Link]
-        public List<CellReceptorRelation> receptorTypes { get; private set; } = new();
+        [JsonProperty]
+        protected List<ExpressionCoupler> expressionCouplers { get; private set; } = new();
+
+        public IEnumerable<ExpressionCoupler> receptorTypes {
+            get
+            {
+                return (from rec in expressionCouplers.Where(ex => ex.ChildComponent.GetType() == typeof(Receptor)) select rec);
+            }
+        }
+
         [Link]
         public List<CellLigandRelation> ligandInteractions { get; private set; } = new();
 
-        [Link(overrideName = "Movement logic")]
+        [Link(overrideName = "Logical component")]
         public List<ICellComponent> components { get; private set;  } = new();
 
         [Link(overrideName = "Draw handler")]
@@ -56,13 +67,13 @@ namespace WPF_Chemotaxis.Model
         [ElementAdder(label ="Add Receptor", type = typeof(Receptor))]
         public void AddReceptorType(Receptor receptor)
         {
-            foreach(CellReceptorRelation crr in receptorTypes)
+            foreach(var exc in expressionCouplers)
             {
-                if (crr.Receptor == receptor) return; //Already have this receptor in the relation list.
+                if (exc.ChildComponent == receptor) return; //Already have this receptor in the relation list.
             }
 
-            CellReceptorRelation relation = new CellReceptorRelation(this, receptor); 
-            if(!receptorTypes.Contains(relation)) receptorTypes.Add(relation);                        
+            ExpressionCoupler relation = new ExpressionCoupler(receptor, this); 
+            if(!expressionCouplers.Contains(relation)) expressionCouplers.Add(relation);                        
 
         }
 
@@ -79,7 +90,7 @@ namespace WPF_Chemotaxis.Model
             if (element == null) return;
             if(element is Receptor)
             {
-                List<CellReceptorRelation> drop = (from r in receptorTypes where r.Receptor == element select r).ToList();
+                List<ExpressionCoupler> drop = (from r in receptorTypes where r.ChildComponent == element select r).ToList();
                 foreach (var receptorType in drop)
                 {
                     Model.Current.RemoveElement(receptorType, replacement);
@@ -97,14 +108,14 @@ namespace WPF_Chemotaxis.Model
                     }
                 }
             }
-            else if(element is CellReceptorRelation)
+            else if(element is ExpressionCoupler)
             {
-                if (this.receptorTypes.Contains(element))
+                if (this.expressionCouplers.Contains(element))
                 {
-                    this.receptorTypes.Remove((CellReceptorRelation)element);
-                    if (replacement != null && replacement.GetType().IsAssignableTo(typeof(CellReceptorRelation)))
+                    this.expressionCouplers.Remove((ExpressionCoupler)element);
+                    if (replacement != null && replacement.GetType().IsAssignableTo(typeof(ExpressionCoupler)))
                     {
-                        this.receptorTypes.Add((CellReceptorRelation)replacement);
+                        this.expressionCouplers.Add((ExpressionCoupler)replacement);
                     }
                 }
             }

@@ -256,10 +256,12 @@ namespace WPF_Chemotaxis.Simulations
             receptorWeights = new();
             receptorActivities = new();
             receptorDifferences = new();
-            foreach (CellReceptorRelation crr in this.cellType.receptorTypes)
+            foreach (ExpressionCoupler crr in this.cellType.receptorTypes)
             {
-                receptorWeights.Add(crr.Receptor, crr.Weight.RandomInRange);
-                receptorActivities.Add(crr.Receptor, 0);
+                Receptor rec = crr.ChildComponent as Receptor;
+                if (rec == null) continue;
+                receptorWeights.Add(rec, crr.BasalWeight.RandomInRange);
+                receptorActivities.Add(rec, 0);
             }
         }
 
@@ -356,7 +358,7 @@ namespace WPF_Chemotaxis.Simulations
 
             double eff, receptor_mean_eff, receptor_moment_x, receptor_moment_y;
 
-            if (CellType.receptorTypes.Count > 0)
+            if (CellType.receptorTypes.Count() > 0)
             {
                 foreach (Receptor r in receptorActivities.Keys)
                 {
