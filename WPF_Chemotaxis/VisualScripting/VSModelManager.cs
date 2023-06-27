@@ -74,15 +74,32 @@ namespace WPF_Chemotaxis.VisualScripting
             _islistening = false;
             try
             {
-                System.Diagnostics.Debug.Print(string.Format("About to create object of type {0}, but with listening={1}", fromMenu.TargetType.Name, _islistening));
                 ILinkable newModelElement = (ILinkable) Activator.CreateInstance(fromMenu.TargetType);
-                System.Diagnostics.Debug.Print("Created object of type " + newModelElement.GetType().Name);
+                
                 newModelElement.Name = "New " + newModelElement.DisplayType;
                 if (newModelElement != null)
                 {
-                    System.Diagnostics.Debug.Print("Making UI element... " + fromMenu.TargetType.Name);
                     VSUIElement newElement = new VSUIElement(fromMenu, clickPsn, newModelElement, targetCanvas);
                     ui_model_multimap.TryAdd(newElement, newModelElement);
+                    var recovered = new List<VSDiagramObject>();
+                    if(ui_model_multimap.TryGetValues(newModelElement, out recovered))
+                    {
+                    
+                    }
+                    DockableAttribute dockAttribute = newModelElement.GetType().GetCustomAttribute<DockableAttribute>();
+                    LineConnectorAttribute lineAttribute = newModelElement.GetType().GetCustomAttribute<LineConnectorAttribute>();
+
+                    if (dockAttribute != null)
+                    {
+                        TryAddDockedRelationship(newModelElement, dockAttribute);
+                    }
+
+                    if (lineAttribute != null)
+                    {
+                        
+                        TryAddLineRelationship(newModelElement, lineAttribute);
+                    }
+
                 }
             }
             catch(TargetInvocationException e)
@@ -94,20 +111,15 @@ namespace WPF_Chemotaxis.VisualScripting
 
         private void AddDetectedMainElement(ILinkable element)
         {
-            System.Diagnostics.Debug.Print(String.Format("Adding element {0}", element.Name));
             //If an item that could be picked from the menu isn't listed in the visual componenet dictionary, make it and place it.
             if (ui_model_multimap!=null && !ui_model_multimap.Contains(element))
             {
-                if(targetCanvas==null) System.Diagnostics.Debug.Print(String.Format("NO CANVAS SOMEHOW"));
                 //Create model part programatically here
                 Point newPoint = new Point(20 + Math.Max(600, targetCanvas.ActualWidth-40) * rnd.NextDouble(), 20 + Math.Max(500, targetCanvas.ActualHeight-40) * rnd.NextDouble());
                 VSDiagramObject createdUIElement;
-                System.Diagnostics.Debug.Print(String.Format("Trying to create UI element for new {0}", element.DisplayType));
                 if (factory.TryCreateUIForExtantModelElement(element, newPoint, out createdUIElement))
                 {
-                    System.Diagnostics.Debug.Print(String.Format("Trying to add to dictionary", element.DisplayType));
                     ui_model_multimap.TryAdd(createdUIElement, element);
-                    System.Diagnostics.Debug.Print(String.Format("Added!"));
                 }
             }
         }
@@ -191,6 +203,7 @@ namespace WPF_Chemotaxis.VisualScripting
 
         private bool TryAddLineRelationship(ILinkable lineConnectorLink, LineConnectorAttribute cnx)
         {
+            System.Diagnostics.Debug.Print(string.Format("TryAddLineRelationship for {0}", lineConnectorLink.Name));
             Type linkType = lineConnectorLink.GetType();
             bool isSeparateModelPart = true;
             ILinkable parent;
@@ -201,12 +214,14 @@ namespace WPF_Chemotaxis.VisualScripting
             }
             else parent = linkType.GetProperty(cnx.parentPropertyName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).GetValue(lineConnectorLink) as ILinkable;
             if (parent == null) return false;
-
+            System.Diagnostics.Debug.Print(string.Format("Line has parent {0}", parent.Name));
             List<VSDiagramObject> parentDuplicates;
             if (ui_model_multimap.TryGetValues(parent, out parentDuplicates))
             {
+                System.Diagnostics.Debug.Print(string.Format("Parent has UI", lineConnectorLink.Name));
                 foreach (var par in parentDuplicates)
                 {
+                    System.Diagnostics.Debug.Print(string.Format("Making relation element", lineConnectorLink.Name));
                     new VSRelationElement(par, lineConnectorLink, isSeparateModelPart, targetCanvas);
                 }
                 targetCanvas.InvalidateVisual();
@@ -259,6 +274,7 @@ namespace WPF_Chemotaxis.VisualScripting
                             &&    !element.GetType().IsAssignableTo(typeof(Ligand))
                             &&    !element.GetType().IsAssignableTo(typeof(ExpressionCoupler))
                             &&    !element.GetType().IsAssignableTo(typeof(ICellComponent))
+                            &&    element.GetType().GetCustomAttribute<LineConnectorAttribute>()==null
                             select element;
 
             foreach (var link in remaining)
@@ -273,7 +289,7 @@ namespace WPF_Chemotaxis.VisualScripting
                 }
             }
 
-            //Logic components last, or they don't attach things properly!
+            //Logic components, or they don't attach things properly!
             foreach (ILinkable link in Model.Model.MasterElementList.Where(l=>l.GetType().IsAssignableTo(typeof(ICellComponent))))
             {
                 if (ui_model_multimap.TryGetValues(link, out el))
@@ -285,6 +301,7 @@ namespace WPF_Chemotaxis.VisualScripting
                     TryAddNewILinkable(link);
                 }
             }
+            // Then docking couplers
             foreach (ExpressionCoupler coup in Model.Model.MasterElementList.OfType<ExpressionCoupler>())
             {
                 if (ui_model_multimap.TryGetValues(coup, out el))
@@ -296,8 +313,23 @@ namespace WPF_Chemotaxis.VisualScripting
                     TryAddNewILinkable(coup);
                 }
             }
+            //Then line couplers
+            var lineElements = from element in Model.Model.MasterElementList
+                               where element.GetType().GetCustomAttribute<LineConnectorAttribute>() != null
+                               select element;
+            foreach (var line in lineElements)
+            {
+                if (ui_model_multimap.TryGetValues(line, out el))
+                {
 
-            AutoarrangeChildren();
+                }
+                else
+                {
+                    TryAddNewILinkable(line);
+                }
+            }
+
+               AutoarrangeChildren();
         }
 
 

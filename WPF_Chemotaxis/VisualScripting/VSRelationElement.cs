@@ -13,6 +13,7 @@ using System.Windows.Shapes;
 using WPF_Chemotaxis.UX;
 using ILGPU.IR.Values;
 using System.Windows.Media.Imaging;
+using WPF_Chemotaxis.Model;
 
 namespace WPF_Chemotaxis.VisualScripting
 {
@@ -69,6 +70,7 @@ namespace WPF_Chemotaxis.VisualScripting
                 this.Clean();
                 return;
             }
+            System.Diagnostics.Debug.Print(string.Format("Num lineprops:: {0}", lineProps.Count));
             foreach (var prop in lineProps)
             {
                 VisualLineAttribute vla = prop.GetCustomAttribute<VisualLineAttribute>();
@@ -76,9 +78,11 @@ namespace WPF_Chemotaxis.VisualScripting
                     
                 if (lineLink != null)
                 {
+                    System.Diagnostics.Debug.Print(string.Format("Prop links to {0}", lineLink.Name));
                     List<VSDiagramObject> lineTargetUIs = new List<VSDiagramObject>();
                     if (VSModelManager.Current.TryGetUIListFromLink(lineLink, out lineTargetUIs))
                     {
+                        System.Diagnostics.Debug.Print(string.Format("Found {0} UI items for {1}", lineTargetUIs.Count, lineLink.Name));
                         foreach (var lineTarget in lineTargetUIs)
                         {
                             if (_lineTargets.ContainsKey(lineTarget))
@@ -87,6 +91,7 @@ namespace WPF_Chemotaxis.VisualScripting
                             }
                             else
                             {
+                                System.Diagnostics.Debug.Print(string.Format("Finding colour method", lineTargetUIs.Count, lineLink.Name));
                                 Func<Color> lineColorFunc = ()=> Colors.SlateBlue;
                                 var method = ModelRelation.GetType().GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).FirstOrDefault(m=>m.Name.Equals(vla.colorFunc));
                                 
@@ -95,9 +100,17 @@ namespace WPF_Chemotaxis.VisualScripting
                                     System.Diagnostics.Debug.Print(string.Format("Found method {0} for {1}", method.Name, lineLink.Name));
                                     lineColorFunc = (Func<Color>) Delegate.CreateDelegate(typeof(Func<Color>), ModelRelation, method);
                                 }
+                                else
+                                {
+                                    System.Diagnostics.Debug.Print(string.Format("Generic colour method attached"));
+                                }
                                 MakeLine(lineTarget, vla, lineColorFunc);
                             }
                         }
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.Print(string.Format("No UI entry found for {0}", lineLink.Name));
                     }
                 }
                 else

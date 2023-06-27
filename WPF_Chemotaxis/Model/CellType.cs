@@ -9,6 +9,8 @@ using WPF_Chemotaxis.VisualScripting;
 using System.Windows.Media;
 using System.Collections.Immutable;
 using System.Collections.ObjectModel;
+using System.Windows.Media.Imaging;
+using System.Reflection;
 
 namespace WPF_Chemotaxis.Model
 {
@@ -32,6 +34,19 @@ namespace WPF_Chemotaxis.Model
         [Link]
         [JsonProperty]
         protected List<ExpressionCoupler> expressionCouplers { get; private set; } = new();
+        public bool TryGetWeight(ILinkable link, out CenteredDoubleRange weight)
+        {
+            foreach(var ex in expressionCouplers)
+            {
+                if (ex.ChildComponent == link)
+                {
+                    weight = ex.BasalWeight;
+                    return true;
+                }
+            }
+            weight = new CenteredDoubleRange(0,0);
+            return false;
+        }
 
         public IEnumerable<ExpressionCoupler> receptorTypes {
             get
@@ -62,6 +77,17 @@ namespace WPF_Chemotaxis.Model
         public CellType(string label) : base(label)
         {
             Init();
+        }
+
+        public void TryAddExpression(ILinkable link)
+        {
+            System.Diagnostics.Debug.Print(string.Format("ADDING EXPRESSIONCOUPLER  BETWEEN {0} and {1}", this.Name, link.Name));
+            if (link.GetType().GetCustomAttribute<DockableAttribute>() == null)
+            {
+                var nxc = new ExpressionCoupler(link, this);
+                if(!expressionCouplers.Contains(nxc)) expressionCouplers.Add(nxc);
+                System.Diagnostics.Debug.Print("ADDED!");
+            }
         }
 
         [ElementAdder(label ="Add Receptor", type = typeof(Receptor))]

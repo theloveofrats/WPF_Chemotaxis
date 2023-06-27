@@ -7,6 +7,8 @@ using System.Threading.Tasks;
 using WPF_Chemotaxis.Simulations;
 using WPF_Chemotaxis.UX;
 using WPF_Chemotaxis.VisualScripting;
+using System.Windows.Media.Media3D;
+using System.Runtime.CompilerServices;
 
 namespace WPF_Chemotaxis.Model
 {
@@ -15,14 +17,13 @@ namespace WPF_Chemotaxis.Model
     /// each receptor will take input ligand concentations from a cell and respond with levels of occupancy and activity.
     /// </summary>
     [VSElementAttribute(ui_TypeLabel = "Surface Enzyme", symbolResourcePath = "Resources/EnzymeIcon.png", symbolSize = 6.0, tagX = 12, tagY = -12, tagCentre = false)]
-    public class CellSurfaceEnzyme : LabelledLinkable
+    public class CellSurfaceEnzyme : LabelledLinkable, ICellComponent
     {
-        public string label = "Receptor";
+        public string label = "Enzyme";
 
         [Link]
         [VisualLine(parentAnchor = LineAnchorType.ANCHOR_FORWARD, childAnchor = LineAnchorType.ANCHOR_CENTRE, parentAnchorDistance = 5.0, childAnchorDistance = 5.0)]
         public List<EnzymeLigandRelation> substrateInteractions { get; private set; } = new();
-
         public CellSurfaceEnzyme() : base()
         {
             Init();
@@ -36,20 +37,63 @@ namespace WPF_Chemotaxis.Model
         [ElementAdder(label = "Add Substrate", type = typeof(Ligand))]
         public void AddLigand(Ligand ligand)
         {
-            System.Diagnostics.Debug.Print(String.Format("Invoked {0} to add substrate {1}", this.Name, ligand.Name));
             foreach (var inter in substrateInteractions)
             {
-                System.Diagnostics.Debug.Print(String.Format("Checking interaction of {0} with {1}", this.Name, ligand.Name));
                 if (inter.Ligand==ligand) return;
             }
-            System.Diagnostics.Debug.Print(String.Format("Not current substrate, so creating new enzyme relation..."));
             this.substrateInteractions.Add(new EnzymeLigandRelation(this, ligand));
-            System.Diagnostics.Debug.Print(String.Format("Created ENZYME-LIGAND LINK"));
+        }
+
+        private Dictionary<Cell, double> expressionWeights;
+        protected void RegisterCell(Cell newCell)
+        {
+            CenteredDoubleRange weightRange;
+            if (newCell.CellType.TryGetWeight(this, out weightRange)){
+                lock (expressionWeights)
+                {
+                    double val = weightRange.RandomInRange;
+                    expressionWeights.Add(newCell, val);
+                }
+            }
+        }
+
+        public void Update(Cell simCell, Simulation sim, Simulations.Environment env)
+        {
+            double val;
+            if (expressionWeights.TryGetValue(simCell, out val))
+            {
+                this.UpdateCell(simCell, sim, env, val);
+            }
+            else
+            {
+                RegisterCell(simCell);
+                this.UpdateCell(simCell, sim, env, expressionWeights[simCell]);
+            }
+        }
+        public void UpdateCell(Cell cell, Simulation sim, Simulations.Environment env, double weight)
+        {
+
+            foreach (Point p in cell.localPoints)
+            {
+                foreach (EnzymeLigandRelation elr in this.substrateInteractions)
+                {
+                    double rate = weight * elr.vMax / cell.localPoints.Count;
+                    rate *= GetOccupancyFraction(elr, env, p.X, p.Y);
+
+                    //Offload to a proper solver later!
+                    env.DegradeAtRate(elr.Ligand, elr.ProductLigand, p.X, p.Y, rate, elr.multiplier, sim.Settings.dt);
+                }
+            }
         }
 
         public void Initialise(Simulation sim)
         {
-            
+            this.expressionWeights = new();
+        }
+
+        public void ConnectToCellType(CellType ct)
+        {
+            ct.TryAddExpression(this);
         }
 
         public override void RemoveElement(ILinkable element, ILinkable replacement = null)
@@ -114,21 +158,9 @@ namespace WPF_Chemotaxis.Model
             }
         }
 
-        public void Update(Cell cell, Simulation sim, Simulations.Environment env, double weight)
-        {
-            
-            foreach (Point p in cell.localPoints)
-            {
-                foreach (EnzymeLigandRelation elr in this.substrateInteractions)
-                {
-                    double rate = weight*elr.vMax / cell.localPoints.Count;
-                    rate*=GetOccupancyFraction(elr, env, p.X, p.Y);
-                   
-                    //Offload to a proper solver later!
-                    env.DegradeAtRate(elr.Ligand, elr.ProductLigand, p.X, p.Y, rate, elr.multiplier, sim.Settings.dt);
-                }
-            }
-        }
+
+
+        
         private double GetOccupancyFraction(EnzymeLigandRelation ligandRelation, Simulations.Environment environment, double x, double y)
         {
             return GetOccupancyFraction(ligandRelation, environment, (int)(x / environment.settings.DX), (int)(y / environment.settings.DX));
@@ -148,16 +180,13 @@ namespace WPF_Chemotaxis.Model
             return top / (btm + 1.0);
         }
 
+        // SHOULD BE REMOVED AS ADDER ALREADY WORKS AT CELL END
         public override bool TryAddTo(ILinkable link)
         {
-            System.Diagnostics.Debug.Print(String.Format("Trying to add {0} to {1} via {0}'s TryAddTo", this.Name, link.Name));
             if (link is CellType)
             {
                 var cellType = link as CellType;
-                System.Diagnostics.Debug.Print(String.Format("Adding to cell", this.Name, link.Name));
-                CellEnzymeRelation cer = new CellEnzymeRelation(cellType, this);
-                System.Diagnostics.Debug.Print(String.Format("Created cell-enzyme relation!", this.Name, link.Name));
-                cellType.AddCellLogicComponent(cer);
+                cellType.AddCellLogicComponent(this);
                 return true;
             }
             else return base.TryAddTo(link);

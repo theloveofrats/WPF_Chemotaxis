@@ -7,6 +7,8 @@ using System.Collections.Generic;
 using System.Windows;
 using WPF_Chemotaxis.VisualScripting;
 using ILGPU.Runtime.Cuda;
+using ILGPU.Backends.PTX;
+using static WPF_Chemotaxis.Simulations.Environment;
 
 namespace WPF_Chemotaxis.CorePlugin
 {
@@ -19,27 +21,11 @@ namespace WPF_Chemotaxis.CorePlugin
         private Dictionary<Cell, double> lastPulse = new(); // Record of how long since each cell last split. 
         private SciRand rnd = new();
 
-        [JsonProperty]                              // This makes the dropdown selection saveable.
-        [InstanceChooser(label = "Input receptor")] // This creates a dropdown of all instances of the type
-                                                    // (Receptor here), so you can choose the one to plug in.
-        public Receptor Input;
-
-        [JsonProperty]                              // This makes the dropdown selection saveable.
-        [InstanceChooser(label = "Second input")]   // This creates a dropdown of all instances of the type
-                                                    // (Receptor here), so you can choose the one to plug in.
-        public Receptor Second_Input;
-
-        [Param(Name = "First input weight", Min = 0, Max = 1)]
-        public double first_weight { get; set; } = 1;
-
-        [Param(Name = "Second input weight", Min = 0)]
-        public double second_weight { get; set; } = 0.5;
-
         [VisualLine(parentAnchor = LineAnchorType.ANCHOR_FORWARD, childAnchor = LineAnchorType.ANCHOR_CENTRE, parentAnchorDistance = 25.0, childAnchorDistance = 18.0, childArrowHead = LineHeadType.ARROW)]
         [JsonProperty]      // This makes the dropdown selection saveable.
         [InstanceChooser(label = "Output ligand")] // This creates a dropdown of all instances of the type
                                                    // (Receptor here), so you can choose the one to plug in.
-        public Ligand Output { get; set; }
+        public Ligand Output { get; set; } = null;
 
 
         [Param(Name = "Threshold occupancy", Min = 0, Max = 1)]
@@ -51,7 +37,7 @@ namespace WPF_Chemotaxis.CorePlugin
         [Param(Name = "Pulse time", Min = 0)]
         public double wavelength { get; set; } = 1;
 
-        [Param(Name = "Pulse amplitude", Min = 0, Max = 1)]
+        [Param(Name = "Pulse amplitude", Min = 0)]
         public double amplitude { get; set; } = 0.025;
 
         public StimulatedRelease () : base() 
@@ -96,15 +82,8 @@ namespace WPF_Chemotaxis.CorePlugin
                 return;
             }
 
-            double stimulus = 0;
-            if (this.Input != null) stimulus += first_weight * cell.ReceptorActivity(this.Input);
-
-            if (this.Second_Input != null)
-            {
-                stimulus += second_weight * cell.ReceptorActivity(this.Second_Input);
-            }
+            double stimulus = cell.WeightedActiveReceptorFraction;
             double mult = 1d / env.settings.DX;
-
 
             if(stimulus > threshold) // If we're over the threshold
             {
@@ -121,7 +100,12 @@ namespace WPF_Chemotaxis.CorePlugin
                         foreach (Point p in cell.localPoints)
                         {
                             current = env.GetConcentration(Output, p.X, p.Y);
-                            env.SetConcentration((int)Math.Round(p.X * mult), (int)Math.Round(p.Y * mult), Output, current + amplitude);
+
+                            int x = (int)Math.Round(p.X * mult);
+                            int y = (int)Math.Round(p.Y * mult);
+
+                            if (env.GetFlag(x, y, PointType.FIXED)) continue;
+                            else env.SetConcentration(x, y, Output, current + amplitude);
                         }
                         lastPulse[cell] = 0;
                     }

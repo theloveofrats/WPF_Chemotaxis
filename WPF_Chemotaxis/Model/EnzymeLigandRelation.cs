@@ -40,11 +40,11 @@ namespace WPF_Chemotaxis.Model
         [Param(Name = "Input:Output")]
         public double multiplier { get; set; } = 1;
         [Param(Name = "vMax")]
-        public double vMax { get; set; } = 10;
+        public double vMax { get; set; } = 40;
         [Param(Name = "Hill Coeficient")]
         public double Hill { get; set; } = 1;
         [Param(Name = "kM")]
-        public double kM { get; set; } = 0.5;
+        public double kM { get; set; } = 0.1;
 
         public EnzymeLigandRelation() : base() 
         {
