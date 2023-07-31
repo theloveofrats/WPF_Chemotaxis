@@ -11,7 +11,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Core_Plugin", "Core_Plugin\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MitogensPlugin", "MitogensPlugin\MitogensPlugin.csproj", "{192178CB-D32F-452E-86D5-642AC2FB2788}"
 EndProject
-Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "Setup", "Setup\Setup.vdproj", "{A5DC4DC4-A2D5-4AB0-9A81-44F685F07DC6}"
+Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "ChemotaxisSimSetup", "Setup\Setup.vdproj", "{A5DC4DC4-A2D5-4AB0-9A81-44F685F07DC6}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ECM_Plugin", "ECM_Plugin\ECM_Plugin.csproj", "{F6E0DB7F-4D17-43C3-8DAC-CBB547B1E395}"
 EndProject

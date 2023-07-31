@@ -75,39 +75,42 @@ namespace WPF_Chemotaxis.CorePlugin
         // Update called every dt!
         public void Update(Cell cell, Simulation sim, WPF_Chemotaxis.Simulations.Environment env) 
         {
-            if (lastPulse[cell] < wavelength)
+            if (lastPulse.TryGetValue(cell, out var last))
             {
-                lastPulse[cell] += sim.Settings.dt; //If we haven't given the cell time
-                                                      //to recover from its last split, wait.
-                return;
-            }
-
-            double stimulus = cell.WeightedActiveReceptorFraction;
-            double mult = 1d / env.settings.DX;
-
-            if(stimulus > threshold) // If we're over the threshold
-            {
-                bool do_pulse;
-                lock (rnd)
+                if (last < wavelength)
                 {
-                    do_pulse = sim.Settings.dt * (stimulus - threshold) * (stimulus - threshold) / ((max_threshold - threshold)* (max_threshold - threshold)) > rnd.value;
+                    lastPulse[cell] += sim.Settings.dt; //If we haven't given the cell time
+                                                        //to recover from its last split, wait.
+                    return;
                 }
-                if (do_pulse)
+
+                double stimulus = cell.WeightedActiveReceptorFraction;
+                double mult = 1d / env.settings.DX;
+
+                if (stimulus > threshold) // If we're over the threshold
                 {
-                    if (Output != null)
+                    bool do_pulse;
+                    lock (rnd)
                     {
-                        double current;
-                        foreach (Point p in cell.localPoints)
+                        do_pulse = sim.Settings.dt * (stimulus - threshold) * (stimulus - threshold) / ((max_threshold - threshold) * (max_threshold - threshold)) > rnd.value;
+                    }
+                    if (do_pulse)
+                    {
+                        if (Output != null)
                         {
-                            current = env.GetConcentration(Output, p.X, p.Y);
+                            double current;
+                            foreach (Point p in cell.localPoints)
+                            {
+                                current = env.GetConcentration(Output, p.X, p.Y);
 
-                            int x = (int)Math.Round(p.X * mult);
-                            int y = (int)Math.Round(p.Y * mult);
+                                int x = (int)Math.Round(p.X * mult);
+                                int y = (int)Math.Round(p.Y * mult);
 
-                            if (env.GetFlag(x, y, PointType.FIXED)) continue;
-                            else env.SetConcentration(x, y, Output, current + amplitude);
+                                if (env.GetFlag(x, y, PointType.FIXED)) continue;
+                                else env.SetConcentration(x, y, Output, current + amplitude);
+                            }
+                            lastPulse[cell] = 0;
                         }
-                        lastPulse[cell] = 0;
                     }
                 }
             }
