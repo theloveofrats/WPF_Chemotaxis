@@ -531,7 +531,7 @@ namespace WPF_Chemotaxis
 
             // Here we list all the methods that explicitly allow you to add elements!
             IEnumerable<MethodInfo> methods = Model.Model.CurrentFocus.GetType().GetMethods().Where(method => method.GetCustomAttributes<ElementAdder>().Any());
-            System.Diagnostics.Debug.WriteLine(string.Format("in type {0}. ElementAdder fields.Count = {1}", Model.Model.CurrentFocus.GetType(), methods.Count()));
+            System.Diagnostics.Debug.Print(string.Format("in type {0}. ElementAdder fields.Count = {1}", Model.Model.CurrentFocus.GetType(), methods.Count()));
             foreach (MethodInfo method in methods)
             {
                 ElementAdder adder = (method.GetCustomAttribute<ElementAdder>() as ElementAdder);

@@ -89,7 +89,7 @@ namespace WPF_Chemotaxis.MitogensPlugin
 
         public void ConnectToCellType(CellType ct)
         {
-            throw new NotImplementedException();
+            
         }
     }
 }
