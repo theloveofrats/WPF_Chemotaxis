@@ -78,10 +78,13 @@ namespace WPF_Chemotaxis.MitogensPlugin
 
         private void RegisterNewCell(Simulation sim, Cell cell)
         {
-            if (cell.CellType.components.Contains(this))
+            lock (lastMitosis)
             {
-                if (!lastMitosis.ContainsKey(cell)) lastMitosis.Add(cell, 0);
+                if (cell.CellType.components.Contains(this))
+                {
+                    if (!lastMitosis.ContainsKey(cell)) lastMitosis.Add(cell, 0);
 
+                }
             }
         }
 

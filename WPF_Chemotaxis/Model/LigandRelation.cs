@@ -14,37 +14,37 @@ namespace WPF_Chemotaxis.Model
     /// Defines the relationship between a given ligand and a given receptor type. 
     /// Parameters fro kD and efficacy are exposed to the UI for modification.
     /// </summary>
-    [LineConnector(parentPropertyName = "Receptor")]
-    public class LigandReceptorRelation : LigandRelation
+    public class LigandRelation : LabelledLinkable
     {
+        [VisualLine(parentAnchor = LineAnchorType.ANCHOR_FORWARD, childAnchor = LineAnchorType.ANCHOR_CENTRE, parentAnchorDistance = 25.0, childAnchorDistance = 10.0, parentArrowHead = LineHeadType.CIRCLE, colorFunc = "EfficacyColor")]
         [JsonProperty]
         [Link]
-        public Receptor Receptor { get; private set; }
+        public Ligand Ligand { get; private set; }
 
-        public LigandReceptorRelation() : base() 
+        [Param(Name = "kD (uM)")]
+        public double kD { get; set;} = 0.01;
+        [Param(Name = "Efficacy (0 to 1)")]
+        public double eff { get; set; } = 1;
+
+        public LigandRelation() : base() 
         {
-            Init();
+
         }
-        public LigandReceptorRelation(string label) : base(label) { }
+        public LigandRelation(string label) : base(label) { }
 
-        public LigandReceptorRelation(Ligand ligand,Receptor receptor) : base() {
+        public LigandRelation(Ligand ligand,Receptor receptor) : base() {
 
-            this.Receptor = receptor;
-
-            this.Ligand.Interactions.Add(this);
-            this.Receptor.ligandInteractions.Add(this);
-            Init();
+            this.Ligand = ligand;
         }
 
-        public void SetReceptor(Receptor r)
+        public void SetLigand(Ligand l)
         {
-            this.Receptor = r;
-            if (!this.Receptor.ligandInteractions.Contains(this))
+            this.Ligand = l;
+            /*if (!this.Ligand.receptorInteractions.Contains(this))
             {
-                this.Receptor.ligandInteractions.Add(this);
-            }
+                this.Ligand.receptorInteractions.Add(this);
+            }*/
         }
-        
         private Color ColorLerp(Color clr1, Color clr2, double val)
         {
             val = Math.Clamp(val, 0, 1);
@@ -96,20 +96,16 @@ namespace WPF_Chemotaxis.Model
             return ColorFromGradient(gsc, this.eff);
         }
 
-        public override void RemoveElement(ILinkable element, ILinkable replacement = null)
+        public override void RemoveElement(ILinkable element, ILinkable replacement=null)
         {
-            if (element is Receptor)
+            if (element is Ligand)
             {
-                Receptor r = (Receptor)element;
-                if (this.Receptor == r)
+                Ligand l = (Ligand)element;
+                if (this.Ligand == l)
                 {
-                    this.Receptor = (Receptor)replacement;
-                    if (this.Receptor == null) Model.Current.RemoveElement(this);
+                    this.Ligand = (Ligand)replacement;
+                    if(this.Ligand == null) Model.Current.RemoveElement(this);
                 }
-            }
-            else
-            {
-                base.RemoveElement(element, replacement);
             }
         }
 
@@ -118,8 +114,8 @@ namespace WPF_Chemotaxis.Model
         {
             get
             {
-                if (Receptor == null || Ligand == null) return "Broken Ligand Receptor Link";
-                return string.Format("{0}<->{1} interactions", Receptor.Name, Ligand.Name);
+                if (Ligand == null) return "Broken Ligand Receptor Link";
+                return string.Format("{0} interaction", Ligand.Name);
             }
             set
             {

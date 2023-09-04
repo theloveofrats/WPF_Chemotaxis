@@ -170,11 +170,11 @@ namespace WPF_Chemotaxis.Model
             if (!this.substrateInteractions.Contains(ligandRelation)) return 0;
 
             double btm = 0;
-            double top = environment.GetConcentration(ligandRelation.Ligand, x, y) / ligandRelation.kM;
+            double top = environment.GetConcentration(ligandRelation.Ligand, x, y) / ligandRelation.kD;
 
             foreach (EnzymeLigandRelation elr in this.substrateInteractions)
             {
-                btm += environment.GetConcentration(elr.Ligand, x, y) / elr.kM;
+                btm += environment.GetConcentration(elr.Ligand, x, y) / elr.kD;
             }
 
             return top / (btm + 1.0);

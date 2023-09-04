@@ -30,7 +30,7 @@ namespace WPF_Chemotaxis.Model
         public double KillRate { get; set; } = 0;
 
         [Link]
-        public List<LigandReceptorRelation> receptorInteractions { get; private set; } = new();
+        public List<LigandRelation> Interactions { get; private set; } = new();
 
         public Ligand() : base() 
         {
@@ -75,12 +75,12 @@ namespace WPF_Chemotaxis.Model
             if(element is LigandReceptorRelation)
             {
                 LigandReceptorRelation lrr = (LigandReceptorRelation) element;
-                if (this.receptorInteractions.Contains(lrr))
+                if (this.Interactions.Contains(lrr))
                 {
-                    this.receptorInteractions.Remove(lrr);
+                    this.Interactions.Remove(lrr);
                     if (replacement != null && replacement.GetType().IsAssignableTo(typeof(LigandReceptorRelation)))
                     {
-                        this.receptorInteractions.Add((LigandReceptorRelation)replacement);
+                        this.Interactions.Add((LigandReceptorRelation)replacement);
                     }
                 }
             }

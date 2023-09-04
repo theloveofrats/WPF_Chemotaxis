@@ -16,17 +16,11 @@ namespace WPF_Chemotaxis.Model
     /// </summary>
 
     [LineConnector(parentPropertyName = "Enzyme")]
-    public class EnzymeLigandRelation : LabelledLinkable
+    public class EnzymeLigandRelation : LigandRelation
     {
         [JsonProperty]
         [Link]
         public CellSurfaceEnzyme Enzyme { get; private set; }
-
-        [JsonProperty]
-        [InstanceChooser(label = "Input ligand")]
-        [VisualLine(parentAnchor = LineAnchorType.ANCHOR_FORWARD, childAnchor = LineAnchorType.ANCHOR_CENTRE, parentAnchorDistance = 25.0, childAnchorDistance = 12.0, parentArrowHead = LineHeadType.ARROW)]
-
-        public Ligand Ligand { get; private set; }
 
         [JsonProperty]
         [VisualLine(parentAnchor = LineAnchorType.ANCHOR_FORWARD, childAnchor = LineAnchorType.ANCHOR_CENTRE, parentAnchorDistance = 25.0, childAnchorDistance = 18.0, childArrowHead = LineHeadType.ARROW)]
@@ -43,8 +37,6 @@ namespace WPF_Chemotaxis.Model
         public double vMax { get; set; } = 40;
         [Param(Name = "Hill Coeficient")]
         public double Hill { get; set; } = 1;
-        [Param(Name = "kM")]
-        public double kM { get; set; } = 0.1;
 
         public EnzymeLigandRelation() : base() 
         {
@@ -54,14 +46,9 @@ namespace WPF_Chemotaxis.Model
         public EnzymeLigandRelation(CellSurfaceEnzyme enzyme, Ligand ligand) : base()
         {
             this.Enzyme = enzyme;
-            this.Ligand = ligand;
             Init();
         }
 
-        public void SetLigand(Ligand newLigand)
-        {
-            this.Ligand = newLigand;
-        }
         public void SetProduct(Ligand newLigand)
         {
             this.ProductLigand = newLigand;
@@ -72,10 +59,7 @@ namespace WPF_Chemotaxis.Model
             if (element is Ligand)
             {
                 Ligand l = (Ligand)element;
-                if (this.Ligand == l)
-                {
-                    this.Ligand = (Ligand)replacement;
-                }
+               
                 if (this.ProductLigand == l)
                 {
                     this.ProductLigand = (Ligand)replacement;
@@ -84,6 +68,7 @@ namespace WPF_Chemotaxis.Model
                 {
                     Model.Current.RemoveElement(this);
                 }
+                else base.RemoveElement(element, replacement);
             }
             else if (element is CellSurfaceEnzyme)
             {
