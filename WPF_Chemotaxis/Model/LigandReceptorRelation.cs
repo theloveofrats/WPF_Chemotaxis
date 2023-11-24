@@ -27,7 +27,7 @@ namespace WPF_Chemotaxis.Model
         }
         public LigandReceptorRelation(string label) : base(label) { }
 
-        public LigandReceptorRelation(Ligand ligand,Receptor receptor) : base() {
+        public LigandReceptorRelation(Ligand ligand,Receptor receptor) : base(ligand) {
 
             this.Receptor = receptor;
 
@@ -83,7 +83,7 @@ namespace WPF_Chemotaxis.Model
             return sorted[sorted.Count() - 1].Color;
         }
 
-        private Color EfficacyColor()
+        /*private Color EfficacyColor()
         {
             GradientStopCollection gsc = new GradientStopCollection(){
                new GradientStop(Colors.Blue, 1),
@@ -94,7 +94,7 @@ namespace WPF_Chemotaxis.Model
             };
 
             return ColorFromGradient(gsc, this.eff);
-        }
+        }*/
 
         public override void RemoveElement(ILinkable element, ILinkable replacement = null)
         {

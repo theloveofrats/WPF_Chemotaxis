@@ -259,18 +259,28 @@ namespace WPF_Chemotaxis
             if(simulation!=null) simulation.Environment.DrawRegions(bmp);
         }
         private void RedrawOverlay()
-        { 
-            bmp_overlay.Clear(Colors.Transparent);
-            IReadOnlyCollection<Cell> cells = simulation.Cells;
-            double dx = simulation.Environment.settings.DX;
-
-            using (bmp_overlay.GetBitmapContext())
+        {
+            try
             {
-                foreach (Cell c in cells)
+                bmp_overlay.Clear(Colors.Transparent);
+                if (simulation != null)
                 {
-                    c.Draw(simulation.Environment, bmp_overlay);
+                    IReadOnlyCollection<Cell> cells = simulation.Cells;
+                    double dx = simulation.Environment.settings.DX;
+
+                    using (bmp_overlay.GetBitmapContext())
+                    {
+                        foreach (Cell c in cells)
+                        {
+                            c.Draw(simulation.Environment, bmp_overlay);
+                        }
+                        selector.DrawSelection(this.simulation, bmp_overlay);
+                    }
                 }
-                selector.DrawSelection(this.simulation, bmp_overlay);
+            }
+            catch(Exception e)
+            {
+                Console.WriteLine(e.StackTrace);
             }
         }
 

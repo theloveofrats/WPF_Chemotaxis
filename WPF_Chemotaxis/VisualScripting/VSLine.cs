@@ -115,8 +115,9 @@ namespace WPF_Chemotaxis.VisualScripting
         private Path Path { get; set; }
 
         private Func<Color> colorFunc;
+        private Func<LineHeadType> headFunc;
 
-        public VSLine(VSDiagramObject parent, VSDiagramObject child, Canvas canvas, double parentExclusion, double childExclusion, LineAnchorType parentAnchor, LineAnchorType childAnchor, LineHeadType parentHead, LineHeadType childHead, Func<Color> colorFunc)
+        public VSLine(VSDiagramObject parent, VSDiagramObject child, Canvas canvas, double parentExclusion, double childExclusion, LineAnchorType parentAnchor, LineAnchorType childAnchor, Func<LineHeadType> headFunc, LineHeadType childHead, Func<Color> colorFunc)
         {
             this.DataContext = this;
             this._canvas = canvas;
@@ -124,7 +125,7 @@ namespace WPF_Chemotaxis.VisualScripting
             this.ChildVisual = child;
             this.ParentAnchor = parentAnchor;
             this.ChildAnchor = childAnchor;
-            this.ParentHead = parentHead;
+            this.headFunc = headFunc;
             this.ChildHead = childHead;
             this.ParentExclusion = parentExclusion;
             this.ChildExclusion = childExclusion;
@@ -188,6 +189,9 @@ namespace WPF_Chemotaxis.VisualScripting
             recalculated = true;
             RecalculateCPs();
             this.PathColor = colorFunc();
+            this.ParentHead = headFunc();
+
+            System.Diagnostics.Debug.Print("RECALCULATING PATH");
 
             PathGeometry path = new PathGeometry();
             PathFigure pathFigure = new PathFigure();

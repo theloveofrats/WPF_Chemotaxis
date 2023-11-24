@@ -94,17 +94,24 @@ namespace WPF_Chemotaxis.VisualScripting
                                 System.Diagnostics.Debug.Print(string.Format("Finding colour method", lineTargetUIs.Count, lineLink.Name));
                                 Func<Color> lineColorFunc = ()=> Colors.SlateBlue;
                                 var method = ModelRelation.GetType().GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).FirstOrDefault(m=>m.Name.Equals(vla.colorFunc));
-                                
+                                Func<LineHeadType> lineheadFunc = () => LineHeadType.CIRCLE;
+                                var headmethod = ModelRelation.GetType().GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).FirstOrDefault(m => m.Name.Equals(vla.parentArrowHeadFunc));
+
                                 if (method != null && method.ReturnType==typeof(Color))
                                 {
                                     System.Diagnostics.Debug.Print(string.Format("Found method {0} for {1}", method.Name, lineLink.Name));
                                     lineColorFunc = (Func<Color>) Delegate.CreateDelegate(typeof(Func<Color>), ModelRelation, method);
                                 }
+                                if (headmethod != null && headmethod.ReturnType == typeof(LineHeadType))
+                                {
+                                    System.Diagnostics.Debug.Print(string.Format("Found linehead method {0} for {1}", headmethod.Name, lineLink.Name));
+                                    lineheadFunc = (Func<LineHeadType>) Delegate.CreateDelegate(typeof(Func<LineHeadType>), ModelRelation, headmethod);
+                                }
                                 else
                                 {
-                                    System.Diagnostics.Debug.Print(string.Format("Generic colour method attached"));
+                                    System.Diagnostics.Debug.Print(string.Format("Found no method named {0} in {1}", headmethod.Name, lineLink.Name));
                                 }
-                                MakeLine(lineTarget, vla, lineColorFunc);
+                                MakeLine(lineTarget, vla, lineheadFunc, lineColorFunc);
                             }
                         }
                     }
@@ -122,14 +129,14 @@ namespace WPF_Chemotaxis.VisualScripting
             
         }
 
-        private void MakeLine(VSDiagramObject lineTarget, VisualLineAttribute annotation, Func<Color> colorFunc) {
+        private void MakeLine(VSDiagramObject lineTarget, VisualLineAttribute annotation, Func<LineHeadType> linehead, Func<Color> colorFunc) {
 
             System.Diagnostics.Debug.Print(string.Format("Making line from primary handle to target"));
 
             VSLine newLine = new(this.primary, lineTarget, this._mainCanvas,
                                  annotation.parentAnchorDistance, annotation.childAnchorDistance,
                                  annotation.parentAnchor, annotation.childAnchor,
-                                 annotation.parentArrowHead, annotation.childArrowHead, colorFunc);
+                                 linehead, annotation.childArrowHead, colorFunc);
 
             _lines.Add(newLine);
             _lineTargets.Add(lineTarget, newLine);

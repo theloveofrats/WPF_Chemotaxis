@@ -623,8 +623,14 @@ namespace WPF_Chemotaxis.Simulations
             E = ((mask[E] & fxd) != 0) ? E : C;
             W = ((mask[W] & fxd) != 0) ? W : C;
 
-            double fk = dt * react[C] / (1 + 2 * k);
-            fk = c[C]+fk < 0 ? -c[C] : fk;
+            double fk = 0.4*dt * react[C] / (1 + 2 * k);
+            fk += 0.15f * dt * react[N] / (1 + 2 * k);
+            fk += 0.15f * dt * react[S] / (1 + 2 * k);
+            fk += 0.15f * dt * react[E] / (1 + 2 * k);
+            fk += 0.15f * dt * react[W] / (1 + 2 * k);
+
+
+            fk = c[C] + fk < 0 ? -0.5f*c[C] : fk;
 
             cp1[C] = ((1d - 2d * k) / (1d + 2d * k)) * cm1[C] + (k / (1d + 2d * k)) * (c[N] + c[S] + c[E] + c[W]) + fk;
             if (cp1[C] < 0) cp1[C] = 0;

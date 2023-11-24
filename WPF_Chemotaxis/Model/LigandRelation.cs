@@ -16,7 +16,7 @@ namespace WPF_Chemotaxis.Model
     /// </summary>
     public class LigandRelation : LabelledLinkable
     {
-        [VisualLine(parentAnchor = LineAnchorType.ANCHOR_FORWARD, childAnchor = LineAnchorType.ANCHOR_CENTRE, parentAnchorDistance = 25.0, childAnchorDistance = 10.0, parentArrowHead = LineHeadType.CIRCLE, colorFunc = "EfficacyColor")]
+        [VisualLine(parentAnchor = LineAnchorType.ANCHOR_FORWARD, childAnchor = LineAnchorType.ANCHOR_CENTRE, parentAnchorDistance = 25.0, childAnchorDistance = 10.0, parentArrowHeadFunc = "GetArrowhead", colorFunc = "EfficacyColor")]
         [JsonProperty]
         [Link]
         public Ligand Ligand { get; private set; }
@@ -25,14 +25,18 @@ namespace WPF_Chemotaxis.Model
         public double kD { get; set;} = 0.01;
         [Param(Name = "Efficacy (0 to 1)")]
         public double eff { get; set; } = 1;
-
+        [Param(Name = "Inhibitor molecule")]
+        public bool Inhibitor { get; set; } = false;
+        [Param(Name = "Uncompetitive")]
+        public bool Uncompetitive { get; set; } = false;
+ 
         public LigandRelation() : base() 
         {
 
         }
         public LigandRelation(string label) : base(label) { }
 
-        public LigandRelation(Ligand ligand,Receptor receptor) : base() {
+        public LigandRelation(Ligand ligand) : base() {
 
             this.Ligand = ligand;
         }
@@ -61,6 +65,7 @@ namespace WPF_Chemotaxis.Model
 
             return clrOut;
         }
+
         private Color ColorFromGradient(GradientStopCollection palette, double gradValue)
         {
             var sorted = palette.OrderBy(gs => gs.Offset).ToList();
@@ -83,8 +88,24 @@ namespace WPF_Chemotaxis.Model
             return sorted[sorted.Count() - 1].Color;
         }
 
-        private Color EfficacyColor()
+        protected LineHeadType GetArrowhead()
         {
+            if (Inhibitor) return LineHeadType.INHIBIT;
+            return LineHeadType.CIRCLE;
+        }
+
+        protected Color EfficacyColor()
+        {
+            if (Inhibitor)
+            {
+                System.Diagnostics.Debug.Print("LIGAND IS INHIBITOR");
+                return Colors.Red;
+            }
+            else
+            {
+                System.Diagnostics.Debug.Print(this.Name+"  APPARENTLY NOT INHIBITOR");
+            }
+
             GradientStopCollection gsc = new GradientStopCollection(){
                new GradientStop(Colors.Blue, 1),
                new GradientStop(Colors.Blue, 0.9),

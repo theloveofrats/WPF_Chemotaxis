@@ -43,7 +43,7 @@ namespace WPF_Chemotaxis.Model
             Init();
         }
 
-        public EnzymeLigandRelation(CellSurfaceEnzyme enzyme, Ligand ligand) : base()
+        public EnzymeLigandRelation(CellSurfaceEnzyme enzyme, Ligand ligand) : base(ligand)
         {
             this.Enzyme = enzyme;
             Init();

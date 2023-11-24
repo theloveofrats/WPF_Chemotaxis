@@ -13,7 +13,7 @@ namespace WPF_Chemotaxis.VisualScripting
     {
         public LineAnchorType parentAnchor  = LineAnchorType.ANCHOR_CENTRE;
         public LineAnchorType childAnchor   = LineAnchorType.ANCHOR_CENTRE;
-        public LineHeadType parentArrowHead = LineHeadType.NONE;
+        public string parentArrowHeadFunc = "";
         public LineHeadType childArrowHead  = LineHeadType.NONE;
         public string colorFunc = "";
 
