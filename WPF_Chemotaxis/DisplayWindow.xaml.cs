@@ -24,6 +24,7 @@ using System.ComponentModel;
 using System.Windows.Interop;
 using System.Windows.Controls.Primitives;
 using System.IO;
+using System.Diagnostics;
 
 namespace WPF_Chemotaxis
 {
@@ -65,7 +66,12 @@ namespace WPF_Chemotaxis
 
         public void Window_Closed(object sender, CancelEventArgs e)
         {
-            if(simulation!=null) simulation.Cancel();
+
+            if (simulation != null)
+            {
+                Trace.WriteLine(string.Format("Simulation terminated by the user at {0}", simulation.Time));
+                simulation.Cancel();
+            }
         }
 
 
@@ -88,6 +94,7 @@ namespace WPF_Chemotaxis
 
             //This connects the target panel in the main window to the selector. It's ugly as hell like this, though.
             ChartManager manager = new ChartManager(chartTarget, selector);
+
             simulation.LateUpdate  += (s, e, m) => this.Dispatcher.Invoke(() => manager.DoChart());
             simulation.WriteToFile += (s, e, m) => this.Dispatcher.Invoke(() => this.SavePNGFile(s.TargetDirectory, displayNum));
         }
@@ -344,7 +351,11 @@ namespace WPF_Chemotaxis
 
             simulation.Environment.SendClick(psn, e);
 
-            if (e.ChangedButton == MouseButton.Left) selector.OnLeftMouseUp(psn.X, psn.Y);
+            if (e.ChangedButton == MouseButton.Left)
+            {
+                selector.OnLeftMouseUp(psn.X, psn.Y);
+                simulation.Environment.SetSelectedAreas(selector.GetAllSelectedAreas());
+            }
         }
 
         private void overlayImage_DragOver(object sender, DragEventArgs e)
@@ -388,6 +399,11 @@ namespace WPF_Chemotaxis
                 BindingExpression binding = BindingOperations.GetBindingExpression(tBox, prop);
                 if (binding != null) { binding.UpdateSource(); }
             }
+        }
+
+        public List<Rect> GetSelectedAreas()
+        {
+            return selector.GetAllSelectedAreas();
         }
     }
 }

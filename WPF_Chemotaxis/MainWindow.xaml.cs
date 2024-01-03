@@ -21,6 +21,7 @@ using WPF_Chemotaxis.UX;
 using WPF_Chemotaxis.VisualScripting;
 using System.Windows.Media.Effects;
 using System.Windows.Documents;
+using System.Diagnostics;
 
 namespace WPF_Chemotaxis
 {
@@ -36,6 +37,7 @@ namespace WPF_Chemotaxis
         private static List<Assembly> assemblyList;
 
         private const string pluginPath = "\\Plugins";
+        private const string consoleFile = "\\LastConsoleSession.txt"; 
         private const string workingModelFile = "\\SettingsAutosave.json";
 
         private static readonly object locker = new object();
@@ -59,7 +61,14 @@ namespace WPF_Chemotaxis
 
         public MainWindow()
         {
+            DataContext = this;
             InitializeComponent();
+            string basePath = System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData) + "\\Dynad Simulations";
+            if (!Directory.Exists(basePath))
+            {
+                Directory.CreateDirectory(basePath);
+            }
+            CreateConsoleFile();
             LoadPlugins();
             mazeFileThumbnail.MouseLeftButtonUp += (s, e) => SetRegionWithDropper(s, e);
             selectedRegionType.TextChanged += (s, e) =>
@@ -82,16 +91,20 @@ namespace WPF_Chemotaxis
 
         private void LoadPlugins()
         {
+            Trace.WriteLine("****** PLUG-IN LOADING ******");
+            Trace.WriteLine(" ");
             if (assemblyList == null)
             {
                 assemblyList = new List<Assembly>(new Assembly[] { Assembly.GetExecutingAssembly() });
                 string basePath = System.IO.Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
                 foreach (string dll in System.IO.Directory.GetFiles(basePath + pluginPath, "*.dll"))
                 {
-                    System.Diagnostics.Debug.Print(" "); 
-                    System.Diagnostics.Debug.Print("PLUGIN LOADED: Assembly named " + dll);
-                    System.Diagnostics.Debug.Print(" ");
-                    assemblyList.Add(Assembly.LoadFrom(dll));
+                    Trace.WriteLine(" ");
+                    Trace.WriteLine("PLUGIN LOADED: Assembly named " + dll);
+                    Trace.WriteLine(" ");
+
+                    var assembly = Assembly.LoadFrom(dll);
+                    assemblyList.Add(assembly);
                 }
                 //foreach (Assembly dll in assemblyList)
                 //{
@@ -156,11 +169,48 @@ namespace WPF_Chemotaxis
             return true;
         }
 
+        private void CreateConsoleFile()
+        {
+            string basePath = System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData) + "\\Dynad Simulations";
+
+            Trace.Listeners.Clear();
+            try
+            {
+                TextWriterTraceListener twtl = new TextWriterTraceListener(new FileStream(basePath + consoleFile, FileMode.Create, FileAccess.Write));
+                twtl.Name = "Logger";
+                twtl.TraceOutputOptions = TraceOptions.DateTime;
+                Trace.Listeners.Add(twtl);
+                Trace.Listeners.Add(new DefaultTraceListener());
+                Trace.AutoFlush = true;
+
+                AppDomain.CurrentDomain.UnhandledException += (s, args) =>
+                {
+                    Exception e = (Exception)args.ExceptionObject;
+                    if(e.InnerException != null)
+                    {
+                        e = e.InnerException;
+                    }
+                    
+                    Trace.WriteLine("****** ERROR MESSAGE ******");
+                    Trace.WriteLine(" ");
+                    Trace.WriteLine(e.Message);
+                    Trace.WriteLine(" ");
+                    Trace.WriteLine(e.StackTrace);
+                };
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Cannot open console file");
+                Console.WriteLine(e.Message);
+                return;
+            }
+        }
+
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             Model.Model crown = new Model.Model();
             string basePath = System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData) + "\\Dynad Simulations";
-                //System.IO.Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            //System.IO.Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
 
             if (File.Exists(basePath + workingModelFile))
             {
@@ -169,6 +219,7 @@ namespace WPF_Chemotaxis
                 DeserialiseAutosave(basePath + workingModelFile);
                 simParameters.Items.Refresh();
             }
+
             ResetLinks();
             
 
@@ -200,6 +251,10 @@ namespace WPF_Chemotaxis
 
             using (Autosave autosave = Autosave.ReadFromFile(autosavePath))
             {
+                if (autosave == null)
+                {
+                    return;
+                }
                 if (clean)
                 {
                     foreach (Color clr in autosave.Regions.Keys)
@@ -220,7 +275,7 @@ namespace WPF_Chemotaxis
                     foreach (ILinkable link in autosave.ModelElements)
                     {
                         //Delete this whole bundle!
-                        
+                        Console.WriteLine(string.Format("Loaded {0} named {1}.", link.DisplayType, link.Name));
                         bool admit = true;
                         foreach(var currentLink in Model.Model.MasterElementList)
                         {
@@ -281,7 +336,6 @@ namespace WPF_Chemotaxis
                         {
                             if (ContainsColor(bmp, entry.Key))
                             {
-                                System.Diagnostics.Debug.Print(string.Format("Found color {0} for regiontype {1}.", entry.Key, entry.Value.Name));
                                 newSave.Regions.Add(entry.Key, entry.Value);
                             }
                         }
@@ -292,7 +346,8 @@ namespace WPF_Chemotaxis
 
 
 
-
+            Trace.WriteLine(String.Format("Saving model to file {0}", autosavePath));
+            Trace.WriteLine(" ");
             newSave.miscParams = new MiscParamTable(env.DX, sim.duration, sim.dt, sim.out_freq);
 
             if (Directory.Exists(sim.SaveDirectory)) newSave.saveDirPath = sim.SaveDirectory;
@@ -306,6 +361,7 @@ namespace WPF_Chemotaxis
                      PreserveReferencesHandling = PreserveReferencesHandling.All
                  });
             File.WriteAllText(autosavePath, saveString);
+            Trace.WriteLine("Serialised settings successfully.");
         }
 
         private bool ContainsColor(WriteableBitmap checkbmp, Color clr)
@@ -531,7 +587,6 @@ namespace WPF_Chemotaxis
 
             // Here we list all the methods that explicitly allow you to add elements!
             IEnumerable<MethodInfo> methods = Model.Model.CurrentFocus.GetType().GetMethods().Where(method => method.GetCustomAttributes<ElementAdder>().Any());
-            System.Diagnostics.Debug.Print(string.Format("in type {0}. ElementAdder fields.Count = {1}", Model.Model.CurrentFocus.GetType(), methods.Count()));
             foreach (MethodInfo method in methods)
             {
                 ElementAdder adder = (method.GetCustomAttribute<ElementAdder>() as ElementAdder);
@@ -549,14 +604,11 @@ namespace WPF_Chemotaxis
                 foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
                 {
 
-                    System.Diagnostics.Debug.WriteLine(string.Format("Scanning assembly {0}", assembly));
-
-
                     foreach (Type type in assembly.GetTypes().Where(type => type.GetCustomAttributes<CustomBaseElementAttribute>().Any()))
                     {
-                        System.Diagnostics.Debug.WriteLine(" ");
-                        System.Diagnostics.Debug.WriteLine(string.Format("ASSEMBLY {0} CONTAINS TYPE {1}", assembly, type));
-                        System.Diagnostics.Debug.WriteLine(" ");
+                        //Console.WriteLine(" ");
+                        //Console.WriteLine(string.Format("Fetched type {1} from assembly {0}", assembly, type));
+                        //Console.WriteLine(" ");
 
 
                         CustomBaseElementAttribute atr = type.GetCustomAttribute<CustomBaseElementAttribute>();
@@ -694,16 +746,20 @@ namespace WPF_Chemotaxis
         private void Run_Sim_Button_Click(object sender, RoutedEventArgs e)
         {
             //Needs to be changed to link simulation, and unlink when sim finishes, not create it. One at a time is fine! We can put repeats in a UI.
-            string newTargetDirectory;
-            sim.MakeNewSimDirectory(out newTargetDirectory);
-            if (newTargetDirectory != null)
-            {
-                string modelPath = newTargetDirectory + "\\StartingSetup.json";
-                SerialiseAutosave(modelPath);
-            }
-
             if (Simulation.Current == null)
             {
+                string newTargetDirectory;
+                sim.MakeNewSimDirectory(out newTargetDirectory);
+                Trace.WriteLine(" ");
+                Trace.WriteLine("****** NEW SIMULATION STARTED ******");
+                Trace.WriteLine(" ");
+
+                if (newTargetDirectory != null)
+                {
+                    Trace.WriteLine(String.Format("Output directory: {0}", newTargetDirectory));
+                    string modelPath = newTargetDirectory + "\\StartingSetup.json";
+                    SerialiseAutosave(modelPath);
+                }
                 Simulation newSim = Simulation.StartSimulation(sim, env, newTargetDirectory);
                 newSim.Redraw += (s, e, m) => UpdateTime(s.Time);
                 newSim.Start();
@@ -736,6 +792,7 @@ namespace WPF_Chemotaxis
         ///</summary>
         private void AddDisplayView(Simulation newSim)
         {
+            Trace.WriteLine(String.Format("Adding display view to simulation"));
             Task.Factory.StartNew(new Action(() =>
             {
                     DisplayWindow displayWindow = new DisplayWindow();
@@ -808,7 +865,6 @@ namespace WPF_Chemotaxis
         
         private void KeyDownHandler(object sender, KeyEventArgs e)
         {
-            System.Diagnostics.Debug.Print("Keypress happened");
             if (e.Key == Key.Delete) { 
                 if (VisualScriptingSelectionManager.Current.HasSelection)
                 {                  
@@ -949,6 +1005,72 @@ namespace WPF_Chemotaxis
         private void TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             (MainTabControl.SelectedItem as TabItem).UpdateLayout();
+
+            if (modelManager != null)
+            {
+                modelManager.JitterOnLoad();
+            }
+        }
+
+        public void RefreshLigandList(object sender, System.EventArgs e)
+        {
+            
+            var ligs = (from el in Model.Model.MasterElementList where el is Ligand select el);
+            AllLigands.Clear();
+            foreach (var el in ligs)
+            {
+                AllLigands.Add(el.Name);
+            }
+            System.Diagnostics.Debug.Print(String.Format("Refresh Ligand List:: {0} Ligands", AllLigands.Count)); 
+        }
+
+        public void RefreshCellTypeList(object sender, System.EventArgs e)
+        {
+            var cells = (from el in Model.Model.MasterElementList where el is CellType select el);
+            AllCellTypes.Clear();
+            foreach (var el in cells)
+            {
+                AllCellTypes.Add(el.Name);
+            }
+        }
+
+        public ObservableCollection<string> AllLigands { get; set; } = new() {"S1","S2"};
+        public ObservableCollection<string> AllCellTypes { get; set; } = new();
+       
+        private void btn_SetConcentration_Click(object sender, RoutedEventArgs e)
+        {
+            if (Simulation.Current == null) return;
+
+            string target = combo_SelectLigand.SelectedValue as string;
+            if(!Double.TryParse(txt_SetConcentrationValue.Text, out double cnc))
+            {
+                return;
+            }
+
+            Debug.Print(string.Format("Attempting SetConcentration with target ligand name {0}", target));
+
+            var ligand = (from el in Model.Model.MasterElementList where el is Ligand && el.Name==target select el).FirstOrDefault();
+            if (ligand == null) return;
+
+            Simulation.Current.Environment.SetConcentrationInSelectedAreas(ligand as Ligand, cnc);
+        }
+        private void btn_KillCells(object sender, RoutedEventArgs e)
+        {
+            if (Simulation.Current == null) return;
+
+            var targetCellType = (from el in Model.Model.MasterElementList where el is CellType && el.Name == (combo_SelectCellTypeToKill.SelectedValue as string) select el).FirstOrDefault() as CellType;
+            if (targetCellType == null) return;           
+
+            foreach(Cell cell in Simulation.Current.Cells)
+            {
+                if(cell.CellType == targetCellType)
+                {
+                    if(Simulation.Current.Environment.IsInSelection(cell.X, cell.Y))
+                    {
+                        Simulation.Current.RemoveCell(cell, deathType: CellEventType.APOPTOTIC);
+                    }
+                }
+            }
         }
     }
 }

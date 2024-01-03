@@ -116,5 +116,18 @@ namespace WPF_Chemotaxis
                 i++;
             }
         }
+
+        public List<Rect> GetAllSelectedAreas()
+        {
+            List<Rect> rects = new List<Rect>();
+            foreach(var sel in Selected) {
+                var sampler = sel as AreaSampler;
+                if (sampler != null)
+                {
+                    rects.Add(sampler.Bounds);
+                }
+            }
+            return rects;
+        }
     }
 }

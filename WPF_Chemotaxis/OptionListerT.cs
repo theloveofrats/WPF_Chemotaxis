@@ -52,6 +52,12 @@ namespace WPF_Chemotaxis
             T[] results = new T[numberOfDraws];
             SciRand rnd = new SciRand();
 
+            if (opts.Count == 0)
+            {
+                GenerateOptions(Model.Model.MasterElementList);
+            }
+            if (opts.Count == 0) return results;
+
             for(int i=0; i<numberOfDraws; i++)
             {
                 results[i] = rnd.RandomElement<T>(opts);

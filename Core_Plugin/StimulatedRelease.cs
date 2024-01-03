@@ -21,7 +21,7 @@ namespace WPF_Chemotaxis.CorePlugin
         private Dictionary<Cell, double> lastPulse = new(); // Record of how long since each cell last split. 
         private SciRand rnd = new();
 
-        [VisualLine(parentAnchor = LineAnchorType.ANCHOR_FORWARD, childAnchor = LineAnchorType.ANCHOR_CENTRE, parentAnchorDistance = 25.0, childAnchorDistance = 18.0, childArrowHead = LineHeadType.ARROW)]
+        [VisualLine(parentAnchor = LineAnchorType.ANCHOR_FORWARD, childAnchor = LineAnchorType.ANCHOR_CENTRE, parentAnchorDistance = 25.0, childAnchorDistance = 18.0, parentArrowHeadFunc="GetArrowhead", childArrowHead = LineHeadType.ARROW)]
         [JsonProperty]      // This makes the dropdown selection saveable.
         [InstanceChooser(label = "Output ligand")] // This creates a dropdown of all instances of the type
                                                    // (Receptor here), so you can choose the one to plug in.
@@ -57,7 +57,10 @@ namespace WPF_Chemotaxis.CorePlugin
                 Output = ligand;
             }
         }
-
+        protected LineHeadType GetArrowhead()
+        {
+            return LineHeadType.CIRCLE;
+        }
 
         private Simulation.CellNotificationHandler RegisterCell; // We don't know how many components cells will have,
                                                           // or how many cells a simulation will have, so we

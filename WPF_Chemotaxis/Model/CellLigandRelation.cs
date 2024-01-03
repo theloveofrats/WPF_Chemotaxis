@@ -91,6 +91,7 @@ namespace WPF_Chemotaxis.Model
 
         public void DoUpdateAction(Simulations.Environment env, Cell c, double dt)
         {
+            /*
             foreach (Point p in c.localPoints) {
 
                 double rate = vMax/c.localPoints.Count;
@@ -100,7 +101,6 @@ namespace WPF_Chemotaxis.Model
                 {
                     double in_cnc = env.GetConcentration(input_ligand, p.X, p.Y);
 
-                   
 
                     if (Hill == 1) {
                         rate *= in_cnc / (in_cnc + kM);
@@ -113,8 +113,8 @@ namespace WPF_Chemotaxis.Model
                 }
 
                 env.DegradeAtRate(input_ligand, output_ligand, p.X, p.Y, rate, multiplier, dt);
-           
             }
+            */
         }
 
         private Ligand FirstLigand

@@ -94,7 +94,7 @@ namespace ECM_Plugin
         }
 
 
-
+        //NEEDS REDOING TOTALLY FOR NEW REACTION SYSTEM
         public void CalculateSiteReaction(int index, Simulation sim)
         {
             //System.Diagnostics.Debug.WriteLine("CALC CALLED ON ECM");
@@ -107,7 +107,7 @@ namespace ECM_Plugin
             foreach(ECM_Ligand_Interaction interaction in ligandInteractions)
             {
                 rate = interaction.CalculateSiteReaction(index, sim);
-                sim.Environment.DegradeAtRate(interaction.Ligand, null, x * dx, y * dx,rate, 1, sim.Settings.dt);
+                //sim.Environment.DegradeAtRate(interaction.Ligand, null, x * dx, y * dx,rate, 1, sim.Settings.dt);
             }
         }
 

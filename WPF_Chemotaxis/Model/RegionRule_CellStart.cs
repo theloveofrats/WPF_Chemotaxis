@@ -62,17 +62,26 @@ namespace WPF_Chemotaxis.Model
             Vector2Int startingPoint;
             for(int i=0; i<count; i++)
             {
-                startingPoint = rnd.RandomElement(regionPoints);
-                x = startingPoint.X * sim.Environment.settings.DX;
-                y = startingPoint.Y * sim.Environment.settings.DX;
+                int n = 0;
+                do
+                {
+                    startingPoint = rnd.RandomElement(regionPoints);
+                    x = startingPoint.X * sim.Environment.settings.DX;
+                    y = startingPoint.Y * sim.Environment.settings.DX;
+                    n++;
+                } while (n<100 && sim.Environment.Occupied(x, y));
+
 
                 if (ct == null)
                 {
-                    sim.AddCell(draw[i], x,y, CellEventType.JUST_APPEARED);
+                    if (draw[i] != null)
+                    {
+                        sim.AddCell(draw[i], x, y, CellEventType.JUST_APPEARED);
+                    }
                 }
                 else
                 {
-                    sim.AddCell(ct,x,y, CellEventType.JUST_APPEARED);
+                    sim.AddCell(ct, x, y, CellEventType.JUST_APPEARED);
                 }
             }
         }

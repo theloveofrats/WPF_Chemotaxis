@@ -11,6 +11,7 @@ using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.Windows.Media.Imaging;
 using System.Reflection;
+using System.Diagnostics;
 
 namespace WPF_Chemotaxis.Model
 {
@@ -48,6 +49,15 @@ namespace WPF_Chemotaxis.Model
             return false;
         }
 
+        public bool HasReceptor(Receptor r)
+        {
+            foreach(var item in receptorTypes)
+            {
+                if (item.ChildComponent == r) return true;
+            }
+            return false;
+        }
+
         public IEnumerable<ExpressionCoupler> receptorTypes {
             get
             {
@@ -81,12 +91,12 @@ namespace WPF_Chemotaxis.Model
 
         public void TryAddExpression(ILinkable link)
         {
-            System.Diagnostics.Debug.Print(string.Format("ADDING EXPRESSIONCOUPLER  BETWEEN {0} and {1}", this.Name, link.Name));
+            Trace.WriteLine(string.Format("Creating ExpressionCoupler between {0} and {1}", this.Name, link.Name));
             if (link.GetType().GetCustomAttribute<DockableAttribute>() == null)
             {
                 var nxc = new ExpressionCoupler(link, this);
                 if(!expressionCouplers.Contains(nxc)) expressionCouplers.Add(nxc);
-                System.Diagnostics.Debug.Print("ADDED!");
+                Trace.WriteLine("Success!");
             }
         }
 

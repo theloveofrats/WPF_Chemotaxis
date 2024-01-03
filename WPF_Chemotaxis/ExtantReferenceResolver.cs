@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json.Serialization;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Text;
@@ -32,7 +33,7 @@ namespace WPF_Chemotaxis
 
             if (alt != null)
             {
-                System.Diagnostics.Debug.Print(string.Format("Substituting extant {0} named {1}", alt.GetType().Name, alt.Name));
+                Trace.WriteLine(string.Format("Substituting extant {0} named {1}", alt.GetType().Name, alt.Name));
                 return alt;
             }
             return link;

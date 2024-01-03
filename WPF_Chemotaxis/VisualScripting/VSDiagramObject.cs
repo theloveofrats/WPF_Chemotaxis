@@ -381,14 +381,12 @@ namespace WPF_Chemotaxis.VisualScripting
         {
             if (e.ChangedButton != MouseButton.Middle) return;
 
-            System.Diagnostics.Debug.Print(String.Format("Middle-click at position {0}:{1}", e.GetPosition(this).X, e.GetPosition(this).Y));
             var selector = VisualScriptingSelectionManager.Current;
             Point clickPsn = e.GetPosition(this);
 
             //If MMB on selected element, open corresponding parameter window.
             if(selector.HasSelection && selector.SelectedElement == this) 
             { 
-                System.Diagnostics.Debug.Print(string.Format("MMB on selected element"));
                 var modelCast = (VSUIElement)this;
                 if (modelCast != null)
                 {
@@ -401,7 +399,7 @@ namespace WPF_Chemotaxis.VisualScripting
 
         protected virtual void SingleClickRight(object sender, MouseButtonEventArgs e)
         {
-            System.Diagnostics.Debug.Print(String.Format("Right-click at position {0}:{1}", e.GetPosition(this).X, e.GetPosition(this).Y));
+            //System.Diagnostics.Debug.Print(String.Format("Right-click at position {0}:{1}", e.GetPosition(this).X, e.GetPosition(this).Y));
         }
 
         protected override void OnRender(DrawingContext dc)

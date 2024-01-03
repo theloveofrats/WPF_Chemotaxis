@@ -191,8 +191,6 @@ namespace WPF_Chemotaxis.VisualScripting
             this.PathColor = colorFunc();
             this.ParentHead = headFunc();
 
-            System.Diagnostics.Debug.Print("RECALCULATING PATH");
-
             PathGeometry path = new PathGeometry();
             PathFigure pathFigure = new PathFigure();
             pathFigure.StartPoint = new Point(IX1, IY1);

@@ -24,6 +24,7 @@ namespace WPF_Chemotaxis.Model
         {
             foreach(RegionRule rule in this.regionType.Rules)
             {
+                //System.Diagnostics.Debug.WriteLine(String.Format("Init() of rule {0} on region {1}", rule.DisplayName, this.regionType.Name));
                 rule.Init(sim, this.points);
                 if (rule.hasTick)
                 {

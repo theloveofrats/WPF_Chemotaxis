@@ -87,12 +87,12 @@ namespace WPF_Chemotaxis.VisualScripting
             BindingOperations.SetBinding(label, TextBox.TextProperty, myTargetBinding);
 
             SetPosition(clickPsn.X, clickPsn.Y);
-            System.Diagnostics.Debug.Print(String.Format("Current position is {0:0.0}:{1:0.0}.", this.AbsolutePosition.X, this.AbsolutePosition.Y));
+            //System.Diagnostics.Debug.Print(String.Format("Current position is {0:0.0}:{1:0.0}.", this.AbsolutePosition.X, this.AbsolutePosition.Y));
         }
 
         public override VSDiagramObject Duplicate()
         {
-            System.Diagnostics.Debug.Print("Duplicated as a member of the class VSUIElement");
+            //System.Diagnostics.Debug.Print("Duplicated as a member of the class VSUIElement");
             var newEl =  new VSUIElement(this.source, new Point(0,0), this.LinkedModelPart, _mainCanvas, this._clr);
 
             var connectionList = VSModelManager.Current.GetConnections(this);
@@ -116,7 +116,7 @@ namespace WPF_Chemotaxis.VisualScripting
             base.SingleClickLeftUp(sender, e);
             if (e.Handled)
             {
-                System.Diagnostics.Debug.Print(String.Format("Already handled!"));
+                //System.Diagnostics.Debug.Print(String.Format("Already handled!"));
                 selector.EndDrag();
                 return;
             }
@@ -141,11 +141,11 @@ namespace WPF_Chemotaxis.VisualScripting
                             if (VSModelManager.Current.TryConnectElements(parentVisual: this, childVisual: copy as VSUIElement))
                             {
 
-                                System.Diagnostics.Debug.Print("Connected duplicate!");
+                                //System.Diagnostics.Debug.Print("Connected duplicate!");
                             }
                             else
                             {
-                                System.Diagnostics.Debug.Print("Could not connect duplicate!");
+                                //System.Diagnostics.Debug.Print("Could not connect duplicate!");
                             }
                         }
                     }
@@ -154,11 +154,11 @@ namespace WPF_Chemotaxis.VisualScripting
 
                         if (VSModelManager.Current.TryConnectElements(parentVisual: this, childVisual: selector.SelectedElement as VSUIElement))
                         {
-                            System.Diagnostics.Debug.Print("Connected!");
+                            //System.Diagnostics.Debug.Print("Connected!");
                         }
                         else
                         {
-                            System.Diagnostics.Debug.Print("Could not connect!");
+                            //System.Diagnostics.Debug.Print("Could not connect!");
                         }
                     }
                 }

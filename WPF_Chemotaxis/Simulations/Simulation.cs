@@ -83,10 +83,10 @@ namespace WPF_Chemotaxis.Simulations
         public event SimulationNotification Close;
 
         private HashSet<Cell> cells = new();
-        public  IReadOnlyCollection<Cell> Cells { get
+        public IReadOnlyCollection<Cell> Cells { get
             {
                 return cells;
-            } 
+            }
         }
         private HashSet<Cell> newCells = new();
         private Dictionary<Cell, CellEventType> removedcells = new();
@@ -130,7 +130,7 @@ namespace WPF_Chemotaxis.Simulations
             this.settings.Resume += resumeSub;
             this.defaultEventArgs = new(settings.dt) { };
             this.environment = new Environment(envSettings);
-            Initialise(targetDirectory??"");
+            Initialise(targetDirectory ?? "");
         }
         /// <summary>
         /// Builds a thread with the Simulation "Run" task. Should only happen once for each simulation instance.
@@ -146,6 +146,10 @@ namespace WPF_Chemotaxis.Simulations
         }
         private void Run()
         {
+            for (int i = 0; i < 5; i++)
+            {
+                Environment.Update(settings.dt / 10.0);
+            }
             Iterate();
             draw_watch.Start();
             var watch = System.Diagnostics.Stopwatch.StartNew();
@@ -158,7 +162,15 @@ namespace WPF_Chemotaxis.Simulations
                 }
                 else
                 {
-                    this.Iterate();
+                    //if (time < settings.dt * 2)
+                    //{
+                    //    double dt_true = settings.dt;
+                    //    for(int i=0; i<20; i++)
+                    //}
+                    //else
+                    //{
+                        this.Iterate();
+                    //}
                 }
             }
             if (this.Close != null)
@@ -166,7 +178,8 @@ namespace WPF_Chemotaxis.Simulations
                 this.Close(this,environment, new SimulationNotificationEventArgs(dt:settings.dt));
             }
             watch.Stop();
-            System.Diagnostics.Debug.Print(string.Format("Duration: {0}", watch.Elapsed.ToString(@"mm\:ss\:ff")));
+            Trace.WriteLine("Simulation ended.");
+            Trace.WriteLine(string.Format("Real duration: {0}", watch.Elapsed.ToString(@"mm\:ss\:ff")));
             this.Dispose();
         }
 
@@ -176,7 +189,18 @@ namespace WPF_Chemotaxis.Simulations
             if (Directory.Exists(targetDirectory))
             {
                 writer = new StreamWriter(targetDirectory + "Cells.csv", false);
-                writer.WriteLineAsync("Time (min), Cell Type, Cell ID, X (um), Y (um), Mean receptor activity");
+
+                string line = "Time (min), Cell Type, Cell ID, X (um), Y (um), Mean receptor activity";
+
+                foreach(var rec in Model.Model.MasterElementList)
+                {
+                    if(rec is Receptor)
+                    {
+                        line += string.Format(", {0}", rec.Name);
+                    }
+                }
+
+                writer.WriteLineAsync(line);
             }
 
             // This is a dirty, undesireable way of doing it, because it's so poorly extensible.
@@ -274,7 +298,25 @@ namespace WPF_Chemotaxis.Simulations
         {
             foreach (Cell cell in cells)
             {
-                writer.WriteLine(string.Format("{0:0.000}, {1}, {2}, {3:0.000}, {4:0.000}, {5:0.000}", Time, cell.CellType.Name, cell.Id, cell.X, cell.Y, cell.WeightedActiveReceptorFraction));
+                string line = string.Format("{0:0.000}, {1}, {2}, {3:0.000}, {4:0.000}, {5:0.000}", Time, cell.CellType.Name, cell.Id, cell.X, cell.Y, cell.WeightedActiveReceptorFraction);
+
+                foreach (var rec in Model.Model.MasterElementList)
+                {
+                    Receptor receptor = rec as Receptor;
+                    if (receptor!=null)
+                    {
+                        if (cell.CellType.HasReceptor(receptor))
+                        {
+                            line += string.Format(", {0:0.000}", cell.ReceptorActivity(receptor));
+                        }
+                        else
+                        {
+                            line += string.Format(", X", rec.Name);
+                        }
+                    }
+                }
+
+                writer.WriteLine(line);
             }
         }
 
@@ -321,27 +363,36 @@ namespace WPF_Chemotaxis.Simulations
         // We might consider referring movement back to the cell upon error, this isn't very SOLID.
         private bool TryMoveCell(Cell cell)
         {
+            //environment.ReleasePoints(cell.localPoints);
             double dvx = cell.vx * settings.dt;
             double dvy = cell.vy * settings.dt;
 
+            //environment.ReleasePoints(cell.localPoints);
+
             //System.Diagnostics.Debug.Print(string.Format("TryMoveCell with vx={0}, vy={1}", cell.vx, cell.vy));
-
-            if (!environment.IsOpen(cell.X + dvx, cell.Y + dvy)||environment.Blocked(cell.X + dvx, cell.Y + dvy))
+            if (!environment.IsOpen(cell.X + dvx, cell.Y + dvy) || environment.Blocked(cell.X + dvx, cell.Y + dvy) || environment.Occupied(cell.X + dvx, cell.Y + dvy))
             {
-                dvx *= -0.25;
-                dvy *= -0.25;
+                dvx *= 0.4; //Try moving that way, but less
+                dvy *= 0.4;
 
-                if (!environment.IsOpen(cell.X + dvx, cell.Y+dvy) || environment.Blocked(cell.X + dvx, cell.Y + dvy))
+                if (!environment.IsOpen(cell.X + dvx, cell.Y + dvy) || environment.Blocked(cell.X + dvx, cell.Y + dvy) || environment.Occupied(cell.X + dvx, cell.Y + dvy))
                 {
-                    cell.vx = 0;
-                    cell.vy = 0;
-                    return false;
+                    dvx *= -0.5; //Back up a wee bit
+                    dvy *= -0.5;
+
+                    if (!environment.IsOpen(cell.X + dvx, cell.Y + dvy) || environment.Blocked(cell.X + dvx, cell.Y + dvy) || environment.Occupied(cell.X + dvx, cell.Y + dvy))
+                    {
+                        cell.vx = 0; //Just don't move.
+                        cell.vy = 0;
+                        return false;
+                    }
                 }
             }
-
             cell.UpdateIntendedMovementDirection(dvx, dvy);
-
             cell.UpdatePosition(cell.X+cell.vx, cell.Y +cell.vy);
+            //Immediately update info
+            cell.UpdateLocalRegion(environment);
+
             return true;
         }
 

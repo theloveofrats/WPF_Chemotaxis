@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -34,12 +35,11 @@ namespace WPF_Chemotaxis.VisualScripting
         public bool TryCreateUIForExtantModelElement(ILinkable linkToConnect, Point psn, out VSDiagramObject createdElement)
         {
             var vsAttribute = linkToConnect.GetType().GetCustomAttribute<VSElementAttribute>();
-            System.Diagnostics.Debug.Print(String.Format("Grabbing attribute"));
             if (vsAttribute != null)
             {
                 VSListMenuElement virtualMenuItem = new VSListMenuElement(vsAttribute, linkToConnect.GetType());
                 createdElement = new VSUIElement(virtualMenuItem, psn, linkToConnect, targetCanvas);
-                System.Diagnostics.Debug.Print(String.Format("Made element reacting to model change"));
+                Trace.WriteLine(String.Format("Made visual for {0} in reaction to model change", linkToConnect.Name));
                 return true;
             }
             else

@@ -98,12 +98,12 @@ namespace WPF_Chemotaxis.Model
         {
             if (Inhibitor)
             {
-                System.Diagnostics.Debug.Print("LIGAND IS INHIBITOR");
+               
                 return Colors.Red;
             }
             else
             {
-                System.Diagnostics.Debug.Print(this.Name+"  APPARENTLY NOT INHIBITOR");
+
             }
 
             GradientStopCollection gsc = new GradientStopCollection(){

@@ -16,6 +16,7 @@ using System.Windows.Shapes;
 using System.Xml.Linq;
 using System.Windows.Forms.Design;
 using static System.Windows.Forms.LinkLabel;
+using System.Diagnostics;
 
 namespace WPF_Chemotaxis.VisualScripting
 {
@@ -104,7 +105,7 @@ namespace WPF_Chemotaxis.VisualScripting
             }
             catch(TargetInvocationException e)
             {
-                System.Diagnostics.Debug.Print(string.Format("failed to make instance of type {0} due to error {1}\n {2}", fromMenu.TargetType.Name, e.InnerException, e.StackTrace));
+                Trace.WriteLine(string.Format("failed to make instance of type {0} due to error {1}\n {2}", fromMenu.TargetType.Name, e.InnerException, e.StackTrace));
             }
             _islistening = true;
         }
@@ -134,8 +135,6 @@ namespace WPF_Chemotaxis.VisualScripting
 
         private bool TryAddDockedRelationship(ILinkable dockableLink, DockableAttribute dock)
         {
-            System.Diagnostics.Debug.Print(string.Format("Trying to make dockable link {0}", dockableLink.Name));
-
             Type linkType = dockableLink.GetType();
             bool separateDock = true;
             ILinkable parent, child;
@@ -152,12 +151,11 @@ namespace WPF_Chemotaxis.VisualScripting
             }
             if (parent == null || child == null) return false;
 
-            System.Diagnostics.Debug.Print(string.Format("Making docking connection for {0} and {1}", parent.Name, child.Name));
+            Trace.WriteLine(string.Format("Making dockable connection for {0} and {1}", parent.Name, child.Name));
 
             List<VSDiagramObject> parentUISet, childUISet;     
             //If we have a parent, a child and UIs for both...
             if (ui_model_multimap.TryGetValues(parent, out parentUISet) && ui_model_multimap.TryGetValues(child, out childUISet)){
-                System.Diagnostics.Debug.Print(string.Format("Fetched UIs for both..."));
                 //We check that, for every parentUI, we have a version of the child. 
                 foreach (var parentUI in parentUISet)
                 {
@@ -167,7 +165,6 @@ namespace WPF_Chemotaxis.VisualScripting
                         //If the parentUI contains this child, it's a docked child, so tick off this parent from the list
                         if (parentUI.Children.Contains(childUI))
                         {
-                            System.Diagnostics.Debug.Print(string.Format("Found parent UI attached to child"));
                             attached = true;
                             break;
                         }
@@ -175,12 +172,10 @@ namespace WPF_Chemotaxis.VisualScripting
                     if (!attached)
                     {
                         //We have a parent without a child. If there's a child UI that's NOT docked, dock it to the parent.
-                        System.Diagnostics.Debug.Print(string.Format("Found parent UI without child"));
                         foreach (var childUI in childUISet)
                         {
                             if (!childUI.Docked)
                             {
-                                System.Diagnostics.Debug.Print(string.Format("Attempting to dock child UI to the parent..."));
                                 childUI.DockToVSObject(parentUI, dock.dockDistance);
                                 attached = true;
                                 break;
@@ -190,7 +185,6 @@ namespace WPF_Chemotaxis.VisualScripting
                     //If there's still no child UI, make a copy and dock it.
                     if (!attached)
                     {
-                        System.Diagnostics.Debug.Print(string.Format("No free child UIs- Docking a copy of the first UI to the parent."));
                         var copy = childUISet[0].Duplicate();
                         copy.DockToVSObject(parentUI, dock.dockDistance);
                         //if(separateDock) ui_model_multimap.TryAdd(copy, (copy as VSUIElement).LinkedModelPart);
@@ -203,7 +197,7 @@ namespace WPF_Chemotaxis.VisualScripting
 
         private bool TryAddLineRelationship(ILinkable lineConnectorLink, LineConnectorAttribute cnx)
         {
-            System.Diagnostics.Debug.Print(string.Format("TryAddLineRelationship for {0}", lineConnectorLink.Name));
+            Trace.WriteLine(string.Format("Adding lineconnector relationship for {0}", lineConnectorLink.Name));
             Type linkType = lineConnectorLink.GetType();
             bool isSeparateModelPart = true;
             ILinkable parent;
@@ -214,14 +208,12 @@ namespace WPF_Chemotaxis.VisualScripting
             }
             else parent = linkType.GetProperty(cnx.parentPropertyName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).GetValue(lineConnectorLink) as ILinkable;
             if (parent == null) return false;
-            System.Diagnostics.Debug.Print(string.Format("Line has parent {0}", parent.Name));
+            Trace.WriteLine(string.Format("Line has parent {0}", parent.Name));
             List<VSDiagramObject> parentDuplicates;
             if (ui_model_multimap.TryGetValues(parent, out parentDuplicates))
             {
-                System.Diagnostics.Debug.Print(string.Format("Parent has UI", lineConnectorLink.Name));
                 foreach (var par in parentDuplicates)
                 {
-                    System.Diagnostics.Debug.Print(string.Format("Making relation element", lineConnectorLink.Name));
                     new VSRelationElement(par, lineConnectorLink, isSeparateModelPart, targetCanvas);
                 }
                 targetCanvas.InvalidateVisual();
@@ -402,13 +394,13 @@ namespace WPF_Chemotaxis.VisualScripting
 
                 if (dockAttribute != null)
                 {
-                    System.Diagnostics.Debug.Print(String.Format("Found dock attribute for {0}", item.Name));
+                    
                     TryAddDockedRelationship(item, dockAttribute);
                 }
 
                 if (lineAttribute != null)
                 {
-                    System.Diagnostics.Debug.Print(String.Format("Found line attribute for {0}", item.Name));
+                    
                     TryAddLineRelationship(item, lineAttribute);
                 }
                 return true;
@@ -440,12 +432,12 @@ namespace WPF_Chemotaxis.VisualScripting
                     ILinkable dropped =  uncastdropped as ILinkable;
                     if (dropped != null)
                     {
-                        System.Diagnostics.Debug.Print("Caught lost item from observablelist");
+                        
                         //If the map contains it, remove it from the model
                         HashSet<VSDiagramObject> droppedUIs;
                         if (ui_model_multimap.Remove(dropped, out droppedUIs))
                         {
-                            System.Diagnostics.Debug.Print("Remove from model map returned true");
+
                             //Then iterate and remove UIs from visual tree
                             foreach (VSDiagramObject item in droppedUIs)
                             {
@@ -472,7 +464,6 @@ namespace WPF_Chemotaxis.VisualScripting
         {
             if (deletedVisual != null)
             {
-                System.Diagnostics.Debug.Print("DELETING VISUAL"); 
                 var iter = deletedVisual.Children.OfType<VSDiagramObject>().ToList();
                 foreach (var child in iter)
                 {
@@ -492,15 +483,12 @@ namespace WPF_Chemotaxis.VisualScripting
 
                 ILinkable link;
                 ui_model_multimap.Remove(deletedVisual, out link);
-                System.Diagnostics.Debug.Print(string.Format("DELETED VISUAL FOR {0} FROM MULTIMAP", link.Name));
 
                 if (!ui_model_multimap.Contains(link))
                 {
-                    System.Diagnostics.Debug.Print(string.Format("{0} NOW DELETED FROM WHOLE MODEL", link.Name));
                     Model.Model.Current.RemoveElement(link);
                 }
-                
-                System.Diagnostics.Debug.Print(string.Format("DISPOSED VISUAL. RETURNING true"));
+               
                 return true;
             }
             return false;
@@ -561,9 +549,28 @@ namespace WPF_Chemotaxis.VisualScripting
             }
             else
             {
-                System.Diagnostics.Debug.Print(String.Format("Method {1} found to add child of type {0} to parent {2}", childLink.GetType(), method.Name, parentLink.Name));
+                Trace.WriteLine(String.Format("Method {1} found to add child of type {0} to parent {2}", childLink.GetType(), method.Name, parentLink.Name));
                 method.Invoke(parentLink, new object[] { childLink });
                 return true;
+            }
+        }
+
+        public async void JitterOnLoad()
+        {
+            Debug.Print("JITTER");
+            await Task.Delay(10);
+            foreach (VSDiagramObject vsObj in ui_model_multimap.MultipleItemsList())
+            {
+                if(ui_model_multimap.TryGetValue(vsObj, out ILinkable link))
+                {
+                    Debug.Print(String.Format("Checking link {0}", link.Name));
+                    if (link is CellType)
+                    {
+                        Debug.Print(String.Format("JITTER CELL {0}", link.Name));
+                        vsObj.SetAbsolutePosition(new Point(vsObj.AbsolutePosition.X+1.0, vsObj.AbsolutePosition.Y));
+                        vsObj.SetAbsolutePosition(new Point(vsObj.AbsolutePosition.X-1.0, vsObj.AbsolutePosition.Y));
+                    }
+                }
             }
         }
 

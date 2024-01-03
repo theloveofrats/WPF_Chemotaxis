@@ -130,7 +130,7 @@
                             </DataGridTemplateColumn>
                         </DataGrid.Columns>
                     </DataGrid>
-                   
+
                 </Grid>
             </TabItem>
             <TabItem Header="Environment" MinWidth="100">
@@ -196,7 +196,7 @@
                         <RowDefinition Height="440*"/>
                         <RowDefinition Height="120*"/>
                     </Grid.RowDefinitions>
-                    
+
                     <Border Grid.Row="0" Grid.ColumnSpan="2" BorderBrush="Black" BorderThickness="1" Margin="10,10,10,10" ClipToBounds="True">
                         <Canvas x:Name="VSCanvas" Focusable="True" MouseWheel="VSCanvas_MouseWheel" MouseMove="VSCanvas_LeftMouseDrag" MouseLeftButtonDown="VSCanvas_LeftMouseDown" MouseLeftButtonUp="VSCanvas_LeftMouseUp" Background="White"/>
                     </Border>
@@ -221,6 +221,30 @@
             <TabItem Header="Display" MinWidth="100">
                 <Grid Background="#FFE5E5E5">
                     <UniformGrid Columns="1" Margin="5,5,5,140" Background="White" Name="chartStack"/>
+                </Grid>
+            </TabItem>
+            <TabItem Header="Experimental Interventions" MinWidth="100" x:Name="InterventionsTab">
+                <Grid Background="#FFE5E5E5">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="5*"/>
+                        <ColumnDefinition Width="18*"/>
+                        <ColumnDefinition Width="624*"/>
+                        <ColumnDefinition Width="647*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="100*"/>
+                        <RowDefinition Height="250*"/>
+                        <RowDefinition Height="250*"/>
+                    </Grid.RowDefinitions>
+                    <ComboBox ItemsSource="{Binding Path=AllLigands}" x:Name="combo_SelectLigand" HorizontalAlignment="Left" Margin="42,26,0,0" VerticalAlignment="Top" Width="186" Grid.Column="2" DropDownOpened="RefreshLigandList"/>
+                    <Label Content="concentration to" HorizontalAlignment="Center" Margin="0,22,0,0" VerticalAlignment="Top" Width="156" Grid.Column="2"/>
+                    <Label Content="Set" HorizontalAlignment="Left" Margin="17,23,0,0" VerticalAlignment="Top" Width="43" Grid.ColumnSpan="2" Grid.Column="1"/>
+                    <TextBox Name ="txt_SetConcentrationValue"  HorizontalAlignment="Left" Margin="341,26,0,0" TextWrapping="Wrap" Text="0" VerticalAlignment="Top" Width="120" Grid.Column="2"/>
+                    <Button Name="btn_SetConcentration" Content=" GO " HorizontalAlignment="Left" Margin="487,24,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.492,0.38" Click="btn_SetConcentration_Click" Grid.Column="2"/>
+                    <ComboBox ItemsSource="{Binding Path=AllCellTypes}" x:Name="combo_SelectCellTypeToKill" HorizontalAlignment="Left" Margin="235,68,0,0" VerticalAlignment="Top" Width="186" Grid.Column="2" DropDownOpened="RefreshCellTypeList"/>
+                    <Label Content="Kill all" HorizontalAlignment="Left" Margin="189,66,0,0" VerticalAlignment="Top" Width="117" Grid.Column="2"/>
+                    <Button Name="btn_KillCellsOfType"  Content=" GO " HorizontalAlignment="Left" Margin="487,71,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.492,0.38" Grid.Column="2" Click="btn_KillCells"/>
+                    <Label Content="cells" HorizontalAlignment="Left" Margin="430,66,0,0" VerticalAlignment="Top" Width="40" Grid.Column="2"/>
                 </Grid>
             </TabItem>
         </TabControl>
@@ -256,7 +280,7 @@
                 <Label Name="saveDirLabel" Content="Save Directory: "  HorizontalAlignment="Left" Margin="0,0,0,0" MaxWidth="320"/>
                 <Button HorizontalAlignment="Left" Content="..." FontSize="12" Margin="10,2,2,2" VerticalAlignment="Bottom" Width="30" Height="20" Click="SetSaveDirClick"/>
             </StackPanel>
-            
+
         </Grid>
 
     </Grid>

@@ -13,6 +13,7 @@ using System.Windows.Media;
 using LiveCharts.Wpf;
 using LiveCharts.Defaults;
 using LiveCharts;
+using static WPF_Chemotaxis.Simulations.Simulation;
 
 namespace WPF_Chemotaxis.Simulations
 {
@@ -236,7 +237,7 @@ namespace WPF_Chemotaxis.Simulations
             this.radius = cellType.radius.RandomInRange;
         }
 
-        private void Init()
+        private void Init(Simulation sim)
         {
             Application.Current.Dispatcher.Invoke((Action)delegate {
                 series = new()
@@ -263,6 +264,7 @@ namespace WPF_Chemotaxis.Simulations
                 receptorWeights.Add(rec, crr.BasalWeight.RandomInRange);
                 receptorActivities.Add(rec, 0);
             }
+            UpdateLocalRegion(sim.Environment);
         }
 
         public Cell(CellType cellType, int cellNumber, double x, double y, Simulation sim)
@@ -276,11 +278,22 @@ namespace WPF_Chemotaxis.Simulations
 
             sim.EarlyUpdate += this.UpdateInformation;
             sim.Update += this.PerformInteractions;
+            sim.CellRemoved += this.CheckRemoveCell;
 
-            Init();
+            Init(sim);
             if (this.cellType.drawHandler == null)
             {
                 this.cellType.SetDrawHandler(Activator.CreateInstance(typeof(CellDrawHandler_BasicCircle)) as ICellDrawHandler);
+            }
+        }
+
+        public void CheckRemoveCell(Simulation sim, CellNotificationEventArgs args)
+        {
+            if (args.OldCell == this)
+            {
+                sim.EarlyUpdate -= this.UpdateInformation;
+                sim.Update -= this.PerformInteractions;
+                sim.CellRemoved -= this.CheckRemoveCell;
             }
         }
 
@@ -315,21 +328,25 @@ namespace WPF_Chemotaxis.Simulations
         /// Caches the local coordinate list for this iteration/update
         /// </summary>
         /// <param name="environment">the Environment from which to read available points</param>
-        protected virtual void UpdateLocalRegion(Environment environment)
+        public virtual void UpdateLocalRegion(Environment environment)
         {
             double x = X;
             double y = Y;
 
             double cx = 0, cy = 0;
 
+            //Note- first release doesn't matter because no points to release!
+
+            //Local area dilates by 1 extra dx for cells that are approx the size of dx
             lock (localPoints)
             {
+                double dx = environment.settings.DX;
                 localPointCoordinates.Clear();
-                for (double i = x - radius; i <= x + radius; i += environment.settings.DX)
+                for (double i = x - (radius+dx); i <= x + (radius+dx); i += dx)
                 {
-                    for (double j = y - radius; j <= y + radius; j += environment.settings.DX)
+                    for (double j = y - (radius + dx); j <= y + (radius + dx); j += dx)
                     {
-                        if ((i - x) * (i - x) + (j - y) * (j - y) < radius * radius && environment.IsOpen(i, j))
+                        if ((i - x) * (i - x) + (j - y) * (j - y) < (radius + dx) * (radius + dx) && environment.IsOpen(i, j))
                         {
                             localPointCoordinates.Add(new Point(i, j));
 
@@ -338,8 +355,9 @@ namespace WPF_Chemotaxis.Simulations
                         }
                     }
                 }
+                //environment.OccupyPoints(localPointCoordinates);
+                //environment.ReleasePoints(localPointCoordinates);
             }
-
             cx /= localPointCoordinates.Count;
             cy /= localPointCoordinates.Count;
 
@@ -391,7 +409,7 @@ namespace WPF_Chemotaxis.Simulations
         /// <param name="dt"> the timestep</param>
         public virtual void UpdateInformation(Simulation sim, Environment environment, SimulationNotificationEventArgs e)
         {
-            UpdateLocalRegion(environment);
+            //UpdateLocalRegion(environment);
             UpdateReceptorState(environment);
             currentTime = sim.Time;
             //TODO- the comps should subscribe to event they want to be part of, really.
