@@ -36,11 +36,12 @@ namespace WPF_Chemotaxis.Simulations
         protected MemoryBuffer1D<double, Stride1D.Dense> kernel_cm1;
         protected MemoryBuffer1D<double, Stride1D.Dense> kernel_c;
         protected MemoryBuffer1D<double, Stride1D.Dense> kernel_cp1;
+        protected MemoryBuffer1D<double, Stride1D.Dense> kernel_dif;
         protected MemoryBuffer1D<double, Stride1D.Dense> kernel_tmp;
         protected MemoryBuffer1D<byte, Stride1D.Dense> kernel_mask;
 
-        protected Action<Index1D, ArrayView<double>, ArrayView<double>, ArrayView<double>, ArrayView<byte>, ArrayView<double>, int, double, double, int, int> loadedKernel;
-        protected Action<Index1D, ArrayView<double>, ArrayView<double>, ArrayView<double>, ArrayView<byte>, ArrayView<double>, int, double, double, int, int> reactionKernel;
+        protected Action<Index1D, ArrayView<double>, ArrayView<double>, ArrayView<double>, ArrayView<byte>, ArrayView<double>, int, ArrayView<double>, double, int, int> loadedKernel;
+        protected Action<Index1D, ArrayView<double>, ArrayView<double>, ArrayView<double>, ArrayView<byte>, ArrayView<double>, int, double, int, int> reactionKernel;
         protected Action<Index1D, ArrayView<double>, ArrayView<double>, ArrayView<double>> swapKernel;
 
         protected double[] rxn_full;
@@ -210,6 +211,7 @@ namespace WPF_Chemotaxis.Simulations
         /// </summary>
         public void SetConcentration(int x, int y, Ligand l, double val)
         {
+            val = val < 0 ? 0 : val;
             int psn = y * width + x;
             if (psn < 0 || psn >= width * height) return;
             c[l][psn] = c_p1[l][psn] = c_m1[l][psn] = val;
@@ -302,50 +304,83 @@ namespace WPF_Chemotaxis.Simulations
         /// 
         public double GetConcentration(Ligand l, double x, double y)
         {
-            int iMax = (int)Math.Ceiling(x / settings.DX);
-            int jMax = (int)Math.Ceiling(y / settings.DX);
+            double dx = settings.DX;
+            
+            int iMax = (int)Math.Ceiling(x / dx);
+            int jMax = (int)Math.Ceiling(y / dx);
 
-            int iMin = (int)Math.Floor(x / settings.DX);
-            int jMin = (int)Math.Floor(y / settings.DX);
+            int iMin = (int)Math.Floor(x / dx);
+            int jMin = (int)Math.Floor(y / dx);
 
-            double xMax = iMax * settings.DX;
-            double yMax = jMax * settings.DX;
-            double xMin = iMin * settings.DX;
-            double yMin = jMin * settings.DX;
+            return GetConcentration(l, iMin, jMin);
 
-            if (xMax >= width) xMax = width - settings.DX;
-            if (yMax >= height) yMax = height - settings.DX;
-            if (xMin < 0) xMin = 0;
-            if (yMin < 0) yMin = 0;
+            if (iMax >= width) iMax = width - 1;
+            if (jMax >= height) jMax = height - 1;
+            if (iMin < 0) iMin = 0;
+            if (jMin < 0) jMin = 0;
 
-            double c00 = GetConcentration(l, iMin, jMin);
-            double c01 = GetConcentration(l, iMin, jMax);
-            double c10 = GetConcentration(l, iMax, jMin);
-            double c11 = GetConcentration(l, iMax, jMax);
+            double xMax = iMax * dx;
+            double yMax = jMax * dx;
+            double xMin = iMin * dx;
+            double yMin = jMin * dx;
+
+            double c00 = Math.Max(0, GetConcentration(l, iMin, jMin));
+            double c01 = Math.Max(0, GetConcentration(l, iMin, jMax));
+            double c10 = Math.Max(0, GetConcentration(l, iMax, jMin));
+            double c11 = Math.Max(0, GetConcentration(l, iMax, jMax));
 
             if (xMax == xMin)
             {
                 if (yMax == yMin) return c00;
                 else
                 {
-                    return 1d / (yMax - yMin) * (c00 * (yMax - y) + c01 * (y - yMin));
+                    return (1d / dx) * (c00 * (yMax - y) + c01 * (y - yMin));
                 }
             }
             else if (yMax == yMin)
             {
-                return 1d / (xMax - xMin) * (c00 * (xMax - x) + c10 * (x - xMin));
+                return (1d / dx) * (c00 * (xMax - x) + c10 * (x - xMin));
             }
             else
             {
+                //if (xMax - x < 0.1 * dx) x = xMax; 
+                //if (x - xMin < 0.1 * dx) x = xMin;
+                //if (yMax - y < 0.1 * dx) y = yMax;
+                //if (y - yMin < 0.1 * dx) y = yMin;
 
-                double c_interp = (1d / ((xMax - xMin) * (yMax - yMin))) * (
-                            c00 * (xMax - x) * (yMax - y)
-                            + c01 * (xMax - x) * (y - yMin)
-                            + c10 * (x - xMin) * (yMax - y)
-                            + c11 * (x - xMin) * (y - yMin));
+                double w00 = (1d / (dx * dx)) * (xMax - x) * (yMax - y);
+                double w01 = (1d / (dx * dx)) * (xMax - x) * (y - yMin);
+                double w10 = (1d / (dx * dx)) * (x - xMin) * (yMax - y);
+                double w11 = (1d / (dx * dx)) * (x - xMin) * (y - yMin);
 
-                return c_interp;
+
+                double c_interp =  (
+                            c00 * w00
+                            + c01 * w01
+                            + c10 * w10
+                            + c11 * w11);
+                /*
+                if(
+                    dx != (xMax - xMin)
+                 || dx != (yMax - yMin)
+                 || c_interp < 0
+                 || c_interp > 10
+                 || w00 < 0 || w00 > 1
+                 || w01 < 0 || w01 > 1
+                 || w10 < 0 || w10 > 1
+                 || w11 < 0 || w11 > 1
+                ){
+                    Debug.WriteLine(string.Format("(x,y)::({3:0.0},{4:0.0}), w:: ({11:0.00},{12:0.00},{13:0.00},{14:0.00})     (jMin, jMax)::({5},{6})       dx: {0}, xMax-xMin: {1}, yMax-yMin: {2}", dx, (xMax - xMin), (yMax - yMin), x, y, jMin, jMax, c00, c01, c10, c11, w00, w01, w10, w11));
+                }*/
+
+                //if (Simulation.Current.Time > 45)
+                //{
+                //    Debug.WriteLine(string.Format("c_i:: {0:0.00},    c00:: {1:0.00}", c_interp, c00));
+                //}
+
+                return c00;
             }
+            
         }
         public double GetConcentrationOld(Ligand l, double x, double y)
         {
@@ -474,12 +509,14 @@ namespace WPF_Chemotaxis.Simulations
             //Is already the unwrapped reaction matrix. 
             reactions_new = new double[w * h * (1 + num_ligands) * num_ligands];
 
+            if (num_ligands == 0) return;
 
             kernel_rx2 = accelerator.Allocate1D<double>(new double[w * h * ((1+num_ligands) * num_ligands)]);
             kernel_rxn  = accelerator.Allocate1D<double>(new double[w * h * num_ligands]);
             kernel_cm1  = accelerator.Allocate1D<double>(new double[w * h * num_ligands]);
             kernel_c    = accelerator.Allocate1D<double>(new double[w * h * num_ligands]);
             kernel_cp1  = accelerator.Allocate1D<double>(new double[w * h * num_ligands]);
+            kernel_dif  = accelerator.Allocate1D<double>(new double[num_ligands]);
             kernel_mask = accelerator.Allocate1D<byte>(new byte[w * h]);
 
             foreach(Region region in regions)
@@ -487,8 +524,8 @@ namespace WPF_Chemotaxis.Simulations
                 region.Init(sim, this);
             }
 
-            loadedKernel = accelerator.LoadAutoGroupedStreamKernel<Index1D, ArrayView<double>, ArrayView<double>, ArrayView<double>, ArrayView<byte>, ArrayView<double>, int, double, double, int, int>(DuFortKernel);
-            reactionKernel = accelerator.LoadAutoGroupedStreamKernel<Index1D, ArrayView<double>, ArrayView<double>, ArrayView<double>, ArrayView<byte>, ArrayView<double>, int, double, double, int, int>(ReactionKernel);
+            loadedKernel = accelerator.LoadAutoGroupedStreamKernel<Index1D, ArrayView<double>, ArrayView<double>, ArrayView<double>, ArrayView<byte>, ArrayView<double>, int, ArrayView<double>, double, int, int>(DuFortKernel);
+            reactionKernel = accelerator.LoadAutoGroupedStreamKernel<Index1D, ArrayView<double>, ArrayView<double>, ArrayView<double>, ArrayView<byte>, ArrayView<double>, int, double, int, int>(ReactionKernel);
             swapKernel = accelerator.LoadAutoGroupedStreamKernel<Index1D, ArrayView<double>, ArrayView<double>, ArrayView<double>>(SwapKernel);
 
             rxn_full = new double[num_ligands * width * height];
@@ -506,10 +543,11 @@ namespace WPF_Chemotaxis.Simulations
             double ks;
             double dts;
             int substeps;
+            int nLigands = c.Keys.Count;
+
+            if (nLigands == 0) return;
 
             kernel_mask.CopyFromCPU(pointTypes);
-
-            int nLigands = c.Keys.Count;
 
             Array.Clear(rxn_full);
             Array.Clear(cm1_full); 
@@ -518,14 +556,16 @@ namespace WPF_Chemotaxis.Simulations
 
             double diffMax = 0;
 
+            double[] diffs = new double[nLigands];
             foreach (Ligand l in c.Keys)
             {
-                if(l.Diffusivity> diffMax)
+                int iL = ligand_order[l]; 
+                diffs[iL] = l.Diffusivity;
+                if (l.Diffusivity> diffMax)
                 {
                     diffMax = l.Diffusivity;
                 }
-                int iL = ligand_order[l];
-
+                
                 Array.Copy(reactions[l], 0, rxn_full, width * height * iL, width * height);
                 Array.Copy(c_m1[l], 0, cm1_full, width * height * iL, width * height);
                 Array.Copy(c[l], 0, c00_full, width * height * iL, width * height);
@@ -538,17 +578,25 @@ namespace WPF_Chemotaxis.Simulations
 
             k = pre_k * dt * diffMax;
             //Subdivide for closest to "consistent" k=1 value
-            substeps = 10*(int)Math.Max(1, Math.Round(0.5 * k));
+            substeps = 5*(int)Math.Max(1, Math.Round(0.5 * k));
             ks = (k / (1d * substeps));
             dts = (dt / (1d * substeps));
 
             int rx_stride = (1 + num_ligands) * num_ligands;
+
+            
+            for (int i=0; i<diffs.Length; i++)
+            {
+                diffs[i] *= ks / diffMax;
+            }
+            kernel_dif.CopyFromCPU(diffs);
+
             //System.Diagnostics.Debug.Print(string.Format("{0} steps for {1}", substeps, l.Name));
 
             for (int idx=0; idx<substeps; idx++)
             {
-                loadedKernel((int)kernel_cp1.Length, kernel_cm1.View, kernel_c.View, kernel_cp1.View, kernel_mask.View, kernel_rx2.View, num_ligands, ks, dts, this.width, this.height);
-                reactionKernel((int)kernel_cp1.Length, kernel_cm1.View, kernel_c.View, kernel_cp1.View, kernel_mask.View, kernel_rx2.View, num_ligands, ks, dts, this.width, this.height);
+                loadedKernel((int)kernel_cp1.Length, kernel_cm1.View, kernel_c.View, kernel_cp1.View, kernel_mask.View, kernel_rx2.View, num_ligands, kernel_dif.View, dts, this.width, this.height);
+                reactionKernel((int)kernel_cp1.Length, kernel_cm1.View, kernel_c.View, kernel_cp1.View, kernel_mask.View, kernel_rx2.View, num_ligands, dts, this.width, this.height);
                 swapKernel((int) kernel_cp1.Length,   kernel_cm1.View, kernel_c.View, kernel_cp1.View);
             }
                 
@@ -599,8 +647,9 @@ namespace WPF_Chemotaxis.Simulations
         
         public void DegradeAtRate(Ligand input, Ligand output, double x, double y, double rate0, double rate1, double io_ratio, double dt)
         {
-            int ix = (int)Math.Floor(x / settings.DX);
-            int iy = (int)Math.Floor(y / settings.DX);
+            int ix = (int)(x / settings.DX);
+            int iy = (int)(y / settings.DX);
+
 
             //int pos =  + Width * (int)Math.Floor(y / settings.DX);
 
@@ -679,7 +728,7 @@ namespace WPF_Chemotaxis.Simulations
             cp1[C] = ((1d - 2d * k) / (1d + 2d * k)) * cm1[C] + (k / (1d + 2d * k)) * (c[N] + c[S] + c[E] + c[W]);
         }
 
-        private static void DuFortKernel(Index1D n, ArrayView<double> cm1, ArrayView<double> c, ArrayView<double> cp1, ArrayView<byte> mask, ArrayView<double> react, int num_ligands, double k, double dt, int w, int h)
+        private static void DuFortKernel(Index1D n, ArrayView<double> cm1, ArrayView<double> c, ArrayView<double> cp1, ArrayView<byte> mask, ArrayView<double> react, int num_ligands, ArrayView<double> k, double dt, int w, int h)
         {
 
             int i = n % w;
@@ -730,11 +779,11 @@ namespace WPF_Chemotaxis.Simulations
             W = W + L;
             C = C + L;
 
-            cp1[C] = ((1d - 2d * k) / (1d + 2d * k)) * cm1[C] + (k / (1d + 2d * k)) * (c[N] + c[S] + c[E] + c[W]);
+            cp1[C] = ((1d - 2d * k[l]) / (1d + 2d * k[l])) * cm1[C] + (k[l] / (1d + 2d * k[l])) * (c[N] + c[S] + c[E] + c[W]);
             //cp1[C] = c[C];
         }
 
-        private static void ReactionKernel(Index1D n, ArrayView<double> cm1, ArrayView<double> c, ArrayView<double> cp1, ArrayView<byte> mask, ArrayView<double> react, int num_ligands, double k, double dt, int w, int h)
+        private static void ReactionKernel(Index1D n, ArrayView<double> cm1, ArrayView<double> c, ArrayView<double> cp1, ArrayView<byte> mask, ArrayView<double> react, int num_ligands, double dt, int w, int h)
         {
             int i = n % w;
             int j = (n / w) % h;
@@ -770,13 +819,13 @@ namespace WPF_Chemotaxis.Simulations
             int rxn_stride = (1 + num_ligands) * num_ligands;
 
             //Centre*matrix size+ ligand num times row size, zero order.
-            double fk0 = dt * react[C * rxn_stride + l * (1 + num_ligands)] / (1 + 2 * k);
+            double fk0 = dt * react[C * rxn_stride + l * (1 + num_ligands)];// / (1 + 2 * k);
             double fk1 = 0;
 
             //Iterate all other ligand effects
             for (int lig_in = 0; lig_in < num_ligands; lig_in++)
             {
-                fk1 += c[C + (lig_in * w * h)] * react[C * rxn_stride + l * (1 + num_ligands) + lig_in + 1] * dt / (1 + 2 * k);
+                fk1 += c[C + (lig_in * w * h)] * react[C * rxn_stride + l * (1 + num_ligands) + lig_in + 1] * dt;// /(1 + 2 * k);
             }
 
             C = C + L;
@@ -826,12 +875,15 @@ namespace WPF_Chemotaxis.Simulations
             {
                 if (disposing)
                 {
-                    kernel_cm1.Dispose();
-                    kernel_c.Dispose();
-                    kernel_cp1.Dispose();
-                    kernel_mask.Dispose();
-                    accelerator.Dispose();
-                    context.Dispose();
+                    if (this.c.Keys.Count > 0)
+                    {
+                        kernel_cm1.Dispose();
+                        kernel_c.Dispose();
+                        kernel_cp1.Dispose();
+                        kernel_mask.Dispose();
+                        accelerator.Dispose();
+                        context.Dispose();
+                    }
                 }
 
                 this.c.Clear();

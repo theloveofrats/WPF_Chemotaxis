@@ -58,7 +58,11 @@ namespace WPF_Chemotaxis.Model
 
 
         public override string Name { 
-            get {return string.Format("{0} expression of {1}", Cell.Name, ChildComponent.Name); } 
+            get {if (Cell == null || ChildComponent == null)
+            {
+                return "Broken expression coupler";
+            }
+            else return string.Format("{0} expression of {1}", Cell.Name, ChildComponent.Name); } 
             set { return; } 
         }
     }

@@ -187,7 +187,7 @@ namespace WPF_Chemotaxis.VisualScripting
                     {
                         var copy = childUISet[0].Duplicate();
                         copy.DockToVSObject(parentUI, dock.dockDistance);
-                        //if(separateDock) ui_model_multimap.TryAdd(copy, (copy as VSUIElement).LinkedModelPart);
+                        if(separateDock) ui_model_multimap.TryAdd(copy, (copy as VSUIElement).LinkedModelPart);
                         attached = true;
                     }    
                 }
@@ -345,27 +345,27 @@ namespace WPF_Chemotaxis.VisualScripting
             double iHeight = Math.Max(targetCanvas.ActualHeight, 600);
 
             double rows = 0;
-            if (otherUIs.Count > 0) rows+=0.5;
+            if (otherUIs.Count > 0) rows+=1;
             if (cellUIs.Count > 0) rows+=2;
             if (ligandUIs.Count > 0) rows+=0.5;
 
             double hStep = iHeight /(rows+1);
             double row = 0;
 
-            if (otherUIs.Count > 0) row += 0.5;
+            if (cellUIs.Count > 0) row += 1;
+            for (int i = 1; i <= cellUIs.Count; i++)
+            {
+                var cellUI = cellUIs[i - 1];
+                cellUI.SetPosition(i * iWidth / (cellUIs.Count + 1), row * hStep);
+            }
+            if (cellUIs.Count > 0) row += 1;
+
+            if (otherUIs.Count > 0) row += 1;
             for (int i = 1; i <= otherUIs.Count; i++)
             {
                 var otherUI = otherUIs[i-1];
                 otherUI.SetPosition(i * iWidth / (otherUIs.Count + 1), row*hStep);
             }
-
-            if (cellUIs.Count > 0) row += 1;
-            for (int i = 1; i <= cellUIs.Count; i++)
-            {
-                var cellUI = cellUIs[i-1];
-                cellUI.SetPosition(i * iWidth / (cellUIs.Count + 1), row * hStep);
-            }
-            if (cellUIs.Count > 0) row += 1;
 
             if (ligandUIs.Count > 0) row += 0.5;
             for (int i = 1; i <= ligandUIs.Count; i++)
@@ -555,20 +555,40 @@ namespace WPF_Chemotaxis.VisualScripting
             }
         }
 
+        private bool _firstTimeLoading = true;
         public async void JitterOnLoad()
         {
-            Debug.Print("JITTER");
             await Task.Delay(10);
             foreach (VSDiagramObject vsObj in ui_model_multimap.MultipleItemsList())
             {
                 if(ui_model_multimap.TryGetValue(vsObj, out ILinkable link))
                 {
-                    Debug.Print(String.Format("Checking link {0}", link.Name));
                     if (link is CellType)
                     {
-                        Debug.Print(String.Format("JITTER CELL {0}", link.Name));
-                        vsObj.SetAbsolutePosition(new Point(vsObj.AbsolutePosition.X+1.0, vsObj.AbsolutePosition.Y));
-                        vsObj.SetAbsolutePosition(new Point(vsObj.AbsolutePosition.X-1.0, vsObj.AbsolutePosition.Y));
+                        if (_firstTimeLoading)
+                        {
+                            _firstTimeLoading = false;
+                            var vsChildren = (from child in ui_model_multimap.MultipleItemsList()
+                                              where child.Docked && child.DockedTo == vsObj
+                                              select child).ToList<VSDiagramObject>();
+
+                            if (vsChildren != null)
+                            {
+                                for (int i = 0; i < vsChildren.Count; i++)
+                                {
+                                    var vsChild = vsChildren[i];
+                                    double theta = (Math.PI / vsChildren.Count) * (i + 0.5);
+                                    double xAdj = 5d * Math.Cos(theta);
+                                    double yAdj = 5d * Math.Sin(theta);
+
+                                    vsChild.SetAbsolutePosition(new Point(vsObj.AbsolutePosition.X + xAdj, vsObj.AbsolutePosition.Y + yAdj));
+                                    vsChild.SetToDockedPosition();
+                                }
+                            }
+                        }
+
+                        vsObj.SetAbsolutePosition(new Point(vsObj.AbsolutePosition.X + 1.0, vsObj.AbsolutePosition.Y));
+                        vsObj.SetAbsolutePosition(new Point(vsObj.AbsolutePosition.X - 1.0, vsObj.AbsolutePosition.Y));
                     }
                 }
             }

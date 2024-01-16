@@ -1046,7 +1046,7 @@ namespace WPF_Chemotaxis
             {
                 return;
             }
-
+            if (cnc < 0) return;
             Debug.Print(string.Format("Attempting SetConcentration with target ligand name {0}", target));
 
             var ligand = (from el in Model.Model.MasterElementList where el is Ligand && el.Name==target select el).FirstOrDefault();

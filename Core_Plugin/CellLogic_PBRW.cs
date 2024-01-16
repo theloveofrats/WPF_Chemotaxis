@@ -55,7 +55,7 @@ namespace WPF_Chemotaxis.CorePlugin
 
         public void ConnectToCellType(CellType ct)
         {
-            
+            new ExpressionCoupler(this, ct);
         }
         
 

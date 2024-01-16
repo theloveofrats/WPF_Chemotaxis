@@ -371,8 +371,18 @@ namespace WPF_Chemotaxis.Simulations
         /// <param name="environment">the Environment from which to read ligand concentrations</param>
         protected virtual void UpdateReceptorState(Environment environment)
         {
-            double x = Centre[0];
-            double y = Centre[1];
+            /*double cx = 0, cy = 0;
+            foreach (Point p in localPoints)
+            {
+                cx += p.X;
+                cy += p.Y;
+            }
+            cx /= localPoints.Count;
+            cy /= localPoints.Count;*/
+            // double x = Centre[0];
+            // double y = Centre[1];
+
+
 
             double eff, receptor_mean_eff, receptor_moment_x, receptor_moment_y;
 
@@ -387,8 +397,8 @@ namespace WPF_Chemotaxis.Simulations
                     {
                         eff = r.GetEfficacy(environment, p.X, p.Y);
                         receptor_mean_eff += eff;
-                        receptor_moment_x += eff * (p.X - x);
-                        receptor_moment_y += eff * (p.Y - y);
+                        receptor_moment_x += eff * (p.X - centre[0]);
+                        receptor_moment_y += eff * (p.Y - centre[1]);
                     }
                     receptor_mean_eff /= localPoints.Count;
                     receptor_moment_x /= localPoints.Count;

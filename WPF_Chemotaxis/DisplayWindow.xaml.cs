@@ -57,7 +57,7 @@ namespace WPF_Chemotaxis
             cbColors.SelectedIndex = 0;
             this.interpreter = new IntensityInterpreter(this.cbColors);
 
-            timer.Interval = new TimeSpan(1000000);
+            timer.Interval = new TimeSpan(2000000);
             timer.Tick += (d, e) => {
                 RedrawImage();
                 RedrawOverlay();
@@ -77,7 +77,11 @@ namespace WPF_Chemotaxis
 
         private void InitialiseHeatMapSources()
         {
-            cbDisplaySources.ItemsSource = Model.Model.MasterElementList.Where(link => link.GetType().IsAssignableTo(typeof(IHeatMapSource))).ToList();
+            var sourceList = (from link in Model.Model.MasterElementList where link.GetType().IsAssignableTo(typeof(IHeatMapSource)) select (link as IHeatMapSource)).ToList<IHeatMapSource>();
+
+            sourceList = sourceList.Prepend(new BasicDisplayView()).ToList();
+
+            cbDisplaySources.ItemsSource = sourceList;
             cbDisplaySources.SelectedIndex = 0;
             ReloadHeatmapSourceOpts();
         }
@@ -259,6 +263,7 @@ namespace WPF_Chemotaxis
                         {
                             clr = this.interpreter.IntensityToColor(hp.Intensity);
                         }
+
                         WriteableBitmapExtensions.SetPixel(this.bmp, hp.X, hp.Y, clr);
                     }
                 }

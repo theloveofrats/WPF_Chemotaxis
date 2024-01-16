@@ -146,10 +146,10 @@ namespace WPF_Chemotaxis.Simulations
         }
         private void Run()
         {
-            for (int i = 0; i < 5; i++)
-            {
-                Environment.Update(settings.dt / 10.0);
-            }
+            //for (int i = 0; i < 5; i++)
+            //{
+            //    Environment.Update(settings.dt / 10.0);
+            //}
             Iterate();
             draw_watch.Start();
             var watch = System.Diagnostics.Stopwatch.StartNew();
@@ -296,6 +296,7 @@ namespace WPF_Chemotaxis.Simulations
 
         private void WriteCellPositionData()
         {
+            if (writer != null) return;
             foreach (Cell cell in cells)
             {
                 string line = string.Format("{0:0.000}, {1}, {2}, {3:0.000}, {4:0.000}, {5:0.000}", Time, cell.CellType.Name, cell.Id, cell.X, cell.Y, cell.WeightedActiveReceptorFraction);

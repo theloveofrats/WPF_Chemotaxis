@@ -103,17 +103,17 @@ namespace WPF_Chemotaxis.Model
                 {
                     double rate = weight * elr.vMax / cell.localPoints.Count;
 
-                    double offsetX = cell.X % sim.Environment.settings.DX;
-                    double offsetY = cell.Y % sim.Environment.settings.DX;
+                    //double offsetX = cell.X % sim.Environment.settings.DX;
+                    //double offsetY = cell.Y % sim.Environment.settings.DX;
 
-                    double c = env.GetConcentration(elr.Ligand, p.X+offsetX, p.Y+offsetY);
+                    double c = env.GetConcentration(elr.Ligand, p.X, p.Y);
 
-                    double f0 = rate * GetOccupancyFraction(elr, env, p.X+offsetX, p.Y+offsetY, out var cbykd_sum); //Zeroth order
+                    double f0 = rate * GetOccupancyFraction(elr, env, p.X, p.Y, out var cbykd_sum); //Zeroth order
                     double f1 = rate * (1.0 / elr.kD) * (1 + cbykd_sum - (c/elr.kD)) / ((1.0 + cbykd_sum) * (1.0 + cbykd_sum)); //First order
 
                     //Estimate rates after dt.
                     double c_est = Math.Max(c - rate*(f0 + f1 * c) * sim.Settings.dt, 0);
-                    double f0_p1 = rate * GetOccupancyFraction(elr, env, p.X+offsetX, p.Y+offsetY, out var cbykd_2, c_est);
+                    double f0_p1 = rate * GetOccupancyFraction(elr, env, p.X, p.Y, out var cbykd_2, c_est);
                     double f1_p1 = rate * (1.0 / elr.kD) * (1 + cbykd_sum - (c_est / elr.kD)) / ((1.0 + cbykd_sum) * (1.0 + cbykd_sum));
 
                     //Go with average rate of beginning and "end"
