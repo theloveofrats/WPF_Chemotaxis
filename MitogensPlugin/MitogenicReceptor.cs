@@ -17,13 +17,12 @@ namespace WPF_Chemotaxis.MitogensPlugin
 
         [JsonProperty]      // This makes the dropdown selection saveable.
         [InstanceChooser(label = "Input receptor")] // This creates a dropdown of all instances of the type
-                                                    // (Receptor here), so you can choose the one to plug in.
         public Receptor Input;
 
         [Param(Name = "Threshold Occupancy", Min = 0, Max = 1)]
         public double threshold { get; set; } = 0.5;
 
-        [Param(Name = "Mitosis below threshold")]
+        [Param(Name = "Mitosis below, not above, threshold")]
         public bool inverse { get; set; } = false;
 
         [Param(Name = "Min Delay", Min = 0)]
@@ -41,34 +40,37 @@ namespace WPF_Chemotaxis.MitogensPlugin
         public void Initialise(Simulation sim) //Initialise is a required part of a cell component.
                                                //Called once when the simulation starts.
         {
-            RegisterCell = (sim, cell, args) => RegisterNewCell(sim, cell); // We have used it to subscribe to the
-                                                                      // "Cell Added" event in the simulation.
-            sim.CellAdded += RegisterCell;
+            sim.CellAdded += (sim, e) => RegisterNewCell(sim, e.NewCell); // We have used it to subscribe to the
+                                                                          // "Cell Added" event in the simulation.
         }
 
         // Update called every dt!
-        public void Update(Cell cell, Simulation sim, WPF_Chemotaxis.Simulations.Environment env, IFluidModel flow) 
+        public void Update(Cell cell, Simulation sim, WPF_Chemotaxis.Simulations.Environment env)
         {
-            if (lastMitosis[cell] < delay)
+            if (lastMitosis.TryGetValue(cell, out var last))
             {
-                lastMitosis[cell] += sim.Settings.dt; //If we haven't given the cell time
-                                                      //to recover from its last split, wait.
-                return;
-            }
-            if(cell.ReceptorActivity(this.Input)<threshold&&inverse 
-                || cell.ReceptorActivity(this.Input) > threshold && !inverse) // If we're over the threshold
-            {
-                lock (rnd)
+                if (last < delay)
                 {
-                    if (rnd.value < rate * sim.Settings.dt)  // We randomly, with an average rate
-                                                             // specified by the rate parameter
+                    lastMitosis[cell] += sim.Settings.dt; //If we haven't given the cell time
+                                                          //to recover from its last split, wait.
+                    return;
+                }
+                if (cell.WeightedActiveReceptorFraction < threshold && inverse
+                    || cell.WeightedActiveReceptorFraction > threshold && !inverse) // If we're over the threshold
+                {
+                    lock (rnd)
                     {
-                        // Add a cell and set our time since mitosis to 0;
-                        sim.AddCell(
-                            cell.CellType, cell.X+2.0*cell.radius*(rnd.value-0.5), 
-                            cell.Y+2.0 * cell.radius * (rnd.value - 0.5)
-                        ); 
-                        this.lastMitosis[cell] = 0;
+                        if (rnd.value < rate * sim.Settings.dt)  // We randomly, with an average rate
+                                                                 // specified by the rate parameter
+                        {
+                            // Add a cell and set our time since mitosis to 0;
+                            sim.AddCell(
+                                cell.CellType, cell.X + 2.0 * cell.radius * (rnd.value - 0.5),
+                                cell.Y + 2.0 * cell.radius * (rnd.value - 0.5),
+                                CellEventType.MITOTIC
+                            );
+                            this.lastMitosis[cell] = 0;
+                        }
                     }
                 }
             }
@@ -76,11 +78,19 @@ namespace WPF_Chemotaxis.MitogensPlugin
 
         private void RegisterNewCell(Simulation sim, Cell cell)
         {
-            if (cell.CellType.components.Contains(this))
+            lock (lastMitosis)
             {
-                if (!lastMitosis.ContainsKey(cell)) lastMitosis.Add(cell, 0);
+                if (cell.CellType.components.Contains(this))
+                {
+                    if (!lastMitosis.ContainsKey(cell)) lastMitosis.Add(cell, 0);
 
+                }
             }
+        }
+
+        public void ConnectToCellType(CellType ct)
+        {
+            
         }
     }
 }

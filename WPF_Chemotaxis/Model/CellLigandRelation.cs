@@ -7,12 +7,14 @@ using WPF_Chemotaxis.UX;
 using WPF_Chemotaxis.Simulations;
 using System.Windows;
 using Newtonsoft.Json;
+using WPF_Chemotaxis.VisualScripting;
 
 namespace WPF_Chemotaxis.Model
 {
     /// <summary>
     /// Relational class for cell-ligand direct interactions (rather than receptor-mediated interactions).
     /// </summary>
+
     public class CellLigandRelation : LabelledLinkable
     {
         [JsonProperty]
@@ -50,6 +52,7 @@ namespace WPF_Chemotaxis.Model
         {
             this.cellType = cell;
             this.input_ligand = ligand;
+            Init();
         }
 
         public override void RemoveElement(ILinkable element, ILinkable replacement=null)
@@ -88,6 +91,7 @@ namespace WPF_Chemotaxis.Model
 
         public void DoUpdateAction(Simulations.Environment env, Cell c, double dt)
         {
+            /*
             foreach (Point p in c.localPoints) {
 
                 double rate = vMax/c.localPoints.Count;
@@ -97,7 +101,6 @@ namespace WPF_Chemotaxis.Model
                 {
                     double in_cnc = env.GetConcentration(input_ligand, p.X, p.Y);
 
-                   
 
                     if (Hill == 1) {
                         rate *= in_cnc / (in_cnc + kM);
@@ -110,8 +113,8 @@ namespace WPF_Chemotaxis.Model
                 }
 
                 env.DegradeAtRate(input_ligand, output_ligand, p.X, p.Y, rate, multiplier, dt);
-           
             }
+            */
         }
 
         private Ligand FirstLigand

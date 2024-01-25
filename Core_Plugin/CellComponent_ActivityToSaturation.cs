@@ -25,6 +25,11 @@ namespace Core_Plugin
         [Param(Name = "Max. Activity")]
         public double maxActivity { get; set; } = 0.5;
 
+        public void ConnectToCellType(CellType ct)
+        {
+
+        }
+
         public void Initialise(Simulation sim)
         {
 
@@ -34,10 +39,12 @@ namespace Core_Plugin
         {
             double mean = 0;
             double i = 0;
-            foreach(CellReceptorRelation crr in cell.CellType.receptorTypes)
+            foreach(ExpressionCoupler crr in cell.CellType.receptorTypes)
             {
+                Receptor r = crr.ChildComponent as Receptor;
+                if (r == null) continue;
                 i++;
-                mean += cell.ReceptorActivity(crr.Receptor);
+                mean += cell.ReceptorActivity(r);
             }
             if (i == 0) return;
 
@@ -55,7 +62,7 @@ namespace Core_Plugin
             //System.Diagnostics.Debug.Print(string.Format("rgb_in::({0},{1},{2})->HSL::({3:0.00}{4:0.00}{5:0.00})     activity::{6:0.00}       HSL::HSL::({7:0.00}{8:0.00}{9:0.00})->rbg_out::({10},{11},{12})", base_primary.R, base_primary.G, base_primary.B, hsl.H, hsl.S, hsl.L, mean, newHSL.H, newHSL.S, newHSL.L, modified_primary.R, modified_primary.G, modified_primary.B));
         }
 
-        public void Update(Cell cell, Simulation sim, WPF_Chemotaxis.Simulations.Environment env, IFluidModel flow)
+        public void Update(Cell cell, Simulation sim, WPF_Chemotaxis.Simulations.Environment env)
         {
            
         }

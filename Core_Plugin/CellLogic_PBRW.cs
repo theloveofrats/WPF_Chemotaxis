@@ -1,13 +1,16 @@
 ﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Windows;
 using WPF_Chemotaxis.Model;
 using WPF_Chemotaxis.Simulations;
 using WPF_Chemotaxis.UX;
+using WPF_Chemotaxis.VisualScripting;
 
 namespace WPF_Chemotaxis.CorePlugin
 {
+    [VSElement(symbolResourcePath = "Core_Plugin;component/Resources/DirectionModuleIcon.png", symbolSize = 7.0, ui_TypeLabel = "Cell Direction Logic", tagX = 25, tagY = 0, tagCentre = false)]
     public class CellLogic_PBRW: LabelledLinkable, ICellComponent
     {
         private string name = "Persistent Biased Walker";                                           // This is the field where the display name is stored
@@ -23,7 +26,11 @@ namespace WPF_Chemotaxis.CorePlugin
 
         [JsonIgnore]                                                                                // [JsonIgnore] is a tag you need to put on fields that aren't saved as part of the model. 
         IDictionary<Cell, PBRWParams> paramRefs = new Dictionary<Cell, PBRWParams>();               // This field is used in active simulations, not in model definition, so it isn't saved.
-                                                                                                    // Because each cell can have a parameter value on a spectrum of values, this dictionary allows us to
+           
+        public CellLogic_PBRW() : base()
+        {
+            Init();
+        }                                                                                           // Because each cell can have a parameter value on a spectrum of values, this dictionary allows us to
                                                                                                     // pass in a cell and look up the table of values used by that cell. 
         public override string DisplayType => "Cell movement logic";                                // The "Type" field in the display window where you set up a model. Like Cell or Receptor.
 
@@ -43,24 +50,26 @@ namespace WPF_Chemotaxis.CorePlugin
         {                                                                                           // need to before anything happens. I this case, I use it to:
             paramRefs.Clear();                                                                      //      A) react to user changes of parameter values (here, run the local function UpdateParams()) 
             this.PropertyChanged += (s, e) => UpdateParams(this, sim);                              //      B) put all cells in the register for looking up individual parameter values during the run.
-            foreach(Cell cell in sim.Cells)
-            {
-                RegisterCell(sim, cell);
-            }
-            sim.CellAdded += (s, c, args) => this.RegisterCell(s, c);
+            sim.CellAdded += this.RegisterCell;
         }
 
-        private void RegisterCell(Simulation sim, Cell cell)                                        // This function just puts cells in the look-up list if they're not already there.  
+        public void ConnectToCellType(CellType ct)
         {
-            if (cell.CellType.components.Contains(this))
+            new ExpressionCoupler(this, ct);
+        }
+        
+
+        private void RegisterCell(Simulation sim, CellNotificationEventArgs e)                                        // This function just puts cells in the look-up list if they're not already there.  
+        {
+            if (e.NewCell.CellType.components.Contains(this))
             {
                 lock (paramRefs)                                                                        // The list is lockedwhile this happens to stop simultaneous access by different threads (because it's generally
                 {                                                                                       // bad to change the numbers you're calculating with halfway through a calculation!)
-                    if (!paramRefs.ContainsKey(cell))
+                    if (!paramRefs.ContainsKey(e.NewCell))
                     {
-                        PBRWParams par = new PBRWParams(cell.Id);
+                        PBRWParams par = new PBRWParams(e.NewCell.Id);
                         par.Update(this, sim);
-                        paramRefs.Add(cell, par);
+                        paramRefs.Add(e.NewCell, par);
                     }
                 }
             }
@@ -75,7 +84,7 @@ namespace WPF_Chemotaxis.CorePlugin
         }
 
         // A bit rough
-        public virtual void Update(Cell cell, Simulations.Simulation sim, Simulations.Environment env, IFluidModel flow)       // Update is called every time-step and is where the core logic goes. 
+        public virtual void Update(Cell cell, Simulations.Simulation sim, Simulations.Environment env)       // Update is called every time-step and is where the core logic goes. 
         {
             double mean_activity;
 
@@ -88,7 +97,6 @@ namespace WPF_Chemotaxis.CorePlugin
                 newDir += PersistenceDirection(cell, checkrefs);                                                                          // mean_activity (or whatever double you pass as an out variable in the third argument) 
                                                                                                                                           //System.Diagnostics.Debug.Print(string.Format("PB dir:: ({0:0.00},{1:0.00})", newDir.X, newDir.Y));               // now contains the mean activity value of all receptors, between 0 and 1
                                                                                                                                           // We also add the persistence direction here.
-
                 double chemokinesis = checkrefs == null ? 0 : checkrefs.chemokinesis;
 
                 newDir.Normalize();                                                                                                // We then normalise...
@@ -124,11 +132,12 @@ namespace WPF_Chemotaxis.CorePlugin
 
             Receptor r;
             Vector dir;
-            if (ct.receptorTypes.Count > 0)                                                                                             // Then, if the cell type has at least one receptor type
+            if (ct.receptorTypes.Count() > 0)                                                                                             // Then, if the cell type has at least one receptor type
             {
-                foreach (CellReceptorRelation crr in ct.receptorTypes)                                                                  // across all receptor types
+                foreach (ExpressionCoupler crr in ct.receptorTypes)                                                                  // across all receptor types
                 {
-                    r = crr.Receptor;
+                    r = (Receptor) crr.ChildComponent;
+                    if (r == null) continue;
 
                     mean_eff_total += cell.ReceptorActivity(r);                                                                         
 
@@ -137,9 +146,9 @@ namespace WPF_Chemotaxis.CorePlugin
                     moment_x += dir.X * cell.ReceptorWeight(r);                                                                         // and we multiply the importance of this by the receptor class's weight for this individual  cell
                     moment_y += dir.Y * cell.ReceptorWeight(r);                                                                         // individual because these are ranged values too, and can differ cell to cell)
                 }
-                mean_eff_total /= ct.receptorTypes.Count;
-                moment_x *= pwr / ct.receptorTypes.Count;                                                                               // Finally, we multiply this total receptor difference by our chemotaxis power...
-                moment_y *= pwr / ct.receptorTypes.Count;                                                                                           
+                mean_eff_total /= ct.receptorTypes.Count();
+                moment_x *= pwr / ct.receptorTypes.Count();                                                                               // Finally, we multiply this total receptor difference by our chemotaxis power...
+                moment_y *= pwr / ct.receptorTypes.Count();                                                                                           
 
                 //System.Diagnostics.Debug.Print(string.Format("moment:: ({0:0.00},{1:0.00})", moment_x, moment_y));
             }

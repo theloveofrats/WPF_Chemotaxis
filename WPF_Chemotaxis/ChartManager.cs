@@ -79,8 +79,6 @@ namespace WPF_Chemotaxis
                     CartesianChart chart = charts[key];
                     //chart.Series.Clear();
 
-
-
                     foreach (IGraphOnSelection chartable in (from obj in this.selector.Selection where obj.GetType() == key select obj))
                     {
 

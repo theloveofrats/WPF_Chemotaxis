@@ -41,11 +41,7 @@ namespace WPF_Chemotaxis.MitogensPlugin
         {                                                                                           
             paramRefs.Clear();                                                                      
             this.PropertyChanged += (s, e) => UpdateParams(this, sim);                              
-            foreach(Cell cell in sim.Cells)
-            {
-                RegisterCell(sim, cell);
-            }
-            sim.CellAdded += (s, c, args) => this.RegisterCell(s, c);
+            sim.CellAdded += (s, e) => this.RegisterCell(s, e.NewCell);
         }
 
         private void RegisterCell(Simulation sim, Cell cell)                                        
@@ -73,7 +69,7 @@ namespace WPF_Chemotaxis.MitogensPlugin
         }
 
 
-        public virtual void Update(Cell cell, Simulations.Simulation sim, Simulations.Environment env, IFluidModel flow)       // Update is called every time-step and is where the core logic goes. 
+        public virtual void Update(Cell cell, Simulations.Simulation sim, Simulations.Environment env)       // Update is called every time-step and is where the core logic goes. 
         {
 
             MitosisParams mitParams;
@@ -83,12 +79,17 @@ namespace WPF_Chemotaxis.MitogensPlugin
                 {
                     sim.AddCell(
                                 cell.CellType, cell.X + 2.0 * cell.radius * (rnd.value - 0.5),
-                                cell.Y + 2.0 * cell.radius * (rnd.value - 0.5)
+                                cell.Y + 2.0 * cell.radius * (rnd.value - 0.5),
+                                CellEventType.MITOTIC
                             );
                     mitParams.ConfirmSplit();
                 }
             }
-        }                                                                                                                     
-                                                                                                                              
+        }
+
+        public void ConnectToCellType(CellType ct)
+        {
+            
+        }
     }
 }

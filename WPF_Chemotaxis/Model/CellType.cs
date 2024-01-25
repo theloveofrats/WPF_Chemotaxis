@@ -4,7 +4,14 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using WPF_Chemotaxis.UX;
-using Newtonsoft.Json.Serialization;
+using Newtonsoft.Json;
+using WPF_Chemotaxis.VisualScripting;
+using System.Windows.Media;
+using System.Collections.Immutable;
+using System.Collections.ObjectModel;
+using System.Windows.Media.Imaging;
+using System.Reflection;
+using System.Diagnostics;
 
 namespace WPF_Chemotaxis.Model
 {
@@ -12,6 +19,8 @@ namespace WPF_Chemotaxis.Model
     /// Class for storing paramaters for a cell type that can be shared by many cells
     /// and exposed to the UI for modification.
     /// </summary>
+
+    [VSElement(ui_TypeLabel="Cell", symbolResourcePath = "Resources/CircleIcon.png", symbolSize = 25.0, tagX =-40, tagY = -50, tagCentre = true)] 
     public class CellType : LabelledLinkable
     {
         public string label = "New Cell Type"; 
@@ -21,39 +30,86 @@ namespace WPF_Chemotaxis.Model
         [Param(Name = "Radius (um)", Min = 0)]
         public CenteredDoubleRange radius { get; set; } = new CenteredDoubleRange(6,0);
 
-        public static List<CellType> cellTypes = new();
+        public static List<CellType> cellTypes { get; private set; } = new();
 
         [Link]
-        public List<CellReceptorRelation> receptorTypes = new();
-        [Link]
-        public List<CellLigandRelation> ligandInteractions = new();
+        [JsonProperty]
+        protected List<ExpressionCoupler> expressionCouplers { get; private set; } = new();
+        public bool TryGetWeight(ILinkable link, out CenteredDoubleRange weight)
+        {
+            foreach(var ex in expressionCouplers)
+            {
+                if (ex.ChildComponent == link)
+                {
+                    weight = ex.BasalWeight;
+                    return true;
+                }
+            }
+            weight = new CenteredDoubleRange(0,0);
+            return false;
+        }
 
-        [Link(overrideName = "Movement logic")]
-        public List<ICellComponent> components = new();
+        public bool HasReceptor(Receptor r)
+        {
+            foreach(var item in receptorTypes)
+            {
+                if (item.ChildComponent == r) return true;
+            }
+            return false;
+        }
+
+        public IEnumerable<ExpressionCoupler> receptorTypes {
+            get
+            {
+                return (from rec in expressionCouplers.Where(ex => ex.ChildComponent.GetType() == typeof(Receptor)) select rec);
+            }
+        }
+
+        [Link]
+        public List<CellLigandRelation> ligandInteractions { get; private set; } = new();
+
+        [Link(overrideName = "Logical component")]
+        public List<ICellComponent> components { get; private set;  } = new();
 
         [Link(overrideName = "Draw handler")]
         [ClassChooser(label = "Draw handler", baseType = typeof(ICellDrawHandler))]
-        public ICellDrawHandler drawHandler;
+        public ICellDrawHandler drawHandler { get; private set; }
+
+        public void SetDrawHandler(ICellDrawHandler drawHandler)
+        {
+            this.drawHandler = drawHandler;
+        }
 
         public CellType() : base()
         {
-
+            Init();
         }
         public CellType(string label) : base(label)
         {
+            Init();
+        }
 
+        public void TryAddExpression(ILinkable link)
+        {
+            Trace.WriteLine(string.Format("Creating ExpressionCoupler between {0} and {1}", this.Name, link.Name));
+            if (link.GetType().GetCustomAttribute<DockableAttribute>() == null)
+            {
+                var nxc = new ExpressionCoupler(link, this);
+                if(!expressionCouplers.Contains(nxc)) expressionCouplers.Add(nxc);
+                Trace.WriteLine("Success!");
+            }
         }
 
         [ElementAdder(label ="Add Receptor", type = typeof(Receptor))]
         public void AddReceptorType(Receptor receptor)
         {
-            foreach(CellReceptorRelation crr in receptorTypes)
+            foreach(var exc in expressionCouplers)
             {
-                if (crr.Receptor == receptor) return; //Already have this receptor in the relation list.
+                if (exc.ChildComponent == receptor) return; //Already have this receptor in the relation list.
             }
 
-            CellReceptorRelation relation = new CellReceptorRelation(this, receptor); 
-            if(!receptorTypes.Contains(relation)) receptorTypes.Add(relation);                        
+            ExpressionCoupler relation = new ExpressionCoupler(receptor, this); 
+            if(!expressionCouplers.Contains(relation)) expressionCouplers.Add(relation);                        
 
         }
 
@@ -68,7 +124,16 @@ namespace WPF_Chemotaxis.Model
         {
             //System.Diagnostics.Debug.Print(string.Format("Trying to remove element {0} from {1}", element.Name, this.Name));
             if (element == null) return;
-            if (element is CellLigandRelation)
+            if(element is Receptor)
+            {
+                List<ExpressionCoupler> drop = (from r in receptorTypes where r.ChildComponent == element select r).ToList();
+                foreach (var receptorType in drop)
+                {
+                    Model.Current.RemoveElement(receptorType, replacement);
+                }
+            }
+
+            else if (element is CellLigandRelation)
             {
                 if (this.ligandInteractions.Contains(element))
                 {
@@ -79,14 +144,14 @@ namespace WPF_Chemotaxis.Model
                     }
                 }
             }
-            else if(element is CellReceptorRelation)
+            else if(element is ExpressionCoupler)
             {
-                if (this.receptorTypes.Contains(element))
+                if (this.expressionCouplers.Contains(element))
                 {
-                    this.receptorTypes.Remove((CellReceptorRelation)element);
-                    if (replacement != null && replacement.GetType().IsAssignableTo(typeof(CellReceptorRelation)))
+                    this.expressionCouplers.Remove((ExpressionCoupler)element);
+                    if (replacement != null && replacement.GetType().IsAssignableTo(typeof(ExpressionCoupler)))
                     {
-                        this.receptorTypes.Add((CellReceptorRelation)replacement);
+                        this.expressionCouplers.Add((ExpressionCoupler)replacement);
                     }
                 }
             }
@@ -109,9 +174,10 @@ namespace WPF_Chemotaxis.Model
             if (component.GetType().IsAssignableTo(typeof(ILinkable)))
             {
                 ILinkable link = (ILinkable)component;
-                if (!Model.MasterElementList.Contains(link)) Model.MasterElementList.Add(link);
+                Model.Current.AddElement(link);
             }
             this.components.Add(component);
+            component.ConnectToCellType(this);
         }
     }
 }

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using WPF_Chemotaxis.UX;
+using WPF_Chemotaxis.VisualScripting;
 
 namespace WPF_Chemotaxis.Model
 {
@@ -11,21 +12,22 @@ namespace WPF_Chemotaxis.Model
     /// Representation of a receptor type in the theoretical model. Links to some number of ligands. During a simulation, 
     /// each receptor will take input ligand concentations from a cell and respond with levels of occupancy and activity.
     /// </summary>
+    [VSElementAttribute(ui_TypeLabel = "Receptor", symbolResourcePath = "Resources/ReceptorIcon.png", symbolSize = 6.0, tagX = 12, tagY = -12, tagCentre = false)]
     public class Receptor : LabelledLinkable, IHeatMapSource
     {
         public string label = "Receptor";
 
-        [LinkAttribute]
-        public List<LigandReceptorRelation> ligandInteractions = new();
+        [Link]
+        public List<LigandReceptorRelation> ligandInteractions { get; private set; } = new();
 
         public Receptor() : base()
         {
-
+            Init();
         }
         
         public Receptor(string label) : base(label)
         {
-
+            Init();
         }
 
         [ElementAdder(label = "Add Ligand", type = typeof(Ligand))]
@@ -33,7 +35,7 @@ namespace WPF_Chemotaxis.Model
         {
             foreach(LigandReceptorRelation inter in ligandInteractions)
             {
-                if (inter.Ligand.Equals(ligand)) return;
+                if (inter.Ligand==ligand) return;
             }
             new LigandReceptorRelation(ligand, this);
         }
@@ -211,16 +213,33 @@ namespace WPF_Chemotaxis.Model
         {
             double ckd_top = 0;
             double ckd_btm = 0;
+            double noncompetitiveMultiplier = 1f;
+            double uncompetitiveMultiplier = 1f;
 
             double affinityPart;
-            foreach (LigandReceptorRelation lrr in this.ligandInteractions)
+            foreach (LigandRelation lr in this.ligandInteractions)
             {
-                affinityPart = environment.GetConcentration(lrr.Ligand, x, y) / lrr.kD;
-                ckd_btm += affinityPart;
-                ckd_top += affinityPart * lrr.eff;
+                if (lr.Inhibitor)
+                {
+                    if (lr.Uncompetitive)
+                    {
+                        uncompetitiveMultiplier *= 1d / (1d + (environment.GetConcentration(lr.Ligand, x, y) / lr.kD));
+                    }
+                    else
+                    {
+                        noncompetitiveMultiplier *= 1d/ (1d+ (environment.GetConcentration(lr.Ligand, x, y) / lr.kD));
+                    }
+                }
+                else
+                {
+                    affinityPart = environment.GetConcentration(lr.Ligand, x, y) / lr.kD;
+                    affinityPart /= uncompetitiveMultiplier;
+                    ckd_btm += affinityPart;
+                    ckd_top += affinityPart * lr.eff;
+                }
             }
 
-            return ckd_top / (ckd_btm + 1.0);
+            return noncompetitiveMultiplier * uncompetitiveMultiplier * ckd_top / (ckd_btm + 1.0);
         }
         #endregion .  IHeatmapSource Drawing methods
     }

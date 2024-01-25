@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Reflection;
 using WPF_Chemotaxis.UX;
+using WPF_Chemotaxis.VisualScripting;
 
 namespace WPF_Chemotaxis.Model
 {
@@ -12,7 +13,8 @@ namespace WPF_Chemotaxis.Model
     /// The class that defines the parameters of a given ligand type in
     /// the model. Parameters are exposed to the UI for modification.
     /// </summary>
-
+    
+    [VSElementAttribute(ui_TypeLabel = "Ligand", symbolResourcePath = "Resources/LigandIcon.png", symbolSize = 6.0, tagX = 15, tagY = -10, tagCentre = false)]
     public class Ligand : LabelledLinkable, IHeatMapSource
     {
         public string label = "Ligand";
@@ -27,13 +29,17 @@ namespace WPF_Chemotaxis.Model
         [Param(Name = "Kill rate (uM/um^2/min)")]
         public double KillRate { get; set; } = 0;
 
-        [LinkAttribute]
-        public List<LigandReceptorRelation> receptorInteractions = new();
+        [Link]
+        public List<LigandRelation> Interactions { get; private set; } = new();
 
-        public Ligand() : base() { }
-        public Ligand(string label) : base(label) { }
-
-
+        public Ligand() : base() 
+        {
+            Init();
+        }
+        public Ligand(string label) : base(label) 
+        {
+            Init();
+        }
 
 
         //Specifically the parts of the class that are IHeatMapSource related.
@@ -69,12 +75,12 @@ namespace WPF_Chemotaxis.Model
             if(element is LigandReceptorRelation)
             {
                 LigandReceptorRelation lrr = (LigandReceptorRelation) element;
-                if (this.receptorInteractions.Contains(lrr))
+                if (this.Interactions.Contains(lrr))
                 {
-                    this.receptorInteractions.Remove(lrr);
+                    this.Interactions.Remove(lrr);
                     if (replacement != null && replacement.GetType().IsAssignableTo(typeof(LigandReceptorRelation)))
                     {
-                        this.receptorInteractions.Add((LigandReceptorRelation)replacement);
+                        this.Interactions.Add((LigandReceptorRelation)replacement);
                     }
                 }
             }

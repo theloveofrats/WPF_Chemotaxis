@@ -38,7 +38,6 @@ namespace WPF_Chemotaxis.Model
             {
                 sim.Environment.SetConcentration(point.X, point.Y, option2.Selected, option1.currentValue);
             }
-            System.Diagnostics.Debug.Print("Setting ligand values");
         }
 
         public override void OnLoaded()

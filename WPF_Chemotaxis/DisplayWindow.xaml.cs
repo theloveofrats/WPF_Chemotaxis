@@ -24,6 +24,7 @@ using System.ComponentModel;
 using System.Windows.Interop;
 using System.Windows.Controls.Primitives;
 using System.IO;
+using System.Diagnostics;
 
 namespace WPF_Chemotaxis
 {
@@ -56,7 +57,7 @@ namespace WPF_Chemotaxis
             cbColors.SelectedIndex = 0;
             this.interpreter = new IntensityInterpreter(this.cbColors);
 
-            timer.Interval = new TimeSpan(1000000);
+            timer.Interval = new TimeSpan(2000000);
             timer.Tick += (d, e) => {
                 RedrawImage();
                 RedrawOverlay();
@@ -65,13 +66,22 @@ namespace WPF_Chemotaxis
 
         public void Window_Closed(object sender, CancelEventArgs e)
         {
-            if(simulation!=null) simulation.Cancel();
+
+            if (simulation != null)
+            {
+                Trace.WriteLine(string.Format("Simulation terminated by the user at {0}", simulation.Time));
+                simulation.Cancel();
+            }
         }
 
 
         private void InitialiseHeatMapSources()
         {
-            cbDisplaySources.ItemsSource = Model.Model.MasterElementList.Where(link => link.GetType().IsAssignableTo(typeof(IHeatMapSource))).ToList();
+            var sourceList = (from link in Model.Model.MasterElementList where link.GetType().IsAssignableTo(typeof(IHeatMapSource)) select (link as IHeatMapSource)).ToList<IHeatMapSource>();
+
+            sourceList = sourceList.Prepend(new BasicDisplayView()).ToList();
+
+            cbDisplaySources.ItemsSource = sourceList;
             cbDisplaySources.SelectedIndex = 0;
             ReloadHeatmapSourceOpts();
         }
@@ -80,7 +90,7 @@ namespace WPF_Chemotaxis
         {
             this.simulation = simulation;
             this.InitialiseIntensities();
-            this.simulation.Redraw += (s, e, c) => this.UpdateSourceData(e, c);
+            this.simulation.Redraw += (s, e, c) => this.UpdateSourceData(e);
             this.simulation.Close += (s,e,c) => this.FinishSimulation();
             this.InitialiseImages();
             this.selector = new OverlaySelector(simulation);
@@ -88,6 +98,7 @@ namespace WPF_Chemotaxis
 
             //This connects the target panel in the main window to the selector. It's ugly as hell like this, though.
             ChartManager manager = new ChartManager(chartTarget, selector);
+
             simulation.LateUpdate  += (s, e, m) => this.Dispatcher.Invoke(() => manager.DoChart());
             simulation.WriteToFile += (s, e, m) => this.Dispatcher.Invoke(() => this.SavePNGFile(s.TargetDirectory, displayNum));
         }
@@ -222,7 +233,7 @@ namespace WPF_Chemotaxis
                 }
             }
         }
-        private void UpdateSourceData(Simulations.Environment environment, IEnumerable<Cell> cells)
+        private void UpdateSourceData(Simulations.Environment environment)
         {
             FetchIntensities(environment);
         }
@@ -252,6 +263,7 @@ namespace WPF_Chemotaxis
                         {
                             clr = this.interpreter.IntensityToColor(hp.Intensity);
                         }
+
                         WriteableBitmapExtensions.SetPixel(this.bmp, hp.X, hp.Y, clr);
                     }
                 }
@@ -259,18 +271,28 @@ namespace WPF_Chemotaxis
             if(simulation!=null) simulation.Environment.DrawRegions(bmp);
         }
         private void RedrawOverlay()
-        { 
-            bmp_overlay.Clear(Colors.Transparent);
-            ICollection<Cell> cells = simulation.Cells;
-            double dx = simulation.Environment.settings.DX;
-
-            using (bmp_overlay.GetBitmapContext())
+        {
+            try
             {
-                foreach (Cell c in cells)
+                bmp_overlay.Clear(Colors.Transparent);
+                if (simulation != null)
                 {
-                    c.Draw(simulation.Environment, bmp_overlay);
+                    IReadOnlyCollection<Cell> cells = simulation.Cells;
+                    double dx = simulation.Environment.settings.DX;
+
+                    using (bmp_overlay.GetBitmapContext())
+                    {
+                        foreach (Cell c in cells)
+                        {
+                            c.Draw(simulation.Environment, bmp_overlay);
+                        }
+                        selector.DrawSelection(this.simulation, bmp_overlay);
+                    }
                 }
-                selector.DrawSelection(this.simulation, bmp_overlay);
+            }
+            catch(Exception e)
+            {
+                Console.WriteLine(e.StackTrace);
             }
         }
 
@@ -299,10 +321,8 @@ namespace WPF_Chemotaxis
 
         private Point ScreenToSimulation(Image clicked, Point clickPoint)
         {
-
             double x = clickPoint.X * simulation.Environment.settings.DX * simulation.Environment.Width / clicked.ActualWidth;
             double y = clickPoint.Y * simulation.Environment.settings.DX * simulation.Environment.Width / clicked.ActualWidth;
-
 
             return new Point(x, y);
         }
@@ -336,7 +356,11 @@ namespace WPF_Chemotaxis
 
             simulation.Environment.SendClick(psn, e);
 
-            if (e.ChangedButton == MouseButton.Left) selector.OnLeftMouseUp(psn.X, psn.Y);
+            if (e.ChangedButton == MouseButton.Left)
+            {
+                selector.OnLeftMouseUp(psn.X, psn.Y);
+                simulation.Environment.SetSelectedAreas(selector.GetAllSelectedAreas());
+            }
         }
 
         private void overlayImage_DragOver(object sender, DragEventArgs e)
@@ -380,6 +404,11 @@ namespace WPF_Chemotaxis
                 BindingExpression binding = BindingOperations.GetBindingExpression(tBox, prop);
                 if (binding != null) { binding.UpdateSource(); }
             }
+        }
+
+        public List<Rect> GetSelectedAreas()
+        {
+            return selector.GetAllSelectedAreas();
         }
     }
 }

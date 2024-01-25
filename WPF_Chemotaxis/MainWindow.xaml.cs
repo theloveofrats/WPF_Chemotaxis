@@ -1,27 +1,27 @@
-﻿using System;
-using System.Reflection;
+﻿using Microsoft.Win32;
+using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.IO;
 using System.Linq;
-using System.Text;
+using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
-using System.Collections.ObjectModel;
-using Microsoft.Win32;
-using WPF_Chemotaxis.UX;
 using WPF_Chemotaxis.Model;
 using WPF_Chemotaxis.Simulations;
-using System.Threading;
-using System.IO;
-using System.ComponentModel;
-using Newtonsoft.Json;
+using WPF_Chemotaxis.UX;
+using WPF_Chemotaxis.VisualScripting;
+using System.Windows.Media.Effects;
+using System.Windows.Documents;
+using System.Diagnostics;
 
 namespace WPF_Chemotaxis
 {
@@ -37,6 +37,7 @@ namespace WPF_Chemotaxis
         private static List<Assembly> assemblyList;
 
         private const string pluginPath = "\\Plugins";
+        private const string consoleFile = "\\LastConsoleSession.txt"; 
         private const string workingModelFile = "\\SettingsAutosave.json";
 
         private static readonly object locker = new object();
@@ -60,7 +61,14 @@ namespace WPF_Chemotaxis
 
         public MainWindow()
         {
+            DataContext = this;
             InitializeComponent();
+            string basePath = System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData) + "\\Dynad Simulations";
+            if (!Directory.Exists(basePath))
+            {
+                Directory.CreateDirectory(basePath);
+            }
+            CreateConsoleFile();
             LoadPlugins();
             mazeFileThumbnail.MouseLeftButtonUp += (s, e) => SetRegionWithDropper(s, e);
             selectedRegionType.TextChanged += (s, e) =>
@@ -83,16 +91,20 @@ namespace WPF_Chemotaxis
 
         private void LoadPlugins()
         {
+            Trace.WriteLine("****** PLUG-IN LOADING ******");
+            Trace.WriteLine(" ");
             if (assemblyList == null)
             {
                 assemblyList = new List<Assembly>(new Assembly[] { Assembly.GetExecutingAssembly() });
                 string basePath = System.IO.Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
                 foreach (string dll in System.IO.Directory.GetFiles(basePath + pluginPath, "*.dll"))
                 {
-                    System.Diagnostics.Debug.Print(" "); 
-                    System.Diagnostics.Debug.Print("PLUGIN LOADED: Assembly named " + dll);
-                    System.Diagnostics.Debug.Print(" ");
-                    assemblyList.Add(Assembly.LoadFrom(dll));
+                    Trace.WriteLine(" ");
+                    Trace.WriteLine("PLUGIN LOADED: Assembly named " + dll);
+                    Trace.WriteLine(" ");
+
+                    var assembly = Assembly.LoadFrom(dll);
+                    assemblyList.Add(assembly);
                 }
                 //foreach (Assembly dll in assemblyList)
                 //{
@@ -157,11 +169,48 @@ namespace WPF_Chemotaxis
             return true;
         }
 
+        private void CreateConsoleFile()
+        {
+            string basePath = System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData) + "\\Dynad Simulations";
+
+            Trace.Listeners.Clear();
+            try
+            {
+                TextWriterTraceListener twtl = new TextWriterTraceListener(new FileStream(basePath + consoleFile, FileMode.Create, FileAccess.Write));
+                twtl.Name = "Logger";
+                twtl.TraceOutputOptions = TraceOptions.DateTime;
+                Trace.Listeners.Add(twtl);
+                Trace.Listeners.Add(new DefaultTraceListener());
+                Trace.AutoFlush = true;
+
+                AppDomain.CurrentDomain.UnhandledException += (s, args) =>
+                {
+                    Exception e = (Exception)args.ExceptionObject;
+                    if(e.InnerException != null)
+                    {
+                        e = e.InnerException;
+                    }
+                    
+                    Trace.WriteLine("****** ERROR MESSAGE ******");
+                    Trace.WriteLine(" ");
+                    Trace.WriteLine(e.Message);
+                    Trace.WriteLine(" ");
+                    Trace.WriteLine(e.StackTrace);
+                };
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Cannot open console file");
+                Console.WriteLine(e.Message);
+                return;
+            }
+        }
+
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             Model.Model crown = new Model.Model();
             string basePath = System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData) + "\\Dynad Simulations";
-                //System.IO.Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            //System.IO.Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
 
             if (File.Exists(basePath + workingModelFile))
             {
@@ -170,11 +219,15 @@ namespace WPF_Chemotaxis
                 DeserialiseAutosave(basePath + workingModelFile);
                 simParameters.Items.Refresh();
             }
+
             ResetLinks();
             
 
             RegionType.RehookAllUpdateEvents(regionRules);
             btn_NewSim.IsEnabled = (File.Exists(env.ImagePath));
+            SetUpVisualScriptingWindow();
+
+            Model.Model.Current.FocusModelElement += (s, e) => this.DisplayLink();
         }
 
         private void DeserialiseAutosave(string autosavePath, bool clean=true)
@@ -198,6 +251,10 @@ namespace WPF_Chemotaxis
 
             using (Autosave autosave = Autosave.ReadFromFile(autosavePath))
             {
+                if (autosave == null)
+                {
+                    return;
+                }
                 if (clean)
                 {
                     foreach (Color clr in autosave.Regions.Keys)
@@ -218,14 +275,13 @@ namespace WPF_Chemotaxis
                     foreach (ILinkable link in autosave.ModelElements)
                     {
                         //Delete this whole bundle!
-                        System.Diagnostics.Debug.Print("Checking added ILinkable named "+link.Name);
-
+                        Console.WriteLine(string.Format("Loaded {0} named {1}.", link.DisplayType, link.Name));
                         bool admit = true;
                         foreach(var currentLink in Model.Model.MasterElementList)
                         {
                             if (currentLink.Name != null)
                             {
-                                System.Diagnostics.Debug.Print(String.Format("Comparing {0} {1} and {2} {3}::{4}", link.DisplayType, link.Name, currentLink.DisplayType, currentLink.Name, ((currentLink.Name == link.Name) && (currentLink.DisplayType == link.DisplayType)).ToString()));
+                                //System.Diagnostics.Debug.Print(String.Format("Comparing {0} {1} and {2} {3}::{4}", link.DisplayType, link.Name, currentLink.DisplayType, currentLink.Name, ((currentLink.Name == link.Name) && (currentLink.DisplayType == link.DisplayType)).ToString()));
                             }
                             if ((currentLink.Name == link.Name) && (currentLink.DisplayType == link.DisplayType))
                             {
@@ -235,7 +291,7 @@ namespace WPF_Chemotaxis
                         }
                         if (admit)
                         {
-                            Model.Model.MasterElementList.Add(link);
+                            Model.Model.Current.AddElement(link);
                             // Do we need a trigger here that connects missing links to names with the correct names in the new setup? #
                             // Perhaps a Re-link function that points all your current referees to a new ILinkable? 
                             foreach (ILinkable connection in link.LinkList)
@@ -280,7 +336,6 @@ namespace WPF_Chemotaxis
                         {
                             if (ContainsColor(bmp, entry.Key))
                             {
-                                System.Diagnostics.Debug.Print(string.Format("Found color {0} for regiontype {1}.", entry.Key, entry.Value.Name));
                                 newSave.Regions.Add(entry.Key, entry.Value);
                             }
                         }
@@ -291,7 +346,8 @@ namespace WPF_Chemotaxis
 
 
 
-
+            Trace.WriteLine(String.Format("Saving model to file {0}", autosavePath));
+            Trace.WriteLine(" ");
             newSave.miscParams = new MiscParamTable(env.DX, sim.duration, sim.dt, sim.out_freq);
 
             if (Directory.Exists(sim.SaveDirectory)) newSave.saveDirPath = sim.SaveDirectory;
@@ -305,6 +361,7 @@ namespace WPF_Chemotaxis
                      PreserveReferencesHandling = PreserveReferencesHandling.All
                  });
             File.WriteAllText(autosavePath, saveString);
+            Trace.WriteLine("Serialised settings successfully.");
         }
 
         private bool ContainsColor(WriteableBitmap checkbmp, Color clr)
@@ -339,6 +396,7 @@ namespace WPF_Chemotaxis
             SetCurrentElements(link.LinkList);
             SetParams(link);
             SetOpts(link);
+            MainTabControl.SelectedIndex = 0;
         }
 
         private void ResetLinks()
@@ -420,10 +478,11 @@ namespace WPF_Chemotaxis
                 
                 // Could do with an obj.Clean() function to mop up in case of mutual references causing memory leak.
             }
-            Model.Model.MasterElementList.Clear();
+            Model.Model.Current.Clear();
 
             RegionType.ClearRegions();
             OnMazeFileChosen("");
+            VSModelManager.Current?.Clear();
         }
 
         // Generates buttons for all current elements of the type elementListFilterType, and links them to the MethodInfo method. These methods MUST take a single argument of the correct type! 
@@ -528,7 +587,6 @@ namespace WPF_Chemotaxis
 
             // Here we list all the methods that explicitly allow you to add elements!
             IEnumerable<MethodInfo> methods = Model.Model.CurrentFocus.GetType().GetMethods().Where(method => method.GetCustomAttributes<ElementAdder>().Any());
-            System.Diagnostics.Debug.WriteLine(string.Format("in type {0}. ElementAdder fields.Count = {1}", Model.Model.CurrentFocus.GetType(), methods.Count()));
             foreach (MethodInfo method in methods)
             {
                 ElementAdder adder = (method.GetCustomAttribute<ElementAdder>() as ElementAdder);
@@ -546,14 +604,11 @@ namespace WPF_Chemotaxis
                 foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
                 {
 
-                    System.Diagnostics.Debug.WriteLine(string.Format("Scanning assembly {0}", assembly));
-
-
                     foreach (Type type in assembly.GetTypes().Where(type => type.GetCustomAttributes<CustomBaseElementAttribute>().Any()))
                     {
-                        System.Diagnostics.Debug.WriteLine(" ");
-                        System.Diagnostics.Debug.WriteLine(string.Format("ASSEMBLY {0} CONTAINS TYPE {1}", assembly, type));
-                        System.Diagnostics.Debug.WriteLine(" ");
+                        //Console.WriteLine(" ");
+                        //Console.WriteLine(string.Format("Fetched type {1} from assembly {0}", assembly, type));
+                        //Console.WriteLine(" ");
 
 
                         CustomBaseElementAttribute atr = type.GetCustomAttribute<CustomBaseElementAttribute>();
@@ -691,18 +746,22 @@ namespace WPF_Chemotaxis
         private void Run_Sim_Button_Click(object sender, RoutedEventArgs e)
         {
             //Needs to be changed to link simulation, and unlink when sim finishes, not create it. One at a time is fine! We can put repeats in a UI.
-            string newTargetDirectory;
-            sim.MakeNewSimDirectory(out newTargetDirectory);
-            if (newTargetDirectory != null)
-            {
-                string modelPath = newTargetDirectory + "\\StartingSetup.json";
-                SerialiseAutosave(modelPath);
-            }
-
             if (Simulation.Current == null)
             {
+                string newTargetDirectory;
+                sim.MakeNewSimDirectory(out newTargetDirectory);
+                Trace.WriteLine(" ");
+                Trace.WriteLine("****** NEW SIMULATION STARTED ******");
+                Trace.WriteLine(" ");
+
+                if (newTargetDirectory != null)
+                {
+                    Trace.WriteLine(String.Format("Output directory: {0}", newTargetDirectory));
+                    string modelPath = newTargetDirectory + "\\StartingSetup.json";
+                    SerialiseAutosave(modelPath);
+                }
                 Simulation newSim = Simulation.StartSimulation(sim, env, newTargetDirectory);
-                newSim.Redraw += (s, e, m) => UpdateTime(newSim.Time);
+                newSim.Redraw += (s, e, m) => UpdateTime(s.Time);
                 newSim.Start();
             }
             AddDisplayView(Simulation.Current);
@@ -733,6 +792,7 @@ namespace WPF_Chemotaxis
         ///</summary>
         private void AddDisplayView(Simulation newSim)
         {
+            Trace.WriteLine(String.Format("Adding display view to simulation"));
             Task.Factory.StartNew(new Action(() =>
             {
                     DisplayWindow displayWindow = new DisplayWindow();
@@ -746,6 +806,271 @@ namespace WPF_Chemotaxis
         private void ColorDropperButton_Click(object sender, RoutedEventArgs e)
         {
             
+        }
+
+
+        /* Visual Scripting View Model Section
+         * 
+         * 
+         * 
+         * 
+         * 
+         * 
+         *
+         * 
+         * 
+         */
+
+
+        /*
+         *   INITIALISE VISUAL SCRIPTING AND CONNECT LISTS TO VISUALS IN THAT TAB.
+         */
+        private VSModelManager modelManager;
+
+        private async Task SetUpVisualScriptingWindow()
+        {
+            await Task.Delay(100);
+            VSCanvas.KeyDown += KeyDownHandler;
+            SetVSElementsDisplaySource();
+
+            VisualScriptingSelectionManager.InitialiseVisualScriptingSelectionManager(VSCanvas);
+            modelManager = VSModelManager.Current;
+            modelManager.Init(VSCanvas);
+        }
+
+        private void SetVSElementsDisplaySource()
+        {
+            visualElementList.ItemsSource = VSElementList;
+        }
+
+        //Handle changes to selection. selection should not be changed elsewhere
+        private void visualElementList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            VisualScriptingSelectionManager.Current.SelectMenuItem(visualElementList.SelectedItem as VSListMenuElement);
+        }
+
+        private ObservableCollection<VSListMenuElement> vsElementsList;
+        public ObservableCollection<VSListMenuElement> VSElementList 
+        {
+            get
+            {
+                if (vsElementsList == null) vsElementsList = FindAllVSElements();
+                return vsElementsList;
+            }
+            private set
+            {
+
+            }
+        }
+        
+        private void KeyDownHandler(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Delete) { 
+                if (VisualScriptingSelectionManager.Current.HasSelection)
+                {                  
+                    VSModelManager.Current.TryDeleteVisual(VisualScriptingSelectionManager.Current.SelectedElement);
+                }
+            }
+        }
+
+        private ObservableCollection<VSListMenuElement> FindAllVSElements()
+        {
+            ObservableCollection<VSListMenuElement> viewList = new();
+
+            var typeList = AppDomain.CurrentDomain.GetAssemblies().SelectMany(x => x.GetTypes()).Where(y => y.GetCustomAttribute<VSElementAttribute>()!=null);
+
+            foreach (var iterType in typeList)
+            {
+                var vsInfo = iterType.GetCustomAttribute<VSElementAttribute>();
+
+                viewList.Add(new VSListMenuElement(vsInfo.ui_TypeLabel, vsInfo.symbolResourcePath, vsInfo.symbolSize, iterType, new Point(vsInfo.tagX, vsInfo.tagY), vsInfo.tagCentre));
+            }
+            return viewList;
+        }
+
+
+
+        private static T InvokeMethod<T>(Type type, string methodName, object obj = null, params object[] parameters) => (T)type.GetMethod(methodName)?.Invoke(obj, parameters);
+
+        //internal VisualScriptingSelectionManager VSViewManager { get; private set;}
+
+        private void VSCanvas_MouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            double angle = e.Delta/8d;
+            if (VisualScriptingSelectionManager.Current.HasSelection)
+            {
+                VisualScriptingSelectionManager.Current.RotateSelected(angle);
+            }
+        }
+        /*
+         * MOUSE DOWN HANDLERS FOR HARD_CODED PARTS OF THE VIEW. CAVNAS CAPURES CLICKS TO PROCESS MOUSEUP WITHOUT ERRORS.
+         * 
+         */
+
+
+        // This handles clicking on the MENU. Cancels VSElement selection.
+        private void VSMenuItem_LeftMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            VisualScriptingSelectionManager.Current.ClearSelection();
+            //Mouse.Capture(VSCanvas, CaptureMode.SubTree);
+            //System.Diagnostics.Debug.Print("CANVAS CAPTURE");
+        }
+
+
+        // Click on canvas. Cancels menu and VS element selection.
+        private void VSCanvas_LeftMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.Handled) return;
+            VisualScriptingSelectionManager.Current.ClearSelection();
+            visualElementList.UnselectAll();
+            VisualScriptingSelectionManager.Current.StartDrag(e.GetPosition(VSCanvas));
+        }
+
+      
+
+        // Drag on canvas
+        private void VSCanvas_LeftMouseDrag(object sender, MouseEventArgs e)
+        {
+            Point clickPsn = e.GetPosition(VSCanvas);
+            if (VisualScriptingSelectionManager.Current.InBounds(clickPsn))
+            {
+                VisualScriptingSelectionManager.Current.UpdateDrag(clickPsn);
+                if (VisualScriptingSelectionManager.Current.IsDragging) 
+                {
+                    Mouse.Capture(VSCanvas, CaptureMode.SubTree);
+                }
+            }
+        }
+
+        /*
+         * MOUSE UP HANDLER ON CANVAS
+         * 
+         */
+        private void VSCanvas_LeftMouseUp(object sender, MouseButtonEventArgs e)
+        {
+            if (e.Handled) return;
+
+            VSListMenuElement selectedSidebarItem = (visualElementList.SelectedItem as VSListMenuElement);
+            Point clickPsn = e.GetPosition(VSCanvas);
+
+            if (VisualScriptingSelectionManager.Current.InBounds(clickPsn))
+            {
+                // If we clicked in bounds and there is a selected menu item, create a new object on the canvas
+                if (selectedSidebarItem != null)
+                {
+                    modelManager.CreateNewModelElementFromMenu(selectedSidebarItem, clickPsn);
+                    visualElementList.UnselectAll();
+                }
+                // Otherwise, if we are in bounds and we were dragging a selected element
+                else if (VisualScriptingSelectionManager.Current.HasSelection && VisualScriptingSelectionManager.Current.IsDragging)
+                {
+                    VisualScriptingSelectionManager.Current.MoveSelected(clickPsn);
+                }
+
+            }
+            ResetMouseState();
+            Keyboard.Focus(VSCanvas);
+            e.Handled = true;
+        }
+
+        /*
+        private ICollection<FrameworkElement> GetChildHits(FrameworkElement parent, Point point)
+        {
+            List<FrameworkElement> hits = new();
+            for(int n=0; n<VisualTreeHelper.GetChildrenCount(parent); n++)
+            {
+                var child = VisualTreeHelper.GetChild(parent, n);
+                if(child.GetType().IsAssignableTo(typeof(FrameworkElement)))  
+                {
+                    //Add all subhits of a child, even if it manages to avoid inclusion itself- a receptor might stick out of a cell, for example!
+                    FrameworkElement feChild = (FrameworkElement)child;
+                    var subhits = GetChildHits(feChild, point);
+                    hits.AddRange(subhits); 
+                    if (VSViewManager.InBounds(point, feChild))
+                    {
+                        if (hits == null) hits = new();
+                        hits.Add(feChild);
+                    }
+                }
+            }
+            return hits;
+        }
+        */
+
+        private void ResetMouseState()
+        {
+            VisualScriptingSelectionManager.Current.EndDrag();
+        }
+
+        private void TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            (MainTabControl.SelectedItem as TabItem).UpdateLayout();
+
+            if (modelManager != null)
+            {
+                modelManager.JitterOnLoad();
+            }
+        }
+
+        public void RefreshLigandList(object sender, System.EventArgs e)
+        {
+            
+            var ligs = (from el in Model.Model.MasterElementList where el is Ligand select el);
+            AllLigands.Clear();
+            foreach (var el in ligs)
+            {
+                AllLigands.Add(el.Name);
+            }
+            System.Diagnostics.Debug.Print(String.Format("Refresh Ligand List:: {0} Ligands", AllLigands.Count)); 
+        }
+
+        public void RefreshCellTypeList(object sender, System.EventArgs e)
+        {
+            var cells = (from el in Model.Model.MasterElementList where el is CellType select el);
+            AllCellTypes.Clear();
+            foreach (var el in cells)
+            {
+                AllCellTypes.Add(el.Name);
+            }
+        }
+
+        public ObservableCollection<string> AllLigands { get; set; } = new() {"S1","S2"};
+        public ObservableCollection<string> AllCellTypes { get; set; } = new();
+       
+        private void btn_SetConcentration_Click(object sender, RoutedEventArgs e)
+        {
+            if (Simulation.Current == null) return;
+
+            string target = combo_SelectLigand.SelectedValue as string;
+            if(!Double.TryParse(txt_SetConcentrationValue.Text, out double cnc))
+            {
+                return;
+            }
+            if (cnc < 0) return;
+            Debug.Print(string.Format("Attempting SetConcentration with target ligand name {0}", target));
+
+            var ligand = (from el in Model.Model.MasterElementList where el is Ligand && el.Name==target select el).FirstOrDefault();
+            if (ligand == null) return;
+
+            Simulation.Current.Environment.SetConcentrationInSelectedAreas(ligand as Ligand, cnc);
+        }
+        private void btn_KillCells(object sender, RoutedEventArgs e)
+        {
+            if (Simulation.Current == null) return;
+
+            var targetCellType = (from el in Model.Model.MasterElementList where el is CellType && el.Name == (combo_SelectCellTypeToKill.SelectedValue as string) select el).FirstOrDefault() as CellType;
+            if (targetCellType == null) return;           
+
+            foreach(Cell cell in Simulation.Current.Cells)
+            {
+                if(cell.CellType == targetCellType)
+                {
+                    if(Simulation.Current.Environment.IsInSelection(cell.X, cell.Y))
+                    {
+                        Simulation.Current.RemoveCell(cell, deathType: CellEventType.APOPTOTIC);
+                    }
+                }
+            }
         }
     }
 }

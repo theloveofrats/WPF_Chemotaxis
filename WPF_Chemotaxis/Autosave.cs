@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -37,7 +38,10 @@ namespace WPF_Chemotaxis
 
         public static Autosave ReadFromFile(string path)
         {
+            Trace.WriteLine("******* SAVE FILE LOADING *******");
+            Trace.WriteLine(" ");
             string fileRead = File.ReadAllText(path);
+            Trace.WriteLine(String.Format("Opening save at {0}", path));
             try
             {
                 Autosave autosave = JsonConvert.DeserializeObject<Autosave>(fileRead,
@@ -49,8 +53,9 @@ namespace WPF_Chemotaxis
                         });
                 return autosave;
             }
-            catch (JsonSerializationException e) { 
-                Console.WriteLine(e.Message);
+            catch (JsonSerializationException e) {
+                Trace.WriteLine("JsonConvert failed to read save!");
+                Trace.WriteLine(e.Message);
                 return null;
             }
         }

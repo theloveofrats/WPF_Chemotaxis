@@ -9,7 +9,8 @@ using WPF_Chemotaxis.UX;
 using System.IO;
 using System.Diagnostics;
 
-namespace WPF_Chemotaxis.Simulations {
+namespace WPF_Chemotaxis.Simulations
+{
     /// <summary>
     /// Instances of Simulation are the core element of running simulations, informing other elsements of updates, changes to cell number
     /// and integrating the behaviour of Cell instances with the environment to properly update cell position. Having said this, further
@@ -63,25 +64,36 @@ namespace WPF_Chemotaxis.Simulations {
         private bool paused = true;
         private bool cancelled = false;
 
-        public delegate void SimulationNotification(Simulation sim, Environment e, IEnumerable<Cell> cells);
-        public delegate void CellNotificationHandler(Simulation sim, Cell cell, CellNotificationEventArgs e);
+        public delegate void SimulationNotification(Simulation sim, Environment env, SimulationNotificationEventArgs e);
+        public delegate void CellNotificationHandler(Simulation sim, CellNotificationEventArgs e);
 
         public event CellNotificationHandler CellAdded;
         public event CellNotificationHandler CellRemoved;
+        public event CellNotificationHandler CellReplaced;
 
         public event SimulationNotification Redraw;
+        //Update before mass transport equations
         public event SimulationNotification EarlyUpdate;
+        //Main update
+        public event SimulationNotification Update;
+        //Update after collision detection?- this isn't in yet!
         public event SimulationNotification LateUpdate;
+
         public event SimulationNotification WriteToFile;
         public event SimulationNotification Close;
 
         private HashSet<Cell> cells = new();
+        public IReadOnlyCollection<Cell> Cells { get
+            {
+                return cells;
+            }
+        }
         private HashSet<Cell> newCells = new();
-        private Dictionary<Cell, CellDeathType> removedcells = new();
+        private Dictionary<Cell, CellEventType> removedcells = new();
         private Environment environment;
 
         private Stopwatch draw_watch = new();
-
+        private SimulationNotificationEventArgs defaultEventArgs;
 
         private IFluidModel fluid;
         private bool disposedValue;
@@ -116,16 +128,15 @@ namespace WPF_Chemotaxis.Simulations {
 
             this.settings.Pause += pauseSub;
             this.settings.Resume += resumeSub;
-
+            this.defaultEventArgs = new(settings.dt) { };
             this.environment = new Environment(envSettings);
-            Initialise(targetDirectory??"");
+            Initialise(targetDirectory ?? "");
         }
         /// <summary>
         /// Builds a thread with the Simulation "Run" task. Should only happen once for each simulation instance.
         /// </summary>
         public void Start()
         {
-           
             Thread thread = new Thread(new ThreadStart(this.Run)); 
             thread.Start();
         }
@@ -135,6 +146,11 @@ namespace WPF_Chemotaxis.Simulations {
         }
         private void Run()
         {
+            //for (int i = 0; i < 5; i++)
+            //{
+            //    Environment.Update(settings.dt / 10.0);
+            //}
+            Iterate();
             draw_watch.Start();
             var watch = System.Diagnostics.Stopwatch.StartNew();
             while (time<settings.duration && !cancelled)
@@ -146,15 +162,24 @@ namespace WPF_Chemotaxis.Simulations {
                 }
                 else
                 {
-                    this.Iterate();
+                    //if (time < settings.dt * 2)
+                    //{
+                    //    double dt_true = settings.dt;
+                    //    for(int i=0; i<20; i++)
+                    //}
+                    //else
+                    //{
+                        this.Iterate();
+                    //}
                 }
             }
             if (this.Close != null)
             {
-                this.Close(this,environment,cells);
+                this.Close(this,environment, new SimulationNotificationEventArgs(dt:settings.dt));
             }
             watch.Stop();
-            System.Diagnostics.Debug.Print(string.Format("Duration: {0}", watch.Elapsed.ToString(@"mm\:ss\:ff")));
+            Trace.WriteLine("Simulation ended.");
+            Trace.WriteLine(string.Format("Real duration: {0}", watch.Elapsed.ToString(@"mm\:ss\:ff")));
             this.Dispose();
         }
 
@@ -164,42 +189,59 @@ namespace WPF_Chemotaxis.Simulations {
             if (Directory.Exists(targetDirectory))
             {
                 writer = new StreamWriter(targetDirectory + "Cells.csv", false);
-                writer.WriteLineAsync("Time (min), Cell Type, Cell ID, X (um), Y (um), Mean receptor activity");
+
+                string line = "Time (min), Cell Type, Cell ID, X (um), Y (um), Mean receptor activity";
+
+                foreach(var rec in Model.Model.MasterElementList)
+                {
+                    if(rec is Receptor)
+                    {
+                        line += string.Format(", {0}", rec.Name);
+                    }
+                }
+
+                writer.WriteLineAsync(line);
             }
 
             // This is a dirty, undesireable way of doing it, because it's so poorly extensible.
             // There should be a sim start event from, say, the simsettings, but this does give everyone a chance to subscribe to what they need to.
-
+            
             foreach (ILinkable link in Model.Model.MasterElementList)
             {
                 if(link is CellType)
                 {
                     CellType ct = link as CellType;
-
-                    foreach (ICellComponent component in ct.components) component.Initialise(this);
+                    foreach (var component in ct.components) component.Initialise(this);
                     if(ct.drawHandler!=null) ct.drawHandler.Initialise(this);
                 }
             }
+            //Environment initialised last so that the addition of cells can be intercepted by the correct modules.
             environment.Init(this);
         }
 
         private void Iterate()
         {
-            //Early update. Any preparatory activity needed.
-            if(this.EarlyUpdate!=null) EarlyUpdate(this,this.environment, cells);
+            //Early update. Any preparatory activity needed. Cells are 
+            if (this.EarlyUpdate != null)
+            {
+                Parallel.ForEach(EarlyUpdate.GetInvocationList(), action =>
+                {
+                    (action as SimulationNotification).Invoke(this, environment, defaultEventArgs);
+                });
+            }
 
-            //Main update. Most things happen here. 
+            // Environment update / mass transport happens separately to events so that both the early update (logging receptor stimuli)
+            // and the main update (calculating rates of reaction) happen correctly. 
             environment.Update(settings.dt);
-            
-            Parallel.ForEach(cells, c =>
+            //Main update. Most things happen here. Cells log their rates of reaction for example. 
+            if (this.Update != null)
             {
-                c.UpdateInformation(this, this.environment, this.fluid, settings.dt);
-            });
+                Parallel.ForEach(Update.GetInvocationList(), action =>
+                {
+                    (action as SimulationNotification).Invoke(this, environment, defaultEventArgs);
+                });
 
-            Parallel.ForEach(cells, c =>
-            {
-                c.PerformInteractions(this.environment, this.fluid, settings.dt);
-            });
+            }
             
             foreach (Cell c in cells)
             {
@@ -208,7 +250,7 @@ namespace WPF_Chemotaxis.Simulations {
             if (Redraw != null) {
                 if (draw_watch.ElapsedTicks > 300000)
                 {
-                    Redraw(this, this.environment, this.cells);
+                    Redraw(this, this.environment, defaultEventArgs);
                     draw_watch.Restart();
                 }
             }
@@ -218,15 +260,22 @@ namespace WPF_Chemotaxis.Simulations {
                 cells.Remove(cell);
                 if (this.CellRemoved != null)
                 {
-                    this.CellRemoved(this, cell, new CellNotificationEventArgs() { DeathType = removedcells[cell] });
+                    this.CellRemoved(this, new CellNotificationEventArgs(eventType:removedcells[cell], oldCell:cell, newCell:null));
                 }
             }
             removedcells.Clear();
 
             //Late update- clearing up, depenent calculations &c.
-            if (this.LateUpdate != null) LateUpdate(this, this.environment, cells);
+            if (this.LateUpdate != null)
+            {
+                Parallel.ForEach(LateUpdate.GetInvocationList(), action =>
+                {
+                    (action as SimulationNotification).Invoke(this, environment, defaultEventArgs);
+                });
+                //Update(this, this.environment, defaultEventArgs);}
 
-            time += settings.dt;
+                time += settings.dt;
+            }
             if (settings.out_freq > 0)
             {
                 if (time % settings.out_freq < settings.dt)
@@ -234,22 +283,41 @@ namespace WPF_Chemotaxis.Simulations {
                     WriteCellPositionData();
                     if (this.WriteToFile != null)
                     {
-                        WriteToFile(this, this.environment, this.cells);
+                        WriteToFile(this, this.environment, defaultEventArgs);
                     }
                 }
             }
             foreach (Cell cell in newCells)
             {
-                Cells.Add(cell);
+                cells.Add(cell);
             }
             newCells.Clear();
         }
 
         private void WriteCellPositionData()
         {
+            if (writer != null) return;
             foreach (Cell cell in cells)
             {
-                writer.WriteLine(string.Format("{0:0.000}, {1}, {2}, {3:0.000}, {4:0.000}, {5:0.000}", Time, cell.CellType.Name, cell.Id, cell.X, cell.Y, cell.WeightedActiveReceptorFraction));
+                string line = string.Format("{0:0.000}, {1}, {2}, {3:0.000}, {4:0.000}, {5:0.000}", Time, cell.CellType.Name, cell.Id, cell.X, cell.Y, cell.WeightedActiveReceptorFraction);
+
+                foreach (var rec in Model.Model.MasterElementList)
+                {
+                    Receptor receptor = rec as Receptor;
+                    if (receptor!=null)
+                    {
+                        if (cell.CellType.HasReceptor(receptor))
+                        {
+                            line += string.Format(", {0:0.000}", cell.ReceptorActivity(receptor));
+                        }
+                        else
+                        {
+                            line += string.Format(", X", rec.Name);
+                        }
+                    }
+                }
+
+                writer.WriteLine(line);
             }
         }
 
@@ -259,7 +327,7 @@ namespace WPF_Chemotaxis.Simulations {
         /// <param name="ct">The CellType for the new cell</param>
         /// <param name="x">The micrometer x position of the new cell</param>
         /// <param name="y">The micrometer y position of the new cell</param>
-        public void AddCell(CellType ct, double x, double y)
+        public void AddCell(CellType ct, double x, double y, CellEventType addedHow)
         {
             lock (newCells)
             {
@@ -267,7 +335,7 @@ namespace WPF_Chemotaxis.Simulations {
                 newCells.Add(cell);
                 if (CellAdded != null)
                 {
-                    CellAdded(this, cell, new CellNotificationEventArgs());
+                    CellAdded(this, new CellNotificationEventArgs(eventType:addedHow,oldCell:null, newCell:cell));
                 }
             }
         }
@@ -277,47 +345,58 @@ namespace WPF_Chemotaxis.Simulations {
         /// </summary>
         /// <param name="c">The cell to remove</param>
         /// <param name="deathType">Specified deathtype, which may be used by other components to initiate custom behaviour.</param>
-        public void RemoveCell(Cell c, CellDeathType deathType)
+        public void RemoveCell(Cell c, CellEventType deathType)
         {
             removedcells.TryAdd(c, deathType);
+        }
+
+        public void ReplaceCell(CellType newCellType, Cell oldCell)
+        {
+            Cell newCell = new Cell(newCellType, oldCell.Id, oldCell.X, oldCell.Y, this);
+            removedcells.TryAdd(oldCell, CellEventType.DIFFERENTIATED);
+            newCells.Add(newCell);
+            if (this.CellReplaced != null)
+            {
+                this.CellReplaced(this, new CellNotificationEventArgs(CellEventType.DIFFERENTIATED, oldCell, newCell));
+            }
         }
 
         // We might consider referring movement back to the cell upon error, this isn't very SOLID.
         private bool TryMoveCell(Cell cell)
         {
+            //environment.ReleasePoints(cell.localPoints);
             double dvx = cell.vx * settings.dt;
             double dvy = cell.vy * settings.dt;
 
+            //environment.ReleasePoints(cell.localPoints);
+
             //System.Diagnostics.Debug.Print(string.Format("TryMoveCell with vx={0}, vy={1}", cell.vx, cell.vy));
-
-            if (!environment.IsOpen(cell.X + dvx, cell.Y + dvy)||environment.Blocked(cell.X + dvx, cell.Y + dvy))
+            if (!environment.IsOpen(cell.X + dvx, cell.Y + dvy) || environment.Blocked(cell.X + dvx, cell.Y + dvy) || environment.Occupied(cell.X + dvx, cell.Y + dvy))
             {
-                dvx *= -0.25;
-                dvy *= -0.25;
+                dvx *= 0.4; //Try moving that way, but less
+                dvy *= 0.4;
 
-                if (!environment.IsOpen(cell.X + dvx, cell.Y+dvy) || environment.Blocked(cell.X + dvx, cell.Y + dvy))
+                if (!environment.IsOpen(cell.X + dvx, cell.Y + dvy) || environment.Blocked(cell.X + dvx, cell.Y + dvy) || environment.Occupied(cell.X + dvx, cell.Y + dvy))
                 {
-                    cell.vx = 0;
-                    cell.vy = 0;
-                    return false;
+                    dvx *= -0.5; //Back up a wee bit
+                    dvy *= -0.5;
+
+                    if (!environment.IsOpen(cell.X + dvx, cell.Y + dvy) || environment.Blocked(cell.X + dvx, cell.Y + dvy) || environment.Occupied(cell.X + dvx, cell.Y + dvy))
+                    {
+                        cell.vx = 0; //Just don't move.
+                        cell.vy = 0;
+                        return false;
+                    }
                 }
             }
-
             cell.UpdateIntendedMovementDirection(dvx, dvy);
-
             cell.UpdatePosition(cell.X+cell.vx, cell.Y +cell.vy);
+            //Immediately update info
+            cell.UpdateLocalRegion(environment);
+
             return true;
         }
-        /// <summary>
-        /// The currently active Cell instance collection.
-        /// </summary>
-        public ICollection<Cell> Cells
-        {
-            get
-            {
-                return cells;
-            }
-        }
+
 
         protected virtual void Dispose(bool disposing)
         {

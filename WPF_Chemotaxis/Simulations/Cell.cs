@@ -13,6 +13,7 @@ using System.Windows.Media;
 using LiveCharts.Wpf;
 using LiveCharts.Defaults;
 using LiveCharts;
+using static WPF_Chemotaxis.Simulations.Simulation;
 
 namespace WPF_Chemotaxis.Simulations
 {
@@ -236,15 +237,8 @@ namespace WPF_Chemotaxis.Simulations
             this.radius = cellType.radius.RandomInRange;
         }
 
-        public Cell(CellType cellType, int cellNumber, double x, double y, Simulation sim)
+        private void Init(Simulation sim)
         {
-            this.cellType = cellType;
-            this.x = x;
-            this.y = y;
-            this.vx = 0;
-            this.vy = 0;
-            this.id = cellNumber;
-
             Application.Current.Dispatcher.Invoke((Action)delegate {
                 series = new()
                 {
@@ -263,38 +257,43 @@ namespace WPF_Chemotaxis.Simulations
             receptorWeights = new();
             receptorActivities = new();
             receptorDifferences = new();
-            foreach (CellReceptorRelation crr in this.cellType.receptorTypes)
+            foreach (ExpressionCoupler crr in this.cellType.receptorTypes)
             {
-                receptorWeights.Add(crr.Receptor, crr.Weight.RandomInRange);
-                receptorActivities.Add(crr.Receptor, 0);
+                Receptor rec = crr.ChildComponent as Receptor;
+                if (rec == null) continue;
+                receptorWeights.Add(rec, crr.BasalWeight.RandomInRange);
+                receptorActivities.Add(rec, 0);
             }
+            UpdateLocalRegion(sim.Environment);
+        }
 
-            /*
-             * UUUGH- NOT CLEAR HOW WE REMOVE THESE AT DISPOSE. DO WE NEED A REF TO SIMULATION?? Irritating!
-            Simulation.SimulationNotification finalWrite = (s, e, c) => {
-                string output = s.Settings.SaveDirectory+"\\CellRangeValueSnapshots.csv";
+        public Cell(CellType cellType, int cellNumber, double x, double y, Simulation sim)
+        {
+            this.cellType = cellType;
+            this.x = x;
+            this.y = y;
+            this.vx = 0;
+            this.vy = 0;
+            this.id = cellNumber;
 
-                // This makes it clear that the current form of caching values isn't any good- we want to be able to record them, so we need the range classes to keep an instance value.
-                // Or we need some way of referring to the range they came from on the object they came from to reflect the label that lets the parameters be set.
-                using (var writer = new StreamWriter(output)) {
-                    
-                    if (!File.Exists(output))
-                    {
-                        File.Create(output);
-                    }
-                    string line = string.Format("{0}, {1}", cellType.Name, id);
+            sim.EarlyUpdate += this.UpdateInformation;
+            sim.Update += this.PerformInteractions;
+            sim.CellRemoved += this.CheckRemoveCell;
 
-                    foreach (Receptor r in this.receptorWeights.Keys)
-                    {
-                        line += string.Format(", {0:0.00}", receptorWeights[r]);
-                    }
-                }
-            };
-            */
-
+            Init(sim);
             if (this.cellType.drawHandler == null)
             {
-                this.cellType.drawHandler = Activator.CreateInstance(typeof(CellDrawHandler_BasicCircle)) as ICellDrawHandler;
+                this.cellType.SetDrawHandler(Activator.CreateInstance(typeof(CellDrawHandler_BasicCircle)) as ICellDrawHandler);
+            }
+        }
+
+        public void CheckRemoveCell(Simulation sim, CellNotificationEventArgs args)
+        {
+            if (args.OldCell == this)
+            {
+                sim.EarlyUpdate -= this.UpdateInformation;
+                sim.Update -= this.PerformInteractions;
+                sim.CellRemoved -= this.CheckRemoveCell;
             }
         }
 
@@ -329,21 +328,25 @@ namespace WPF_Chemotaxis.Simulations
         /// Caches the local coordinate list for this iteration/update
         /// </summary>
         /// <param name="environment">the Environment from which to read available points</param>
-        private void UpdateLocalRegion(Environment environment)
+        public virtual void UpdateLocalRegion(Environment environment)
         {
             double x = X;
             double y = Y;
 
             double cx = 0, cy = 0;
 
+            //Note- first release doesn't matter because no points to release!
+
+            //Local area dilates by 1 extra dx for cells that are approx the size of dx
             lock (localPoints)
             {
+                double dx = environment.settings.DX;
                 localPointCoordinates.Clear();
-                for (double i = x - radius; i <= x + radius; i += environment.settings.DX)
+                for (double i = x - (radius+dx); i <= x + (radius+dx); i += dx)
                 {
-                    for (double j = y - radius; j <= y + radius; j += environment.settings.DX)
+                    for (double j = y - (radius + dx); j <= y + (radius + dx); j += dx)
                     {
-                        if ((i - x) * (i - x) + (j - y) * (j - y) < radius * radius && environment.IsOpen(i, j))
+                        if ((i - x) * (i - x) + (j - y) * (j - y) < (radius + dx) * (radius + dx) && environment.IsOpen(i, j))
                         {
                             localPointCoordinates.Add(new Point(i, j));
 
@@ -352,8 +355,9 @@ namespace WPF_Chemotaxis.Simulations
                         }
                     }
                 }
+                //environment.OccupyPoints(localPointCoordinates);
+                //environment.ReleasePoints(localPointCoordinates);
             }
-
             cx /= localPointCoordinates.Count;
             cy /= localPointCoordinates.Count;
 
@@ -365,14 +369,24 @@ namespace WPF_Chemotaxis.Simulations
         /// Caches the receptor occupancy/activity/differences for this iteration/update
         /// </summary>
         /// <param name="environment">the Environment from which to read ligand concentrations</param>
-        private void UpdateReceptorState(Environment environment)
+        protected virtual void UpdateReceptorState(Environment environment)
         {
-            double x = Centre[0];
-            double y = Centre[1];
+            /*double cx = 0, cy = 0;
+            foreach (Point p in localPoints)
+            {
+                cx += p.X;
+                cy += p.Y;
+            }
+            cx /= localPoints.Count;
+            cy /= localPoints.Count;*/
+            // double x = Centre[0];
+            // double y = Centre[1];
+
+
 
             double eff, receptor_mean_eff, receptor_moment_x, receptor_moment_y;
 
-            if (CellType.receptorTypes.Count > 0)
+            if (CellType.receptorTypes.Count() > 0)
             {
                 foreach (Receptor r in receptorActivities.Keys)
                 {
@@ -383,8 +397,8 @@ namespace WPF_Chemotaxis.Simulations
                     {
                         eff = r.GetEfficacy(environment, p.X, p.Y);
                         receptor_mean_eff += eff;
-                        receptor_moment_x += eff * (p.X - x);
-                        receptor_moment_y += eff * (p.Y - y);
+                        receptor_moment_x += eff * (p.X - centre[0]);
+                        receptor_moment_y += eff * (p.Y - centre[1]);
                     }
                     receptor_mean_eff /= localPoints.Count;
                     receptor_moment_x /= localPoints.Count;
@@ -403,13 +417,13 @@ namespace WPF_Chemotaxis.Simulations
         /// <param name="environment">the Environment from which to read ligand concentrations within the cell</param>
         /// <param name="fluidModel"> the fluid model describing local advection (currently not implemented!)</param>
         /// <param name="dt"> the timestep</param>
-        public void UpdateInformation(Simulation sim, Environment environment, IFluidModel fluidModel, double dt)
+        public virtual void UpdateInformation(Simulation sim, Environment environment, SimulationNotificationEventArgs e)
         {
-            UpdateLocalRegion(environment);
+            //UpdateLocalRegion(environment);
             UpdateReceptorState(environment);
             currentTime = sim.Time;
             //TODO- the comps should subscribe to event they want to be part of, really.
-            foreach (ICellComponent comp in CellType.components) comp.Update(this, sim, environment, fluidModel);
+            foreach (ICellComponent comp in CellType.components) comp.Update(this, sim, environment);
         }
         /// <summary>
         /// Cell early update. Updates local region and receptor state. 
@@ -418,10 +432,10 @@ namespace WPF_Chemotaxis.Simulations
         /// <param name="environment">the Environment from which to read ligand concentrations within the cell</param>
         /// <param name="fluidModel"> the fluid model describing local advection (currently not implemented!)</param>
         /// <param name="dt"> the timestep</param>
-        public void PerformInteractions(Environment environment, IFluidModel fluidModel, double dt) {
+        public virtual void PerformInteractions(Simulation sim, Environment environment, SimulationNotificationEventArgs e) {
             foreach (CellLigandRelation clr in CellType.ligandInteractions)
             {
-                clr.DoUpdateAction(environment, this, dt);
+                clr.DoUpdateAction(environment, this, e.dt);
             }
         }
 

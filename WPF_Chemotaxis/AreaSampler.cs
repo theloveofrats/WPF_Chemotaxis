@@ -64,5 +64,13 @@ namespace WPF_Chemotaxis
             series.Values.Add(new ObservablePoint(sim.Time, GetCellCount()));
             return series;
         }
+
+        public Rect Bounds
+        {
+            get
+            {
+                return this.rect;
+            }
+        }
     }
 }

@@ -35,13 +35,13 @@ namespace WPF_Chemotaxis.UX
             }
         }
 
-        public UIOptionLink_Instance(string label, object target, FieldInfo field, bool nullable) : base(label, target, field, nullable)
+        public UIOptionLink_Instance(string label, object target, PropertyInfo prop, bool nullable) : base(label, target, prop, nullable)
         {
 
-            this.type = field.FieldType;
+            this.type = prop.PropertyType;
             FindOptions();
 
-            var val = field.GetValue(target);
+            var val = prop.GetValue(target);
 
             
 
@@ -78,13 +78,13 @@ namespace WPF_Chemotaxis.UX
             if (choice == null)
             {
                 //System.Diagnostics.Debug.Print("Setting the field to null");
-                field.SetValue(target, null);
+                prop.SetValue(target, null);
             }
-            var currentChoice = field.GetValue(target);
+            var currentChoice = prop.GetValue(target);
 
             if (choice==currentChoice) return; //Already chosen!
 
-            else field.SetValue(target, choice);
+            else prop.SetValue(target, choice);
         }
     }
 }

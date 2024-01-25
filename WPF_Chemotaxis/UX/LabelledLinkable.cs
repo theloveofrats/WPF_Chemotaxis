@@ -19,14 +19,24 @@ namespace WPF_Chemotaxis.UX
 
         public event PropertyChangedEventHandler PropertyChanged;
 
+        protected void OnPropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            PropertyChanged?.Invoke(sender, e);
+        }
+
         public virtual string Name { get; set; }
 
         //So that any derivated class auomatically adds itself to the masterelementlist.
         public LabelledLinkable()
         {
+            
+        }
+
+        protected void Init()
+        {
             if (!Model.Model.FreezeAdditions)
             {
-                Model.Model.MasterElementList.Add(this);
+                Model.Model.Current.AddElement(this);
             }
         }
 
@@ -54,13 +64,13 @@ namespace WPF_Chemotaxis.UX
             get
             {
                 ObservableCollection<ILinkable> links = new ObservableCollection<ILinkable>(); 
-                var linkFields = this.GetType().GetFields(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance).Where(fi =>fi.IsDefined(typeof(LinkAttribute), false));
+                var linkProperties = this.GetType().GetProperties(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance).Where(fi =>fi.IsDefined(typeof(LinkAttribute), false));
                 
                 
                 
-                foreach (FieldInfo fi in linkFields)
+                foreach (PropertyInfo fi in linkProperties)
                 {
-                    if (typeof(ILinkable).IsAssignableFrom(fi.FieldType))
+                    if (typeof(ILinkable).IsAssignableFrom(fi.PropertyType))
                     {
                         var val = fi.GetValue(this);
                         if (val!=null)
@@ -74,10 +84,10 @@ namespace WPF_Chemotaxis.UX
                         links.Add((ILinkable)val);
                     }
                     
-                    if (fi.FieldType.IsGenericType)
+                    if (fi.PropertyType.IsGenericType)
                     {
                         // Check if this is enumerable generic collection of ILinkable
-                        if (typeof(IList).IsAssignableFrom(fi.FieldType)) {
+                        if (typeof(IList).IsAssignableFrom(fi.PropertyType)) {
                             IList collection = (IList )fi.GetValue(this);
 
                             collection.GetEnumerator().Reset();
@@ -99,7 +109,7 @@ namespace WPF_Chemotaxis.UX
 
 
                         // Check if this is a dictionary with ILinkable keys
-                        else if (typeof(IDictionary).IsAssignableFrom(fi.FieldType))
+                        else if (typeof(IDictionary).IsAssignableFrom(fi.PropertyType))
                         {
                             IDictionary dict = (IDictionary) fi.GetValue(this);
                             foreach (var item in dict.Keys)
@@ -148,23 +158,28 @@ namespace WPF_Chemotaxis.UX
             get
             {
                 ObservableCollection<UIOptionLink> allOpts = new();
-                var optFields = this.GetType().GetFields(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance).Where(fi => fi.IsDefined(typeof(ClassChooserAttribute), false));
-                var insFields = this.GetType().GetFields(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance).Where(fi => fi.FieldType.IsAssignableTo(typeof(ILinkable)) && fi.IsDefined(typeof(InstanceChooserAttribute), false));
+                var optFields = this.GetType().GetProperties(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance).Where(fi => fi.IsDefined(typeof(ClassChooserAttribute), false));
+                var insFields = this.GetType().GetProperties(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance).Where(fi => fi.PropertyType.IsAssignableTo(typeof(ILinkable)) && fi.IsDefined(typeof(InstanceChooserAttribute), false));
 
                
 
-                foreach (FieldInfo fi in optFields)
+                foreach (PropertyInfo fi in optFields)
                 {
                     UIOptionLink link = new UIOptionLink_Type(fi.GetCustomAttribute<ClassChooserAttribute>().label,this, fi, false);
                     allOpts.Add(link);
                 }
-                foreach (FieldInfo fi in insFields)
+                foreach (PropertyInfo fi in insFields)
                 {
                     UIOptionLink link = new UIOptionLink_Instance(fi.GetCustomAttribute<InstanceChooserAttribute>().label, this, fi, true);
                     allOpts.Add(link);
                 }
                 return allOpts;
             }
+        }
+
+        public virtual bool TryAddTo(ILinkable link)
+        {
+            return false;
         }
     }
 }

@@ -24,9 +24,9 @@ namespace WPF_Chemotaxis.Model
         [Param(Name = "2nd color")]
         public Color color2 { get; set; } = Colors.Black;
 
-        public CellDrawHandler_BasicCircle()
+        public CellDrawHandler_BasicCircle() : base()
         {
-
+            Init();
         }
 
         public void Draw(Cell cell, Simulations.Environment env, WriteableBitmap targetBmp, ICollection<Point> occupiedPoints)

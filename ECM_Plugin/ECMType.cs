@@ -16,8 +16,14 @@ namespace ECM_Plugin
         [LinkAttribute]
         public List<ECM_Ligand_Interaction> ligandInteractions = new();
 
-        public ECMType() : base() { }
-        public ECMType(string label) : base(label) { }
+        public ECMType() : base() 
+        {
+            Init();
+        }
+        public ECMType(string label) : base(label) 
+        {
+            Init();
+        }
 
         //Specifically the parts of the class that are IHeatMapSource related.
         private List<Func<WPF_Chemotaxis.Simulations.Environment, int, int, byte>> heatMethods;
@@ -88,7 +94,7 @@ namespace ECM_Plugin
         }
 
 
-
+        //NEEDS REDOING TOTALLY FOR NEW REACTION SYSTEM
         public void CalculateSiteReaction(int index, Simulation sim)
         {
             //System.Diagnostics.Debug.WriteLine("CALC CALLED ON ECM");
@@ -101,7 +107,7 @@ namespace ECM_Plugin
             foreach(ECM_Ligand_Interaction interaction in ligandInteractions)
             {
                 rate = interaction.CalculateSiteReaction(index, sim);
-                sim.Environment.DegradeAtRate(interaction.Ligand, null, x * dx, y * dx,rate, 1, sim.Settings.dt);
+                //sim.Environment.DegradeAtRate(interaction.Ligand, null, x * dx, y * dx,rate, 1, sim.Settings.dt);
             }
         }
 

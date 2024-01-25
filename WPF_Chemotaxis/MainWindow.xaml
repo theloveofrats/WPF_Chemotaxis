@@ -9,7 +9,7 @@
         xmlns:localux="clr-namespace:WPF_Chemotaxis.UX"
         xmlns:effects="clr-namespace:WPF_Chemotaxis.UX.Effects"
         mc:Ignorable="d"
-        Title="Luke's Excellent Cell Simulation" Height="650" Width="860" Loaded="Window_Loaded" Closing="Window_Closed">
+        Title="Luke's Excellent Cell Simulation" Height="800" Width="1300" Loaded="Window_Loaded" Closing="Window_Closed">
     <Window.Resources>
         <!-- Array of heat map colors for coloring black and white heat maps -->
 
@@ -21,9 +21,9 @@
         <Image x:Key="Pause" Source="Resources/Pause_Icon.png" Height="50" Width="50"/>
     </Window.Resources>
     <Grid>
-        <TabControl SelectionChanged="TabControl_SelectionChanged" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
+        <TabControl x:Name="MainTabControl" SelectionChanged="TabControl_SelectionChanged" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
 
-            <TabItem Header="Model" MinWidth="100">
+            <TabItem Header="Model" MinWidth="100" x:Name="ModelTab">
                 <Grid Background="#FFE5E5E5">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="200*"/>
@@ -115,7 +115,7 @@
                             <DataGridTextColumn Header="Component" Binding="{Binding Label}" IsReadOnly="True"  Width="*"/>
                             <DataGridTemplateColumn Header="Choice" Width="*">
                                 <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
+                                    <DataTemplate x:Name="Christ">
                                         <ComboBox ItemsSource="{Binding Path=Options, Converter={StaticResource EnumerableReplaceConverter}, ConverterParameter={StaticResource EmptyString}}"  SelectedItem="{Binding Path=SelectedItem, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource ReplaceConverter}, ConverterParameter={StaticResource EmptyString}}" IsSynchronizedWithCurrentItem="True">
                                             <ComboBox.ItemTemplate>
                                                 <DataTemplate>
@@ -130,7 +130,7 @@
                             </DataGridTemplateColumn>
                         </DataGrid.Columns>
                     </DataGrid>
-                   
+
                 </Grid>
             </TabItem>
             <TabItem Header="Environment" MinWidth="100">
@@ -185,9 +185,66 @@
 
                 </Grid>
             </TabItem>
+            <TabItem Header="Visual Model maker" MinWidth="100">
+                <Grid Background="#FFE5E5E5">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="610*"/>
+                        <ColumnDefinition Width="300*"/>
+                        <ColumnDefinition Width="280"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="440*"/>
+                        <RowDefinition Height="120*"/>
+                    </Grid.RowDefinitions>
+
+                    <Border Grid.Row="0" Grid.ColumnSpan="2" BorderBrush="Black" BorderThickness="1" Margin="10,10,10,10" ClipToBounds="True">
+                        <Canvas x:Name="VSCanvas" Focusable="True" MouseWheel="VSCanvas_MouseWheel" MouseMove="VSCanvas_LeftMouseDrag" MouseLeftButtonDown="VSCanvas_LeftMouseDown" MouseLeftButtonUp="VSCanvas_LeftMouseUp" Background="White"/>
+                    </Border>
+                    <Border Grid.Row="0" Grid.Column="2" BorderBrush="Black" BorderThickness="1" Margin="10,10,10,10">
+                        <DataGrid x:Name="visualElementList" AutoGenerateColumns="False" Margin="0,0,0,0" MinRowHeight="80" MinColumnWidth="80" Grid.Row="0" Grid.Column="2" SelectedItem="{Binding VSViewManager.SelectedMenuItem, Mode=TwoWay}">
+                            <DataGrid.Columns>
+                                <DataGridTemplateColumn Header="Icon" Width="20*" IsReadOnly="True">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Border Background="Gray">
+                                                <Image Name="VSElementImage"  Source="{Binding IconSource}" MouseLeftButtonDown="VSMenuItem_LeftMouseDown"/>
+                                            </Border>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn Header="Label" IsReadOnly="True" Binding="{Binding UIDisplayLabel}"  Width="40*"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Border>
+                </Grid>
+            </TabItem>
             <TabItem Header="Display" MinWidth="100">
                 <Grid Background="#FFE5E5E5">
                     <UniformGrid Columns="1" Margin="5,5,5,140" Background="White" Name="chartStack"/>
+                </Grid>
+            </TabItem>
+            <TabItem Header="Experimental Interventions" MinWidth="100" x:Name="InterventionsTab">
+                <Grid Background="#FFE5E5E5">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="5*"/>
+                        <ColumnDefinition Width="18*"/>
+                        <ColumnDefinition Width="624*"/>
+                        <ColumnDefinition Width="647*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="100*"/>
+                        <RowDefinition Height="250*"/>
+                        <RowDefinition Height="250*"/>
+                    </Grid.RowDefinitions>
+                    <ComboBox ItemsSource="{Binding Path=AllLigands}" x:Name="combo_SelectLigand" HorizontalAlignment="Left" Margin="42,26,0,0" VerticalAlignment="Top" Width="186" Grid.Column="2" DropDownOpened="RefreshLigandList"/>
+                    <Label Content="concentration to" HorizontalAlignment="Center" Margin="0,22,0,0" VerticalAlignment="Top" Width="156" Grid.Column="2"/>
+                    <Label Content="Set" HorizontalAlignment="Left" Margin="17,23,0,0" VerticalAlignment="Top" Width="43" Grid.ColumnSpan="2" Grid.Column="1"/>
+                    <TextBox Name ="txt_SetConcentrationValue"  HorizontalAlignment="Left" Margin="341,26,0,0" TextWrapping="Wrap" Text="0" VerticalAlignment="Top" Width="120" Grid.Column="2"/>
+                    <Button Name="btn_SetConcentration" Content=" GO " HorizontalAlignment="Left" Margin="487,24,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.492,0.38" Click="btn_SetConcentration_Click" Grid.Column="2"/>
+                    <ComboBox ItemsSource="{Binding Path=AllCellTypes}" x:Name="combo_SelectCellTypeToKill" HorizontalAlignment="Left" Margin="235,68,0,0" VerticalAlignment="Top" Width="186" Grid.Column="2" DropDownOpened="RefreshCellTypeList"/>
+                    <Label Content="Kill all" HorizontalAlignment="Left" Margin="189,66,0,0" VerticalAlignment="Top" Width="117" Grid.Column="2"/>
+                    <Button Name="btn_KillCellsOfType"  Content=" GO " HorizontalAlignment="Left" Margin="487,71,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.492,0.38" Grid.Column="2" Click="btn_KillCells"/>
+                    <Label Content="cells" HorizontalAlignment="Left" Margin="430,66,0,0" VerticalAlignment="Top" Width="40" Grid.Column="2"/>
                 </Grid>
             </TabItem>
         </TabControl>
@@ -223,7 +280,7 @@
                 <Label Name="saveDirLabel" Content="Save Directory: "  HorizontalAlignment="Left" Margin="0,0,0,0" MaxWidth="320"/>
                 <Button HorizontalAlignment="Left" Content="..." FontSize="12" Margin="10,2,2,2" VerticalAlignment="Bottom" Width="30" Height="20" Click="SetSaveDirClick"/>
             </StackPanel>
-            
+
         </Grid>
 
     </Grid>

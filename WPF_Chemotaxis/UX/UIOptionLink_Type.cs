@@ -29,23 +29,23 @@ namespace WPF_Chemotaxis.UX
             }
         }
 
-        public UIOptionLink_Type(string label, object target, FieldInfo field, bool nullable) : base(label, target, field, nullable)
+        public UIOptionLink_Type(string label, object target, PropertyInfo prop, bool nullable) : base(label, target, prop, nullable)
         {
-            this.type = field.FieldType;
+            this.type = prop.PropertyType;
             Type baseType = this.type;
 
-            if (this.type == typeof(Type) && field.GetCustomAttribute<ClassChooserAttribute>().baseType != null) 
+            if (this.type == typeof(Type) && prop.GetCustomAttribute<ClassChooserAttribute>().baseType != null) 
             {
-                baseType = field.GetCustomAttribute<ClassChooserAttribute>().baseType;
+                baseType = prop.GetCustomAttribute<ClassChooserAttribute>().baseType;
             }
 
             FindClasses(baseType);
 
-            var val = field.GetValue(target);
+            var val = prop.GetValue(target);
             
             if (val != null)
             {
-                if (field.FieldType == typeof(Type))
+                if (prop.PropertyType == typeof(Type))
                 {
                     
                     SelectedItem = val;
@@ -75,21 +75,21 @@ namespace WPF_Chemotaxis.UX
 
         public void ChooseType(Type type)
         {
-            if (this.type == typeof(Type) && field.GetCustomAttribute<ClassChooserAttribute>().baseType != null)
+            if (this.type == typeof(Type) && prop.GetCustomAttribute<ClassChooserAttribute>().baseType != null)
             {
                 //Don't need to check, we're not creating instances, just setting a type variable.
-                field.SetValue(target, type);
+                prop.SetValue(target, type);
             }
             else
             {
 
                 if (type == null)
                 {
-                    field.SetValue(target, null);
+                    prop.SetValue(target, null);
                     return;
                 }
 
-                var currentClass = field.GetValue(target);
+                var currentClass = prop.GetValue(target);
 
                 if (currentClass != null)
                 {
@@ -100,10 +100,10 @@ namespace WPF_Chemotaxis.UX
 
                     if (link != null && Model.Model.MasterElementList.Contains(link))
                     {
-                        Model.Model.MasterElementList.Remove(link);
+                        Model.Model.Current.RemoveElement(link);
                     }
                 }
-                field.SetValue(target, Activator.CreateInstance(type));
+                prop.SetValue(target, Activator.CreateInstance(type));
             }
         }
     }

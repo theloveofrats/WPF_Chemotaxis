@@ -9,6 +9,8 @@ using WPF_Chemotaxis.UX;
 using Newtonsoft.Json;
 using Microsoft.Win32;
 using System.IO;
+using System.Collections.Specialized;
+using System.ComponentModel;
 
 namespace WPF_Chemotaxis.Model
 {
@@ -17,7 +19,7 @@ namespace WPF_Chemotaxis.Model
     /// being the access point for the model, and controlling its navigation. This should probably be split
     /// into two classes.
     /// </summary>
-    public class Model : ILinkable
+    public class Model : ILinkable, INotifyPropertyChanged
     {
         [Link]
         private static string label;
@@ -44,46 +46,103 @@ namespace WPF_Chemotaxis.Model
                 current.freezeAdditions = value;
             }
         }
-        public static ObservableCollection<ILinkable> MasterElementList
+        public static ReadOnlyCollection<ILinkable> MasterElementList
         {
             get
             {
-                return current.masterElementList;
+                return new ReadOnlyCollection<ILinkable>(current.masterElementList);
             }
+        }
+
+        public void Clear()
+        {
+            masterElementList.Clear();
         }
 
         private static List<ILinkable> focusHistory = new();
 
-        private static int listFocus = 0;
+        private int listFocus = 0;
+        private int ListFocus 
+        { 
+            get
+            {
+                return listFocus;
+            } 
+            set
+            {
+
+                listFocus = value;
+                OnFocusModelElement();
+            }
+        }
+
+        public event EventHandler<NotifyCollectionChangedEventArgs> ModelChanged;
+        public event PropertyChangedEventHandler PropertyChanged;
+        public event EventHandler<EventArgs> FocusModelElement;
+
+        private void OnModelChanged(object sender, NotifyCollectionChangedEventArgs e)
+        {
+            if (ModelChanged != null)
+            {
+                ModelChanged(sender, e);
+            }
+        }
+
+        private void NotifyPropertyChanged(string info)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(info));
+        }
+
+        private void OnFocusModelElement()
+        {
+            FocusModelElement?.Invoke(this, new EventArgs());
+        }
 
         public Model()
         {
             current = this;
             focusHistory.Add(this);
+            masterElementList.CollectionChanged += OnModelChanged;
         }
 
-        public Model(string fromFile)
+        public void AddElement(ILinkable element)
         {
+            if (this.masterElementList.Contains(element)) return;
+            masterElementList.Add(element);
 
+            // All elements should tell the main model if they update parameters. That way,
+            // anything that needs to know about changes, like the VS system, can be notified.
+            // If the element doesn't implement INotifyPropertyChanged, it's probably not 
+            // relevant to watch it!
+            var castEl = (element as INotifyPropertyChanged);
+            if(castEl!=null) castEl.PropertyChanged += this.NotifyModelElementPropertyChanged;        
+        }
+
+        private void NotifyModelElementPropertyChanged(object source, PropertyChangedEventArgs e)
+        {
+            PropertyChanged?.Invoke(source, e);
         }
 
         public void RemoveElement(ILinkable element, ILinkable replacement=null)
         {
-            if(this.masterElementList.Contains(element)) this.masterElementList.Remove(element);
+            var castEl = (element as INotifyPropertyChanged);
+            if (castEl != null) castEl.PropertyChanged -= this.NotifyModelElementPropertyChanged;
 
+            if (this.masterElementList.Contains(element)) this.masterElementList.Remove(element);
             List<ILinkable> temp = masterElementList.ToList();
 
             foreach(ILinkable link in temp)
             {
                 link.RemoveElement(element, replacement);
             }
+            
         }
 
         public static ILinkable CurrentFocus
         {
             get
             {
-                return focusHistory[listFocus];
+                return focusHistory[Current.ListFocus];
             }
         }
 
@@ -91,7 +150,7 @@ namespace WPF_Chemotaxis.Model
         {
             get
             {
-                if (listFocus > 0) return focusHistory[--listFocus];
+                if (Current.ListFocus > 0) return focusHistory[--Current.listFocus];
                 else return focusHistory[0];
             }
         }
@@ -99,29 +158,29 @@ namespace WPF_Chemotaxis.Model
         {
             get
             {
-                if (listFocus < focusHistory.Count - 1) listFocus++;
-                return focusHistory[listFocus];
+                if (Current.ListFocus < focusHistory.Count - 1) Current.listFocus++;
+                return focusHistory[Current.ListFocus];
             }
         }
 
         public static void Reset()
         {
-            listFocus = 0;
+            Current.ListFocus = 0;
             focusHistory = new List<ILinkable>() {focusHistory[0]};
         }
 
         public static void SetNextFocus(ILinkable next)
         {
-            focusHistory = focusHistory.GetRange(0, listFocus+1);
+            focusHistory = focusHistory.GetRange(0, Current.ListFocus +1);
             focusHistory.Add(next);
-            listFocus++;
+            Current.ListFocus++;
         }
 
         string ILinkable.Name { get => "All Elements"; set => label=value;}
 
         string ILinkable.DisplayType => "Model Structure";
 
-        ObservableCollection<ILinkable> ILinkable.LinkList => MasterElementList;
+        ObservableCollection<ILinkable> ILinkable.LinkList => masterElementList;
 
         [ElementAdder(label = "Cell", type =typeof(CellType))]
         public void AddCell(CellType cell)
@@ -136,7 +195,7 @@ namespace WPF_Chemotaxis.Model
         }
 
         [ElementAdder(label = "Receptor", type = typeof(Receptor))]
-        public void AddLigand(Receptor receptor)
+        public void AddReceptor(Receptor receptor)
         {
 
         }
@@ -225,6 +284,11 @@ namespace WPF_Chemotaxis.Model
                 }
                 catch (JsonSerializationException e) { Console.WriteLine(e.Message); }
             }
+        }
+
+        public bool TryAddTo(ILinkable other)
+        {
+            return false;
         }
 
         /*public void DeserializeModel(bool clean)
