@@ -103,7 +103,7 @@ namespace WPF_Chemotaxis.VisualScripting
                                 }
                                 else
                                 {
-                                    Trace.WriteLine(string.Format("Found no arrowhead method named {0} in {1}", headmethod.Name, lineLink.Name));
+                                    Trace.WriteLine(string.Format("Found no arrowhead method for link in {0}",lineLink.Name));
                                 }
                                 MakeLine(lineTarget, vla, lineheadFunc, lineColorFunc);
                             }
