@@ -87,14 +87,26 @@ namespace WPF_Chemotaxis.CorePlugin
                     return;
                 }
 
-                double stimulus = cell.WeightedActiveReceptorFraction;
+                double stimulus = cell.WeightedActiveReceptorFractionNonNegative;
                 double mult = 1d / env.settings.DX;
 
+
+                double lerp = 0;
+                if (max_threshold == threshold) lerp = (stimulus >= threshold) ? 1 : 0;
+                else {
+                    lerp = Math.Clamp((stimulus - threshold) / (max_threshold - threshold), 0, 1);
+                    //if (max_threshold < threshold)
+                    //{
+                    //    lerp = 1 - lerp;
+                    //}
+                }
+
                 bool do_pulse = false;
-                if (threshold == 0 && max_threshold == 0)
+                if (lerp==1 || wavelength==0)
                 {
                     do_pulse = true;
                 }
+
                 else if (stimulus >= threshold) // If we're over the threshold
                 {
                     lock (rnd)
@@ -109,7 +121,7 @@ namespace WPF_Chemotaxis.CorePlugin
                     //If constant secretion
                     if (wavelength == 0)
                     {
-                        additional *= sim.Settings.dt;
+                        additional *= lerp*sim.Settings.dt;
                     }
                     additional /= cell.localPoints.Count;
 

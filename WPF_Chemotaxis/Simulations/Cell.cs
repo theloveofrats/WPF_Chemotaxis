@@ -60,6 +60,30 @@ namespace WPF_Chemotaxis.Simulations
                     num++;
                     val += ReceptorActivity(r) * ReceptorWeight(r);
                 }
+                if (num == 0) return 0;
+                val /= num;
+                return val;
+            }
+        }
+
+        public double WeightedActiveReceptorFractionNonNegative
+        {
+            get
+            {
+                double num = 0;
+                double val = 0;
+                double new_val = 0;
+                foreach (Receptor r in receptorActivities.Keys)
+                {
+                    new_val = ReceptorActivity(r) * ReceptorWeight(r);
+                    if (new_val >= 0) 
+                    {
+                        num++;
+                        val += new_val;
+                    }
+                }
+                if (num == 0) return 0;
+
                 val /= num;
                 return val;
             }

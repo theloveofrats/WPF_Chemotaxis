@@ -78,11 +78,6 @@
             "ComponentsUrl" = "8:"
                 "Items"
                 {
-                    "{EDC2488A-8267-493A-A98E-7D9C3B36CDF3}:Microsoft.NetCore.DesktopRuntime.6.0.x64"
-                    {
-                    "Name" = "8:.NET Desktop Runtime 6.0.6 (x64)"
-                    "ProductCode" = "8:Microsoft.NetCore.DesktopRuntime.6.0.x64"
-                    }
                 }
             }
         }
@@ -769,7 +764,7 @@
             }
             "{5259A561-127C-4D43-A0A1-72F10C7B3BF8}:_B36974353C5949F68898C20AA5FBCAF8"
             {
-            "SourcePath" = "8:..\\WPF_Chemotaxis\\obj\\x64\\Release\\net6.0-windows\\apphost.exe"
+            "SourcePath" = "8:..\\WPF_Chemotaxis\\obj\\Release\\net6.0-windows\\apphost.exe"
             "TargetName" = "8:"
             "Tag" = "8:"
             "Folder" = "8:_814C17F4221E4329A11B6FBC2F6476F7"

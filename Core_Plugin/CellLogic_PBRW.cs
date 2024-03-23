@@ -1,8 +1,10 @@
 ﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Windows;
+using System.Windows.Interop;
 using WPF_Chemotaxis.Model;
 using WPF_Chemotaxis.Simulations;
 using WPF_Chemotaxis.UX;
@@ -37,17 +39,22 @@ namespace WPF_Chemotaxis.CorePlugin
         [Param(Name = "Persistence", Min = 0, Max = 1)]                                             // Parameters that are shown in the parameters box have details entered in a tag above them.
         public CenteredDoubleRange persistence { get; set; } = new CenteredDoubleRange(0.75,0);     // so in this example, we have given it the on-screen name 'Persistence' and entered a min and max
                                                                                                     // which will stop people from putting in values lower than min or higher than max. A CentredDoubleRange(A,B)
-        [Param(Name = "Chemokinesis Factor", Min = 0)]                                              // is a custom type that will allow the parameter to average A whilst varying by B across a population.
+        [Param(Name = "Chemokinesis Factor")]                                              // is a custom type that will allow the parameter to average A whilst varying by B across a population.
         public CenteredDoubleRange chemokinesis { get; set; } = new CenteredDoubleRange(0,0);
 
-        [Param(Name = "Chemotaxis Strength", Min=0)]
-        public CenteredDoubleRange chemotaxis_power { get; set; } = new CenteredDoubleRange(20,0);
+        [Param(Name = "Temporal persistence")]
+        public double temporal_weight { get; set; } = 0;
 
-       
+        [Param(Name = "Chemotaxis Strength", Min = 0)]
+        public CenteredDoubleRange chemotaxis_power { get; set; } = new CenteredDoubleRange(20, 0);
+
+        [JsonIgnore]
+        private Dictionary<Cell, double> cachedOccupancies;
         // OKAY, I NEED A GAUSSIAN GENERATOR< LOOK UP MY PERSONAL RANDOM NUMBER GENERATOR!
 
         public virtual void Initialise(Simulation sim)                                              // Initialise is called once at the begining of a running simulation and lets you set up any logic you. 
-        {                                                                                           // need to before anything happens. I this case, I use it to:
+        {
+            cachedOccupancies = new();                                                              // need to before anything happens. I this case, I use it to:
             paramRefs.Clear();                                                                      //      A) react to user changes of parameter values (here, run the local function UpdateParams()) 
             this.PropertyChanged += (s, e) => UpdateParams(this, sim);                              //      B) put all cells in the register for looking up individual parameter values during the run.
             sim.CellAdded += this.RegisterCell;
@@ -70,6 +77,7 @@ namespace WPF_Chemotaxis.CorePlugin
                         PBRWParams par = new PBRWParams(e.NewCell.Id);
                         par.Update(this, sim);
                         paramRefs.Add(e.NewCell, par);
+                        cachedOccupancies.Add(e.NewCell, 0);
                     }
                 }
             }
@@ -92,26 +100,30 @@ namespace WPF_Chemotaxis.CorePlugin
             if (paramRefs.TryGetValue(cell, out checkrefs))
             {
 
-                Vector newDir = EnvironmentSnapshot(env, cell, checkrefs, out mean_activity);                                                 // EnvironmentSnapshot(env,cell,out mean_activity) returns a vector pointing in the
-                                                                                                                                              // direction of receptor activity bias for the Cell cell in the Environment env.
-                newDir += PersistenceDirection(cell, checkrefs);                                                                          // mean_activity (or whatever double you pass as an out variable in the third argument) 
-                                                                                                                                          //System.Diagnostics.Debug.Print(string.Format("PB dir:: ({0:0.00},{1:0.00})", newDir.X, newDir.Y));               // now contains the mean activity value of all receptors, between 0 and 1
-                                                                                                                                          // We also add the persistence direction here.
+                Vector newDir = EnvironmentSnapshot(env, cell, checkrefs, out mean_activity);                                                 // EnvironmentSnapshot(env,cell,out mean_activity) returns a vector pointing in the                                                                                                                                              // direction of receptor activity bias for the Cell cell in the Environment env.
+                
+                double temporalChange = (mean_activity - cachedOccupancies[cell])/sim.Settings.dt;
+                newDir += PersistenceDirection(cell, checkrefs, 1d+temporal_weight * temporalChange);                                               // mean_activity (or whatever double you pass as an out variable in the third argument) 
+                                                                                                                               // System.Diagnostics.Debug.Print(string.Format("PB dir:: ({0:0.00},{1:0.00})", newDir.        X, newDir.Y));               // now contains the mean activity value of all receptors, between 0 and 1
+                                                                                                                               // We also add the persistence direction here.
                 double chemokinesis = checkrefs == null ? 0 : checkrefs.chemokinesis;
 
-                newDir.Normalize();                                                                                                // We then normalise...
-                newDir *= (1d + chemokinesis * mean_activity) * cell.Speed;                                        // then multiply by cell speed to keep movement rate as expected.
+                double sig = 0;// 4000d*(temporalChange) / (1 + 4000d*Math.Abs((temporalChange)));
+                //sig = Math.Max(-0.25d, sig);
+                
+                newDir *= ((1d + chemokinesis * mean_activity) * (1d + sig*3d) ) * cell.Speed;                                        // then multiply by cell speed to keep movement rate as expected.
                 cell.UpdateIntendedMovementDirection(newDir.X, newDir.Y);
+                cachedOccupancies[cell] = mean_activity;
             }                                                                                                   // We then tell the main simulation where this cell wants to go. We do not put this cell there,
         }                                                                                                                      // because the main simulation might know about obstacles, other cells and flow that could
                                                                                                                                // make moving there impossible. 
-        private Vector PersistenceDirection(Cell cell, PBRWParams refs)                                                                                  // Time independent persistence calculation. This means that persistence behavour
+        private Vector PersistenceDirection(Cell cell, PBRWParams refs, double temporalChange)                                                                                  // Time independent persistence calculation. This means that persistence behavour
         {                                                                                                                               // remains constant under changes to simulation delta-t. If you want persistence, best
             double previousTheta = 0;      // use this as-is to find appropriate directional choices
 
             if (cell.vx==0 && cell.vy==0) previousTheta = refs.Rnd.NextDouble(-Math.PI, Math.PI); 
             else previousTheta = Math.Atan2(cell.vy, cell.vx);
-            double theta = refs.Rnd.NextGaussian(previousTheta, refs.sigma);
+            double theta = refs.Rnd.NextGaussian(previousTheta, refs.sigma/temporalChange); //tighter and more persistent if the temporalchange is positive.
             //System.Diagnostics.Debug.Print(string.Format("theta_a:: {0:0.00})", theta));
             theta = theta%(2*Math.PI);
 
