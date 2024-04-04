@@ -49,6 +49,7 @@ namespace WPF_Chemotaxis.Simulations
         /// <summary>
         /// Sum over all receptors r (weight_r * activity_r)
         /// </summary>
+        /// 
         public double WeightedActiveReceptorFraction
         {
             get
@@ -64,6 +65,30 @@ namespace WPF_Chemotaxis.Simulations
                 val /= num;
                 return val;
             }
+        }
+
+        public double GetWeightedActiveReceptorFraction(string filter, bool includeNegative = true)
+        {
+            double num = 0;
+            double val = 0;
+            double new_val = 0;
+
+            foreach (Receptor r in receptorActivities.Keys)
+            {
+                if (filter == string.Empty || r.ReceptorClass == filter)
+                {
+                    new_val = ReceptorActivity(r) * ReceptorWeight(r);
+                    if (includeNegative || new_val >= 0)
+                    {
+                        num++;
+                        val += new_val;
+                    }
+                }
+            }
+            if (num == 0) return 0;
+
+            val /= num;
+            return val;
         }
 
         public double WeightedActiveReceptorFractionNonNegative

@@ -27,6 +27,9 @@ namespace WPF_Chemotaxis.CorePlugin
                                                    // (Receptor here), so you can choose the one to plug in.
         public Ligand Output { get; set; } = null;
 
+        [Param(Name = "REceptor type filter (blank for all types)")]
+        public string ReceptorFilter { get; set; } = string.Empty;
+
 
         [Param(Name = "Threshold occupancy", Min = 0, Max = 1)]
         public double threshold { get; set; } = 0.6;
@@ -87,7 +90,7 @@ namespace WPF_Chemotaxis.CorePlugin
                     return;
                 }
 
-                double stimulus = cell.WeightedActiveReceptorFractionNonNegative;
+                double stimulus = cell.GetWeightedActiveReceptorFraction(filter:this.ReceptorFilter, includeNegative:false);
                 double mult = 1d / env.settings.DX;
 
 

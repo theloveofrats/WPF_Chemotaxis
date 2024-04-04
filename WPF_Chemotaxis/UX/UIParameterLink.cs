@@ -32,8 +32,6 @@ namespace WPF_Chemotaxis.UX
         public string value {
             get
             {
-
-
                 if (targetProperty.PropertyType == typeof(CenteredDoubleRange))
                 {
                     CenteredDoubleRange range = (CenteredDoubleRange)targetProperty.GetValue(targetObject);
@@ -94,9 +92,6 @@ namespace WPF_Chemotaxis.UX
                 }
 
 
-
-
-
                 // Try to parse the passed-in value as an int, a double or a bool. Let's just say there aren't other types used! 
                 if (targetProperty.PropertyType == typeof(double))
                 {
@@ -124,6 +119,14 @@ namespace WPF_Chemotaxis.UX
                 {
                     bool val;
                     if (Boolean.TryParse(value, out val))
+                    {
+                        targetProperty.SetValue(targetObject, val);
+                    }
+                }
+                else if (targetProperty.PropertyType == typeof(string))
+                {
+                    string val = value.Trim();
+                    if (val != string.Empty)
                     {
                         targetProperty.SetValue(targetObject, val);
                     }

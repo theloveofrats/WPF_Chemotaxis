@@ -1,5 +1,8 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using PropertyChanged;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -17,6 +20,32 @@ namespace WPF_Chemotaxis.Model
     {
         public string label = "Receptor";
 
+        public static HashSet<string> AllReceptorClasses { get; private set; } = new();
+
+        [JsonProperty]
+        protected string _receptorClass = string.Empty;
+
+        [Param(Name = "Receptor type (e.g. GPCR, toll-like)")]
+        [DoNotCheckEquality]
+        public string ReceptorClass {
+            get
+            {
+                Debug.WriteLine("Getting current receptor class value.");
+                return _receptorClass;
+            }
+            set 
+            {
+                Debug.WriteLine(string.Format("Submitted RC value {0}", value));
+                if (value!=string.Empty) AllReceptorClasses.Add(value);
+                _receptorClass = value;
+                Debug.WriteLine("The following receptor classes exist:");
+                foreach(string rc in AllReceptorClasses)
+                {
+                    Debug.WriteLine(rc);
+                }
+            }
+        }
+
         [Link]
         public List<LigandReceptorRelation> ligandInteractions { get; private set; } = new();
 
@@ -28,6 +57,13 @@ namespace WPF_Chemotaxis.Model
         public Receptor(string label) : base(label)
         {
             Init();
+        }
+
+        protected override void Init()
+        {
+            Debug.WriteLine(string.Format("Running derived Receptor Init() for receptor {0} with _receptorClass {1}", Name, _receptorClass));
+            ReceptorClass = _receptorClass;
+            base.Init();
         }
 
         [ElementAdder(label = "Add Ligand", type = typeof(Ligand))]

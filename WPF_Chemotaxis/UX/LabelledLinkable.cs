@@ -10,6 +10,7 @@ using WPF_Chemotaxis.Model;
 using System.IO;
 using System.ComponentModel;
 using Newtonsoft.Json.Serialization;
+using System.Runtime.Serialization;
 
 namespace WPF_Chemotaxis.UX
 {
@@ -32,7 +33,13 @@ namespace WPF_Chemotaxis.UX
             
         }
 
-        protected void Init()
+        [OnDeserialized()]
+        private void OnDeserialized(StreamingContext context)
+        {
+            Init();
+        }
+
+        protected virtual void Init()
         {
             if (!Model.Model.FreezeAdditions)
             {
