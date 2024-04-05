@@ -22,6 +22,7 @@ using WPF_Chemotaxis.VisualScripting;
 using System.Windows.Media.Effects;
 using System.Windows.Documents;
 using System.Diagnostics;
+using System.Configuration;
 
 namespace WPF_Chemotaxis
 {
@@ -1071,6 +1072,39 @@ namespace WPF_Chemotaxis
                     }
                 }
             }
+        }
+
+        private void btn_SubmitBugReport_Click(object sender, RoutedEventArgs e)
+        {
+            string to = ConfigurationManager.AppSettings["TrelloAddress"];
+            to += "@boards.trello.com";
+             
+            if (textbox_BugTitle.Text == null || textbox_BugTitle.Text.Trim() == "") return;
+
+            string body = $"SUBMITTED BY {textbox_ContactAddress.Text}.";
+
+            body += "\n\nDESCRIPTION. \n";
+            body += textbox_BugDesc.Text;
+            body += "\n\nREPRODUCTION STEPS. \n";
+            body += textbox_BugRepro.Text;
+
+            string basePath = System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData) + "\\Dynad Simulations";
+
+            if (File.Exists(basePath + consoleFile))
+            {
+                Stream stream = File.Open(basePath+consoleFile, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                StreamReader reader = new StreamReader(stream);
+                string str = reader.ReadToEnd();
+
+                body += "\n\nLOG. \n";
+                body += str;
+            }
+            body = Uri.EscapeDataString(body);
+
+            string subject = Uri.EscapeDataString(textbox_BugTitle.Text + " #_AUTOSUBMITTED_");
+
+            string mailTo = $"mailto:{to}?subject={subject}&body={body}";
+            Process.Start(new ProcessStartInfo(mailTo) { UseShellExecute = true });
         }
     }
 }
